@@ -1,0 +1,18 @@
+# kpcli
+
+
+- [] * copy field to clipboard
+- [] * toggle visibility of password
+- [] * one-liner to copy password to clipboard
+- [] * edit fields and save changes
+- [] * edit password and save changes
+- [] * quick help page (a la nano)
+- [] * settings page (a la keeweb)
+- [] * configuration file for colors and shortcuts
+
+
+- [] @ tests
+- [] @ add api documentation
+
+- [] ! sidebar navigation and entry navigation are inconsistent (one highlights and the other uses a tick)
+
