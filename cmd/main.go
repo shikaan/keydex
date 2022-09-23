@@ -32,5 +32,5 @@ func main() {
 
 	database := flag.Arg(0)
 
-	pages.Run(database, keyPath)
+	app.Run(database, keyPath)
 }

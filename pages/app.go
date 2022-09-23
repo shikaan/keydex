@@ -1,4 +1,4 @@
-package pages
+package app
 
 import (
 	"fmt"
@@ -15,13 +15,19 @@ func Run(database, keyPath string) error {
 	fmt.Println("Insert password: ")
 
 	pwd, err := term.ReadPassword(int(syscall.Stdin))
-	handleError(err)
+	if err != nil {
+		return err
+	}
 
 	kdbx, err := kdbx.New(database)
-	handleError(err)
+	if err != nil {
+		return err
+	}
 
 	err = kdbx.Unlock(string(pwd))
-	handleError(err)
+	if err != nil {
+		return err
+	}
 
 	app := tview.NewApplication()
 	router := tview.NewPages()
@@ -49,11 +55,4 @@ func openDialog(app *tview.Application, router *tview.Pages, modal *tview.Modal,
 		router.HidePage("ui")
 		app.SetFocus(lastFocused)
 	})
-
-}
-
-func handleError(e error) {
-	if e != nil {
-		panic(e)
-	}
 }
