@@ -3,6 +3,7 @@ package kdbx
 import (
 	"os"
 
+	"github.com/shikaan/kpcli/pkg/errors"
 	"github.com/tobischo/gokeepasslib"
 )
 
@@ -28,12 +29,11 @@ type Entry = gokeepasslib.Entry
 
 type Credentials = string // This will need to support files and so forth
 
-// Facade for gokeepasslib
 func New(filepath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
 	db := gokeepasslib.NewDatabase()
@@ -47,10 +47,12 @@ func (kdbx *Database) Unlock(password Credentials) error {
 	err := gokeepasslib.NewDecoder(kdbx.file).Decode(kdbx.db)
 
 	if err != nil {
-		return err
+		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-	kdbx.db.UnlockProtectedEntries()
+	// kdbx.db.UnlockProtectedEntries()
+
+	kdbx.db.LockProtectedEntries()
 
 	kdbx.parseUnlockedDatabase(*kdbx.db)
 	return nil
@@ -73,5 +75,3 @@ func parseGroups(root []gokeepasslib.Group) []Group {
 
 	return result
 }
-
-/// Errors

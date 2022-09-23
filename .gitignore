@@ -1,2 +1,3 @@
 kpcli.log
-*swp
+*.swp
+*.swo

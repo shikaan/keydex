@@ -1,4 +1,4 @@
-package open
+package home
 
 import (
 	"fmt"

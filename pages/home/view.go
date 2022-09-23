@@ -1,4 +1,4 @@
-package open
+package home
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 )
 
@@ -24,7 +25,7 @@ func footer() tview.Primitive {
 	view := tview.NewTextView()
 
 	view.SetBackgroundColor(tview.Styles.MoreContrastBackgroundColor)
-	fmt.Fprint(view, "kpcli: use arrows to navigate, Ctrl+ww to switch between panes")
+	fmt.Fprint(view, " arrows to navigate, Ctrl+ww to switch between panes")
 
 	return view
 }
@@ -103,7 +104,7 @@ func entryPage(e kdbx.Entry, onSelect func(content string)) tview.Primitive {
 	pwdIndex := e.GetPasswordIndex()
 
 	for idx, v := range e.Values {
-		content := e.GetContent(v.Key)
+		content := v.Value.Content
 
 		// NOt painting empty field. Might become a problem when
 		// adding a new field with the same label?
@@ -116,6 +117,7 @@ func entryPage(e kdbx.Entry, onSelect func(content string)) tview.Primitive {
 
 			if idx == pwdIndex {
 				field.SetMaskCharacter('*')
+				content = e.GetPassword()
 			}
 
 			field.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool { return false })
@@ -165,6 +167,7 @@ func Render(database kdbx.Database) error {
 	})
 
 	onCopyFieldContent := func(fieldContent string) {
+		clipboard.Write(fieldContent)
 		root.ShowPage("modal")
 	}
 
