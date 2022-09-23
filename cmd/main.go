@@ -1,30 +1,36 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"os"
+
 	"github.com/shikaan/kpcli/pages/home"
 	"github.com/shikaan/kpcli/pkg/logger"
-	"github.com/spf13/cobra"
 )
+
+func usage() {
+	fmt.Println("Usage: kpcli [OPTION]... [DATABASE PATH]")
+	fmt.Println("Open kdbx database located at [DATABASE PATH].")
+	fmt.Println("")
+	flag.PrintDefaults()
+}
 
 func main() {
 	l := logger.NewFileLogger(logger.Debug, "kpcli.log")
 	defer l.CleanUp()
 
-	var keyPath string
+	flag.Usage = usage
+	keyPath := *flag.String("key", "", "Path to the key file to unlock the database")
 
-	open := &cobra.Command{
-		Use:   "open [archive path]",
-		Short: "Open specified archive",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			home.Open(args[0], keyPath)
-		},
+	flag.Parse()
+
+	if len(flag.Args()) != 1 {
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	open.PersistentFlags().StringVar(&keyPath, "key", "k", "path to the key file")
+	database := flag.Arg(0)
 
-	root := &cobra.Command{Use: "kpcli"}
-	root.AddCommand(open)
-
-	root.Execute()
+	home.Open(database, keyPath)
 }
