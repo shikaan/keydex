@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shikaan/kpcli/pages/home"
+	"github.com/shikaan/kpcli/pages"
 	"github.com/shikaan/kpcli/pkg/logger"
 )
 
@@ -32,5 +32,5 @@ func main() {
 
 	database := flag.Arg(0)
 
-	home.Open(database, keyPath)
+	pages.Run(database, keyPath)
 }

@@ -1,4 +1,4 @@
-package home
+package explore
 
 import (
 	"fmt"
@@ -145,30 +145,13 @@ func entryPage(e kdbx.Entry, onSelect func(content string)) tview.Primitive {
 	return form
 }
 
-func Render(database kdbx.Database) error {
-	app := tview.NewApplication()
-	root := tview.NewPages()
-	flex := tview.NewFlex()
-
-	// TODO: make me a toaster
-	modal := tview.NewModal()
-	modal.SetText("Copied to clipboard")
-	modal.AddButtons([]string{"ok"})
-
-	root.
-		AddPage("main", flex, true, true).
-		AddPage("modal", modal, true, false)
-
+func Render(database kdbx.Database, openModal func(msg string), setFocus func(p tview.Primitive)) tview.Primitive {
+	root := tview.NewFlex()
 	m := main().(*tview.Pages)
-
-	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-		root.HidePage("modal")
-		app.SetFocus(m)
-	})
 
 	onCopyFieldContent := func(fieldContent string) {
 		clipboard.Write(fieldContent)
-		root.ShowPage("modal")
+		openModal("Copied to the clipboard")
 	}
 
 	onSelectedEntry := func(e kdbx.Entry) {
@@ -180,12 +163,16 @@ func Render(database kdbx.Database) error {
 			m.AddAndSwitchToPage(id, entryPage(e, onCopyFieldContent), true)
 		}
 
-		app.SetFocus(m)
+		setFocus(m)
 	}
 
 	sb := sidebar(database.Groups, onSelectedEntry)
 
-	flex.SetDirection(tview.FlexRow).
+	root.SetFocusFunc(func() {
+		setFocus(sb)
+	})
+
+	root.SetDirection(tview.FlexRow).
 		AddItem(header(database), 1, 0, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 			AddItem(sb, 0, 3, true).
@@ -196,13 +183,14 @@ func Render(database kdbx.Database) error {
 		AddItem(footer(), 1, 0, false)
 
 	var isSelecting bool
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+
+	root.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyCtrlW {
 			if isSelecting {
 				if sb.HasFocus() {
-					app.SetFocus(m)
+					setFocus(m)
 				} else {
-					app.SetFocus(sb)
+					setFocus(sb)
 				}
 			} else {
 				isSelecting = true
@@ -217,5 +205,5 @@ func Render(database kdbx.Database) error {
 		return event
 	})
 
-	return app.SetRoot(root, true).SetFocus(sb).Run()
+	return root
 }
