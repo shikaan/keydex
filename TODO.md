@@ -1,7 +1,7 @@
 # kpcli
 
 
-- [] * copy field to clipboard
+- [x] * copy field to clipboard
 - [] * toggle visibility of password
 - [] * one-liner to copy password to clipboard
 - [] * edit fields and save changes
