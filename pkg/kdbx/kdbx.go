@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/tobischo/gokeepasslib"
+	"github.com/tobischo/gokeepasslib/v3"
 )
 
 type Database struct {
@@ -50,9 +50,7 @@ func (kdbx *Database) Unlock(password Credentials) error {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-	// kdbx.db.UnlockProtectedEntries()
-
-	kdbx.db.LockProtectedEntries()
+  kdbx.db.UnlockProtectedEntries()
 
 	kdbx.parseUnlockedDatabase(*kdbx.db)
 	return nil

@@ -7,6 +7,7 @@ import (
 
 	"github.com/shikaan/kpcli/pages"
 	"github.com/shikaan/kpcli/pkg/logger"
+	"github.com/shikaan/kpcli/pkg/style"
 )
 
 func usage() {
@@ -32,5 +33,6 @@ func main() {
 
 	database := flag.Arg(0)
 
-	app.Run(database, keyPath)
+	style.SetTheme("light")
+	app.Run(database, keyPath, l)
 }

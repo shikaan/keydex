@@ -9,9 +9,10 @@ import (
 	"github.com/rivo/tview"
 	"github.com/shikaan/kpcli/pages/explore"
 	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/kpcli/pkg/logger"
 )
 
-func Run(database, keyPath string) error {
+func Run(database, keyPath string, logger *logger.Logger) error {
 	fmt.Println("Insert password: ")
 
 	pwd, err := term.ReadPassword(int(syscall.Stdin))
@@ -37,7 +38,7 @@ func Run(database, keyPath string) error {
 	setFocus := func(p tview.Primitive) { app.SetFocus(p) }
 
 	router.
-		AddPage("explore", explore.Render(*kdbx, openDialog, setFocus), true, true).
+		AddPage("explore", explore.Render(*kdbx, openDialog, setFocus, logger), true, true).
 		AddPage("ui", modal, true, false)
 
 	return app.SetRoot(router, true).Run()

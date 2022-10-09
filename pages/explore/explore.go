@@ -8,12 +8,13 @@ import (
 	"github.com/rivo/tview"
 	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/kpcli/pkg/logger"
+	"github.com/shikaan/kpcli/pkg/style"
 )
 
 func header(database kdbx.Database) tview.Primitive {
 	view := tview.NewTextView()
 
-	view.SetBackgroundColor(tview.Styles.ContrastBackgroundColor)
 	view.SetTextAlign(tview.AlignCenter)
 
 	fmt.Fprintf(view, "kpcli: %s", database.Name)
@@ -24,7 +25,6 @@ func header(database kdbx.Database) tview.Primitive {
 func footer() tview.Primitive {
 	view := tview.NewTextView()
 
-	view.SetBackgroundColor(tview.Styles.MoreContrastBackgroundColor)
 	fmt.Fprint(view, " arrows to navigate, Ctrl+ww to switch between panes")
 
 	return view
@@ -48,16 +48,12 @@ func sidebar(groups []kdbx.Group, selectEntry func(kdbx.Entry)) *tview.TreeView 
 			newTitle := string([]rune(node.GetText())[1:])
 
 			if node.IsExpanded() {
-				node.SetText("▼" + newTitle)
+				node.SetText(style.OpenTreeIcon + newTitle)
 			} else {
-				node.SetText("▶" + newTitle)
+				node.SetText(style.ClosedTreeIcon + newTitle)
 			}
 		}
 	})
-
-	//TODO: hoe to ighlight it's in use? idea: blinking cursor
-	tree.SetFocusFunc(func() { tree.SetBackgroundColor(tcell.ColorGray) })
-	tree.SetBlurFunc(func() { tree.SetBackgroundColor(tcell.ColorBlack) })
 
 	return tree
 }
@@ -66,7 +62,7 @@ func makeTree(root *tview.TreeNode, groups []kdbx.Group, entries []kdbx.Entry) *
 	tree := tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
 
 	for _, g := range groups {
-		node := tview.NewTreeNode("▶ " + g.Name)
+		node := tview.NewTreeNode(style.ClosedTreeIcon + " " + g.Name)
 		node.SetReference(g)
 		node.SetExpanded(false)
 		makeTree(node, g.Groups, g.Entries)
@@ -74,7 +70,7 @@ func makeTree(root *tview.TreeNode, groups []kdbx.Group, entries []kdbx.Entry) *
 	}
 
 	for _, e := range entries {
-		node := tview.NewTreeNode("  " + e.GetTitle())
+		node := tview.NewTreeNode(e.GetTitle())
 		node.SetReference(e)
 		node.SetSelectable(true)
 		root.AddChild(node)
@@ -106,7 +102,7 @@ func entryPage(e kdbx.Entry, onSelect func(content string)) tview.Primitive {
 	for idx, v := range e.Values {
 		content := v.Value.Content
 
-		// NOt painting empty field. Might become a problem when
+		// Not painting empty field. Might become a problem when
 		// adding a new field with the same label?
 		if content != "" {
 			field := tview.NewInputField()
@@ -145,13 +141,13 @@ func entryPage(e kdbx.Entry, onSelect func(content string)) tview.Primitive {
 	return form
 }
 
-func Render(database kdbx.Database, openModal func(msg string), setFocus func(p tview.Primitive)) tview.Primitive {
+func Render(database kdbx.Database, openModal func(msg string), setFocus func(p tview.Primitive), logger *logger.Logger) tview.Primitive {
 	root := tview.NewFlex()
 	m := main().(*tview.Pages)
 
 	onCopyFieldContent := func(fieldContent string) {
-		clipboard.Write(fieldContent)
-		openModal("Copied to the clipboard")
+    clipboard.Write(fieldContent)
+    openModal("Copied to the clipboard")
 	}
 
 	onSelectedEntry := func(e kdbx.Entry) {
