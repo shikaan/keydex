@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/shikaan/kpcli/pkg/kdbx"
-	"github.com/shikaan/kpcli/pkg/logger"
 )
 
-func List(database, keyPath, password string, logger *logger.Logger) error {
-	kdbx, err := kdbx.New(database)
+func List(databasePath, keyPath, password string) error {
+	kdbx, err := kdbx.New(databasePath)
 	if err != nil {
 		return err
 	}
@@ -18,10 +17,8 @@ func List(database, keyPath, password string, logger *logger.Logger) error {
 		return err
 	}
 
-  paths, _ := kdbx.ListPaths()
-
-  for _, p := range paths {
-    fmt.Println(p)
+  for k := range kdbx.Entries {
+    fmt.Println(k)
   }
 
   return nil
