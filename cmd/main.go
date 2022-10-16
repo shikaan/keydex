@@ -5,34 +5,58 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shikaan/kpcli/pages"
-	"github.com/shikaan/kpcli/pkg/logger"
-	"github.com/shikaan/kpcli/pkg/style"
+	"github.com/shikaan/kpcli/pkg/errors"
 )
 
 func usage() {
-	fmt.Println("Usage: kpcli [OPTION]... [DATABASE PATH]")
-	fmt.Println("Open kdbx database located at [DATABASE PATH].")
+	fmt.Println("Usage: kpcli [COMMAND] [OPTION]... [DATABASE PATH]")
+  // TODO: make a prettier help
+  // fmt.Println("Open kdbx database located at [DATABASE PATH].")
 	fmt.Println("")
 	flag.PrintDefaults()
 }
 
 func main() {
-	l := logger.NewFileLogger(logger.Debug, "kpcli.log")
-	defer l.CleanUp()
-
 	flag.Usage = usage
 	keyPath := *flag.String("key", "", "Path to the key file to unlock the database")
+	password := *flag.String("password", "", "Password to unlock the database")
 
 	flag.Parse()
 
-	if len(flag.Args()) != 1 {
+	if len(flag.Args()) != 2 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	database := flag.Arg(0)
+  if keyPath == "" {
+    keyPath = os.Getenv("KPCLI_KEY")
+  }
 
-	style.SetTheme("light")
-	app.Run(database, keyPath, l)
+  if password == "" {
+    password = os.Getenv("KPCLI_PASSWORD")
+  }
+
+	command := flag.Arg(0)
+  databasePath := flag.Arg(1)
+  var err error
+
+  switch(command) {
+  case "list":
+    err = List(databasePath, keyPath, password)
+  case "copy":
+    err = Copy(databasePath, keyPath, password)
+  case "preview":
+    err = Preview(databasePath, keyPath, password)
+  default:
+    err = errors.MakeError(fmt.Sprintf("Unrecognized command. Got '%s', expected one of '%s, %s', %s", command, "list", "open", "preview"), "command")
+  }
+  
+  handle(err)
+}
+
+func handle(err error) {
+  if err != nil {
+    println(err.Error())
+    os.Exit(1)
+  }
 }

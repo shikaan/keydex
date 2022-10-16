@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/kpcli/pkg/utils"
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
@@ -15,6 +16,7 @@ type Database struct {
 	Description string
 
 	Groups []Group
+  Entries map[EntryPath]Entry
 }
 
 type Group struct {
@@ -26,6 +28,9 @@ type Group struct {
 }
 
 type Entry = gokeepasslib.Entry
+
+// A string like "/Database/Group/EntryName"
+type EntryPath = string 
 
 type Credentials = string // This will need to support files and so forth
 
@@ -39,6 +44,20 @@ func New(filepath string) (*Database, error) {
 	db := gokeepasslib.NewDatabase()
 
 	return &Database{db: db, file: file}, nil
+}
+
+func NewUnlocked(filepath string, password Credentials) (*Database, error) {
+  kdbx, err := New(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = kdbx.Unlock(password)
+	if err != nil {
+		return nil, err
+	}
+
+  return kdbx, nil
 }
 
 func (kdbx *Database) Unlock(password Credentials) error {
@@ -60,16 +79,27 @@ func (kdbx *Database) parseUnlockedDatabase(db gokeepasslib.Database) {
 	kdbx.Name = db.Content.Meta.DatabaseName
 	kdbx.Description = db.Content.Meta.DatabaseDescription
 
-	kdbx.Groups = parseGroups(db.Content.Root.Groups)
+	kdbx.Groups, kdbx.Entries = parseGroups(db.Content.Root.Groups, "")
 }
 
-func parseGroups(root []gokeepasslib.Group) []Group {
-	var result []Group
+func parseGroups(root []gokeepasslib.Group, prefix string) ([]Group, map[EntryPath]Entry) {
+  groups := []Group{}
+  entries := map[EntryPath]Entry{}
 
 	for _, g := range root {
-		group := Group{Name: g.Name, Entries: g.Entries, Groups: parseGroups(g.Groups)}
-		result = append(result, group)
+    groupPrefix := prefix + "/" + g.Name
+    subGroups, subEntries := parseGroups(g.Groups, groupPrefix)
+    
+    for _, e := range g.Entries {
+      subEntries[prefix + "/" + e.GetTitle()] = e
+    }
+
+    group := Group{Name: g.Name, Entries: g.Entries, Groups: subGroups}	
+    groups = append(groups, group) 
+    
+    entries = utils.Merge(entries, subEntries)
 	}
 
-	return result
+	return groups, entries
 }
+
