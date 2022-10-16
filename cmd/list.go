@@ -7,15 +7,10 @@ import (
 )
 
 func List(databasePath, keyPath, password string) error {
-	kdbx, err := kdbx.New(databasePath)
-	if err != nil {
-		return err
-	}
-
-	err = kdbx.Unlock(password)
-	if err != nil {
-		return err
-	}
+  kdbx, err := kdbx.NewUnlocked(databasePath, password)
+  if err != nil {
+    return err
+  }
 
   for k := range kdbx.Entries {
     fmt.Println(k)

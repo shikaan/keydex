@@ -46,6 +46,20 @@ func New(filepath string) (*Database, error) {
 	return &Database{db: db, file: file}, nil
 }
 
+func NewUnlocked(filepath string, password Credentials) (*Database, error) {
+  kdbx, err := New(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = kdbx.Unlock(password)
+	if err != nil {
+		return nil, err
+	}
+
+  return kdbx, nil
+}
+
 func (kdbx *Database) Unlock(password Credentials) error {
 	kdbx.db.Credentials = gokeepasslib.NewPasswordCredentials(password)
 

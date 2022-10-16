@@ -14,15 +14,10 @@ import (
 func Copy(databasePath, keyPath, password string) error { 
   reference := readReferenceFromStdin()
 
-  kdbx, err := kdbx.New(databasePath)
-	if err != nil {
-		return err
-	}
-
-	err = kdbx.Unlock(password)
-	if err != nil {
-		return err
-	}
+  kdbx, err := kdbx.NewUnlocked(databasePath, password)
+  if err != nil {
+    return err
+  }
 
   if entry, ok := kdbx.Entries[reference]; ok {
     clipboard.Write(entry.GetPassword())

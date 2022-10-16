@@ -2,7 +2,6 @@
 
 
 - [x] * copy field to clipboard
-- [] ! style
 - [] * toggle visibility of password
 - [] * one-liner to copy password to clipboard
 - [] * edit fields and save changes
@@ -12,9 +11,6 @@
 - [] * settings page (a la keeweb)
 - [] * configuration file for colors and shortcuts
 
-
 - [] @ tests
 - [] @ add api documentation
-
-- [] ! sidebar navigation and entry navigation are inconsistent (one highlights and the other uses a tick)
 

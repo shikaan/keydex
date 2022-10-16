@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/logger"
 )
 
 func usage() {
@@ -18,9 +17,6 @@ func usage() {
 }
 
 func main() {
-	l := logger.NewFileLogger(logger.Debug, "kpcli.log")
-	defer l.CleanUp()
-
 	flag.Usage = usage
 	keyPath := *flag.String("key", "", "Path to the key file to unlock the database")
 	password := *flag.String("password", "", "Password to unlock the database")
@@ -49,8 +45,10 @@ func main() {
     err = List(databasePath, keyPath, password)
   case "copy":
     err = Copy(databasePath, keyPath, password)
+  case "preview":
+    err = Preview(databasePath, keyPath, password)
   default:
-    err = errors.MakeError(fmt.Sprintf("Unrecognized command. Got '%s', expected one of '%s, %s'", command, "list", "open"), "command")
+    err = errors.MakeError(fmt.Sprintf("Unrecognized command. Got '%s', expected one of '%s, %s', %s", command, "list", "open", "preview"), "command")
   }
   
   handle(err)
