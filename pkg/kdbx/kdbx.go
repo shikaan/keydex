@@ -56,6 +56,10 @@ func (kdbx *Database) Unlock(password Credentials) error {
 	return nil
 }
 
+func (kdbx *Database) ListPaths() ([]string, error) {
+  return listGroup(kdbx.Groups, "")
+} 
+
 func (kdbx *Database) parseUnlockedDatabase(db gokeepasslib.Database) {
 	kdbx.Name = db.Content.Meta.DatabaseName
 	kdbx.Description = db.Content.Meta.DatabaseDescription
@@ -72,4 +76,19 @@ func parseGroups(root []gokeepasslib.Group) []Group {
 	}
 
 	return result
+}
+
+func listGroup(groups []Group, prefix string) ([]string, error) {
+  paths := []string{}
+
+  for _, g := range groups {
+    subPaths, _ := listGroup(g.Groups, prefix + "/" + g.Name)
+    paths = append(paths, subPaths...)
+  
+    for _, e := range g.Entries {
+      paths = append(paths, prefix + "/" + e.GetTitle()) 
+    }
+  }
+  
+  return paths, nil
 }

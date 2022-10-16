@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shikaan/kpcli/pages"
 	"github.com/shikaan/kpcli/pkg/logger"
-	"github.com/shikaan/kpcli/pkg/style"
 )
 
 func usage() {
@@ -22,7 +20,8 @@ func main() {
 	defer l.CleanUp()
 
 	flag.Usage = usage
-	keyPath := *flag.String("key", "", "Path to the key file to unlock the database")
+	keyPath := *flag.String("key", os.Getenv("KPCLI_KEY"), "Path to the key file to unlock the database")
+	password := *flag.String("password", os.Getenv("KPCLI_PASSWORD"), "Password to unlock the database")
 
 	flag.Parse()
 
@@ -33,6 +32,9 @@ func main() {
 
 	database := flag.Arg(0)
 
-	style.SetTheme("light")
-	app.Run(database, keyPath, l)
+  err := List(database, keyPath, password, l)
+
+  if err != nil {
+    println(err.Error())
+  }
 }
