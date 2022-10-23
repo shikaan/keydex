@@ -5,16 +5,33 @@ Keepass compatible CLI
 
 ## Usage
 
-Opening database
+
+```sh
+# opens the fuzzy search and copies the selected field
+kpcli browse copy --field="password" ~/.local/share/vaults/example.kdbx
+
+# opens the fuzzy search and edits the selected entry
+kpcli browse edit ~/.local/share/vaults/example.kdbx
+
+# copies the field from the referenced entry (or stdinput)
+kpcli copy --field="password" ~/.local/share/vaults/example.kdbx REF
+
+# edits the referenced entry (or stdinput)
+kpcli edit ~/.local/share/vaults/example.kdbx REF
+
+# lists all the entries, to be used with fzf
+kpcli list ~/.local/share/vaults/example.kdbx
+```
+
+Examples
+
+With fzf
 
 ```
-  kpcli open --password pwd --key key file
+kpcli list ~/.local/share/vaults/example.kdbx | fzf | kpcli copy ~/.local/share/vaults/example.kdbx  
 ```
 
-- shows UI, you can highlight and copy to clipboard
--- passowrd should be hidden with *s, you toggle to see
+Get entry
+```
 
-------
-
--- should be able to edit and save
--- sync with google drive
+```
