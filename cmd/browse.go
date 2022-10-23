@@ -54,19 +54,20 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
 func previewEntry(e kdbx.Entry) string {
   s := &strings.Builder{}
 
-  s.WriteString(e.GetTitle())
+  s.WriteString(e.Name)
   s.WriteString("\n")
 
-  for i, v := range e.Values {
-    if v.Key == "Title" || v.Value.Content == "" {
+  // TODO: this seems to not be deterministic (order of values changes across rerenders)
+  for k, v := range e.Fields {
+    if k == "Title" || v == "" {
       continue
     }
     
     s.WriteString("\n")
-    if i == e.GetPasswordIndex() {
+    if k == kdbx.PASSWORD_KEY {
       s.WriteString("Password: ***") 
     } else {
-      s.WriteString(fmt.Sprintf("%s: %s", v.Key, v.Value.Content))
+      s.WriteString(fmt.Sprintf("%s: %s", k, v))
     }
   }
 

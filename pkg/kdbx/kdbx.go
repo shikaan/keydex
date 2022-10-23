@@ -8,6 +8,8 @@ import (
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
+var PASSWORD_KEY = "password"
+
 type Database struct {
 	db   *gokeepasslib.Database
 	file *os.File
@@ -15,8 +17,8 @@ type Database struct {
 	Name        string
 	Description string
 
-	Groups []Group
-  Entries map[EntryPath]Entry
+	Groups  []Group
+	Entries map[EntryPath]Entry
 }
 
 type Group struct {
@@ -27,10 +29,14 @@ type Group struct {
 	Entries []Entry
 }
 
-type Entry = gokeepasslib.Entry
+type Entry struct {
+  Name string
+  
+  Fields map[string]string
+}
 
 // A string like "/Database/Group/EntryName"
-type EntryPath = string 
+type EntryPath = string
 
 type Credentials = string // This will need to support files and so forth
 
@@ -47,7 +53,7 @@ func New(filepath string) (*Database, error) {
 }
 
 func NewUnlocked(filepath string, password Credentials) (*Database, error) {
-  kdbx, err := New(filepath)
+	kdbx, err := New(filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +63,7 @@ func NewUnlocked(filepath string, password Credentials) (*Database, error) {
 		return nil, err
 	}
 
-  return kdbx, nil
+	return kdbx, nil
 }
 
 func (kdbx *Database) Unlock(password Credentials) error {
@@ -69,7 +75,7 @@ func (kdbx *Database) Unlock(password Credentials) error {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-  kdbx.db.UnlockProtectedEntries()
+	kdbx.db.UnlockProtectedEntries()
 
 	kdbx.parseUnlockedDatabase(*kdbx.db)
 	return nil
@@ -83,23 +89,43 @@ func (kdbx *Database) parseUnlockedDatabase(db gokeepasslib.Database) {
 }
 
 func parseGroups(root []gokeepasslib.Group, prefix string) ([]Group, map[EntryPath]Entry) {
-  groups := []Group{}
-  entries := map[EntryPath]Entry{}
+	groups := []Group{}
+	entries := map[EntryPath]Entry{}
 
 	for _, g := range root {
-    groupPrefix := prefix + "/" + g.Name
-    subGroups, subEntries := parseGroups(g.Groups, groupPrefix)
-    
-    for _, e := range g.Entries {
-      subEntries[prefix + "/" + e.GetTitle()] = e
+		groupPrefix := prefix + "/" + g.Name
+		subGroups, subEntries := parseGroups(g.Groups, groupPrefix)
+    parsedEntries := []Entry{}
+
+		for _, e := range g.Entries {
+      entry := makeEntry(e)
+
+			subEntries[prefix+"/"+e.GetTitle()] = entry
+		  parsedEntries = append(parsedEntries, entry)
     }
 
-    group := Group{Name: g.Name, Entries: g.Entries, Groups: subGroups}	
-    groups = append(groups, group) 
-    
-    entries = utils.Merge(entries, subEntries)
+		group := Group{Name: g.Name, Entries: parsedEntries, Groups: subGroups}
+		groups = append(groups, group)
+
+		entries = utils.Merge(entries, subEntries)
 	}
 
 	return groups, entries
 }
 
+func makeEntry(e gokeepasslib.Entry) Entry {
+  values := map[string]string{}
+
+  for i, v := range e.Values {
+    if i != e.GetPasswordIndex() {
+      values[v.Key] = v.Value.Content  
+    }
+  }
+
+  values[PASSWORD_KEY] = e.GetPassword()
+
+  return Entry{
+    Fields: values,
+    Name: e.GetTitle(),
+  }
+}

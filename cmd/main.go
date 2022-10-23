@@ -1,27 +1,47 @@
 package main
 
 import (
-	"fmt"
+	"path/filepath"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
+	"github.com/spf13/cobra"
+
 	"github.com/shikaan/kpcli/pkg/credentials"
 	"github.com/shikaan/kpcli/pkg/kdbx"
-	"github.com/spf13/cobra"
 )
 
-var key string
-var password string
+func main() {
+	var rootCmd = &cobra.Command{
+		Use:   "kpcli",
+		Short: "Work with KeePass databases from your terminal",
+	}
+	
+
+  browseCmd.AddCommand(browseCopyCmd)
+	rootCmd.AddCommand(copyCmd)
+	rootCmd.AddCommand(browseCmd)
+  
+  rootCmd.PersistentFlags().StringP("key", "k", "", "Path to the key file to unlock the database")
+  copyCmd.Flags().StringP("field", "f", "password", "field to retrieve")
+  browseCopyCmd.Flags().StringP("field", "f", "password", "field to retrieve")
+
+	e := rootCmd.Execute()
+
+	if e != nil {
+		println(e.Error())
+	}
+}
 
 var copyCmd = &cobra.Command{
 	Short: "Copies the password of a reference to the clipboard",
 	Long:  "Copies the password for REF in the form /Group/Subgroup/Entry to the clipboard",
-	Args:  cobra.MinimumNArgs(2),
-	Use:   "copy REFERENCE DATABASE",
+	Use:   "copy DATABASE",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var reference = args[0]
-		var database = args[1]
-
-		return Copy(database, "", reference)
+    database := args[0] 
+		key := cmd.Flag("key").Value.String()
+    field := cmd.Flag("field").Value.String()
+    passphrase := credentials.GetPassphrase(database)
+		
+    return Copy(database, key, passphrase, field)
 	},
 }
 
@@ -36,38 +56,13 @@ var browseCopyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database := args[0]
 		key := cmd.Flag("key").Value.String()
-		password := credentials.GetPassphrase(database)
+		field := cmd.Flag("field").Value.String()
+    databaseName := filepath.Base(database)
+		password := credentials.GetPassphrase(databaseName)
 
 		return Browse(database, key, password, func(entry kdbx.Entry) error {
-
-			err := clipboard.Write(entry.GetPassword())
-
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("Password for \"%s\" copied to clipboard!\n", entry.GetTitle())
-			return nil
-		})
+			return CopyEntryField(entry, field)
+    })
 	},
 }
 
-func main() {
-	var rootCmd = &cobra.Command{
-		Use:   "kpcli",
-		Short: "Work with KeePass databases from your terminal",
-	}
-
-	rootCmd.PersistentFlags().StringVar(&key, "key", "", "Path to the key file to unlock the database")
-
-  browseCmd.AddCommand(browseCopyCmd)
-
-	rootCmd.AddCommand(copyCmd)
-	rootCmd.AddCommand(browseCmd)
-
-	e := rootCmd.Execute()
-
-	if e != nil {
-		println(e.Error())
-	}
-}

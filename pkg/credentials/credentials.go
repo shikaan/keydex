@@ -25,5 +25,6 @@ func readFromPrompt(promptMessage string) string {
 		}
 	}
 
+  fmt.Println("")
 	return result
 }
