@@ -6,13 +6,12 @@ import (
 
 	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/errors"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 )
 
-func Preview(databasePath, keyPath, password string) error {
-	kdbx, err := kdbx.NewUnlocked(databasePath, password)
+func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) error) error {
+	kdbx, err := kdbx.NewUnlocked(database, passphrase)
   if err != nil {
     return err
   }
@@ -22,7 +21,7 @@ func Preview(databasePath, keyPath, password string) error {
     keys = append(keys, k)
   }
 
-  idx, _ := fuzzyfinder.Find(
+  idx, err := fuzzyfinder.Find(
     keys,
     func(i int) string {
       return keys[i]
@@ -33,23 +32,26 @@ func Preview(databasePath, keyPath, password string) error {
       }
 
       if entry, ok := kdbx.Entries[keys[i]]; ok {
-        return renderEntry(entry)
+        return previewEntry(entry)
       }
 
       return ""
     }),
   )
 
+  if err != nil {
+    return err
+  }
+
   reference := keys[idx]
   if entry, ok := kdbx.Entries[reference]; ok {
-    clipboard.Write(entry.GetPassword())
-    return nil
+    return callback(entry)
   }
 
   return errors.MakeError("Unable to find entry at " + reference, "browse") 
 }
 
-func renderEntry(e kdbx.Entry) string {
+func previewEntry(e kdbx.Entry) string {
   s := &strings.Builder{}
 
   s.WriteString(e.GetTitle())

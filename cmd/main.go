@@ -1,62 +1,73 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"os"
 
-	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/kpcli/pkg/clipboard"
+	"github.com/shikaan/kpcli/pkg/credentials"
+	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/spf13/cobra"
 )
 
-func usage() {
-	fmt.Println("Usage: kpcli [COMMAND] [OPTION]... [DATABASE PATH]")
-  // TODO: make a prettier help
-  // fmt.Println("Open kdbx database located at [DATABASE PATH].")
-	fmt.Println("")
-	flag.PrintDefaults()
+var key string
+var password string
+
+var copyCmd = &cobra.Command{
+	Short: "Copies the password of a reference to the clipboard",
+	Long:  "Copies the password for REF in the form /Group/Subgroup/Entry to the clipboard",
+	Args:  cobra.MinimumNArgs(2),
+	Use:   "copy REFERENCE DATABASE",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var reference = args[0]
+		var database = args[1]
+
+		return Copy(database, "", reference)
+	},
+}
+
+var browseCmd = &cobra.Command{
+	Short: "Fuzzy search through the entries in DATABASE",
+	Use:   "browse [command] DATABASE",
+}
+
+var browseCopyCmd = &cobra.Command{
+  Use: "copy",
+  Short: "Copies entry field",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		database := args[0]
+		key := cmd.Flag("key").Value.String()
+		password := credentials.GetPassphrase(database)
+
+		return Browse(database, key, password, func(entry kdbx.Entry) error {
+
+			err := clipboard.Write(entry.GetPassword())
+
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Password for \"%s\" copied to clipboard!\n", entry.GetTitle())
+			return nil
+		})
+	},
 }
 
 func main() {
-	flag.Usage = usage
-	keyPath := *flag.String("key", "", "Path to the key file to unlock the database")
-	password := *flag.String("password", "", "Password to unlock the database")
-
-	flag.Parse()
-
-	if len(flag.Args()) != 2 {
-		flag.Usage()
-		os.Exit(1)
+	var rootCmd = &cobra.Command{
+		Use:   "kpcli",
+		Short: "Work with KeePass databases from your terminal",
 	}
 
-  if keyPath == "" {
-    keyPath = os.Getenv("KPCLI_KEY")
-  }
+	rootCmd.PersistentFlags().StringVar(&key, "key", "", "Path to the key file to unlock the database")
 
-  if password == "" {
-    password = os.Getenv("KPCLI_PASSWORD")
-  }
+  browseCmd.AddCommand(browseCopyCmd)
 
-	command := flag.Arg(0)
-  databasePath := flag.Arg(1)
-  var err error
+	rootCmd.AddCommand(copyCmd)
+	rootCmd.AddCommand(browseCmd)
 
-  switch(command) {
-  case "list":
-    err = List(databasePath, keyPath, password)
-  case "copy":
-    err = Copy(databasePath, keyPath, password)
-  case "preview":
-    err = Preview(databasePath, keyPath, password)
-  default:
-    err = errors.MakeError(fmt.Sprintf("Unrecognized command. Got '%s', expected one of '%s, %s', %s", command, "list", "open", "preview"), "command")
-  }
-  
-  handle(err)
-}
+	e := rootCmd.Execute()
 
-func handle(err error) {
-  if err != nil {
-    println(err.Error())
-    os.Exit(1)
-  }
+	if e != nil {
+		println(e.Error())
+	}
 }
