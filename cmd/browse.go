@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
@@ -20,6 +21,9 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
   for k := range kdbx.Entries {
     keys = append(keys, k)
   }
+  sort.Slice(keys, func(i, j int) bool {
+    return keys[i] > keys[j]
+  })
 
   idx, err := fuzzyfinder.Find(
     keys,
@@ -57,8 +61,9 @@ func previewEntry(e kdbx.Entry) string {
   s.WriteString(e.Name)
   s.WriteString("\n")
 
-  // TODO: this seems to not be deterministic (order of values changes across rerenders)
-  for k, v := range e.Fields {
+  for _, f := range e.Fields {
+    k := f[0]
+    v := f[1]
     if k == "Title" || v == "" {
       continue
     }

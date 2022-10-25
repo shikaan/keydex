@@ -8,7 +8,7 @@ import (
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
-var PASSWORD_KEY = "password"
+const PASSWORD_KEY = "password"
 
 type Database struct {
 	db   *gokeepasslib.Database
@@ -31,12 +31,17 @@ type Group struct {
 
 type Entry struct {
   Name string
-  
-  Fields map[string]string
+ 
+  Fields []Field
+
+  Password string
 }
+
 
 // A string like "/Database/Group/EntryName"
 type EntryPath = string
+
+type Field = [2]string
 
 type Credentials = string // This will need to support files and so forth
 
@@ -114,18 +119,19 @@ func parseGroups(root []gokeepasslib.Group, prefix string) ([]Group, map[EntryPa
 }
 
 func makeEntry(e gokeepasslib.Entry) Entry {
-  values := map[string]string{}
+  fields := []Field{}
 
-  for i, v := range e.Values {
-    if i != e.GetPasswordIndex() {
-      values[v.Key] = v.Value.Content  
+  for k, v := range e.Values {
+    if k != e.GetPasswordIndex() {
+      fields = append(fields, Field{ v.Key, v.Value.Content })
+    } else {
+      fields = append(fields, Field{ PASSWORD_KEY, v.Value.Content })
     }
   }
 
-  values[PASSWORD_KEY] = e.GetPassword()
-
   return Entry{
-    Fields: values,
+    Fields: fields,
     Name: e.GetTitle(),
+    Password: e.GetPassword(),
   }
 }

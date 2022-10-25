@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 
@@ -13,46 +12,31 @@ import (
 
 // Reads reference from stdin and attempts to copy password
 // of referenced entry to the clipboard
-func Copy(databasePath, keyPath, passphrase, field string) error { 
-  reference := readReferenceFromStdin()
-
-  println(reference)
-
+func Copy(databasePath, keyPath, passphrase string) error { 
+  reference, err := readReferenceFromStdin()
+  if err != nil {
+    return err
+  }
+  
   db, err := kdbx.NewUnlocked(databasePath, passphrase)
   if err != nil {
     return err
   }
 
   if entry, ok := db.Entries[reference]; ok {
-    return CopyEntryField(entry, field)
+    return clipboard.Write(entry.Password)
   }
 
   return errors.MakeError("Missing entry at " + reference, "copy") 
 }
 
-func CopyEntryField(entry kdbx.Entry, field string) error {
-  if content, ok := entry.Fields[field]; ok {
-    return clipboard.Write(content)
-  }
- 
-  fields := make([]string, 0, len(entry.Fields))
-  for k := range entry.Fields {
-    fields = append(fields, k)
+func readReferenceFromStdin() (string, error) {
+  reader := bufio.NewReader(os.Stdin)
+  str, err := reader.ReadString('\n')
+
+  if err != nil {
+    return "", err
   }
 
-  msg := fmt.Sprintf("Missing field %s on %s. Allowed fields: %s.", field, entry.Name, strings.Join(fields, ","))
-  return errors.MakeError(msg, "copy") 
-}
-
-func readReferenceFromStdin() string {
-  val := ""
-  scanner := bufio.NewScanner(os.Stdin)
-  
-  for {
-    scanner.Scan()
-    val = val + scanner.Text()
-    break
-  }
-
-  return val
+  return strings.TrimSpace(str), nil
 }
