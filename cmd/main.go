@@ -21,6 +21,7 @@ func main() {
   rootCmd.AddCommand(browseCmd)
 	rootCmd.AddCommand(copyCmd)
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(editCmd)
   
   rootCmd.PersistentFlags().StringP("key", "k", "", "Path to the key file to unlock the database")
 
@@ -77,3 +78,10 @@ var browseCopyCmd = &cobra.Command{
 	},
 }
 
+var editCmd = &cobra.Command{
+  Use: "edit",
+  Short: "Edits the entry",
+  Run: func(cmd *cobra.Command, args []string) {
+    Edit()
+  },
+}
