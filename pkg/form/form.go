@@ -33,8 +33,11 @@ func Run() {
   r.SetTitle(title)
 
   main := views.NewBoxLayout(views.Vertical)
+
   text := NewInput()
+  text.SetContent("test")
   main.AddWidget(text, 0)
+
   main.Watch(text)
   r.SetContent(main)
 

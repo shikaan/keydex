@@ -1,19 +1,13 @@
 package form
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )
 
-// TextArea is a pannable 2 dimensional text widget. It wraps both
-// the view and the model for text in a single, convenient widget.
-// Text is provided as an array of strings, each of which represents
-// a single line to display.  All text in the TextArea has the same
-// style.  An optional soft cursor is available.
-type TextArea struct {
+type Input struct {
 	model *linesModel
 	once  sync.Once
 	views.CellView
@@ -22,98 +16,109 @@ type TextArea struct {
 type linesModel struct {
 	runes  []rune
 	width  int
-	height int
 	x      int
-	y      int
 	hide   bool
 	cursor bool
 	style  tcell.Style
 }
 
-func (m *linesModel) GetCell(x int) (rune, tcell.Style, []rune, int) {
+func (m *linesModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	if x < 0 || x >= len(m.runes) {
 		return 0, m.style, nil, 1
 	}
-	// XXX: extend this to support combining and full width chars
+
 	return m.runes[x], m.style, nil, 1
 }
 
 func (m *linesModel) GetBounds() (int, int) {
-	return m.width, m.height
+	return m.width, 1 
 }
 
 func (m *linesModel) limitCursor() {
 	if m.x > m.width-1 {
 		m.x = m.width - 1
 	}
-	if m.y > m.height-1 {
-		m.y = m.height - 1
-	}
 	if m.x < 0 {
 		m.x = 0
-	}
-	if m.y < 0 {
-		m.y = 0
 	}
 }
 
 func (m *linesModel) SetCursor(x, y int) {
 	m.x = x
-	m.y = y
 	m.limitCursor()
 }
 
 func (m *linesModel) MoveCursor(x, y int) {
 	m.x += x
-	m.y += y
 	m.limitCursor()
 }
 
 func (m *linesModel) GetCursor() (int, int, bool, bool) {
-	return m.x, m.y, m.cursor, !m.hide
+	return m.x, 0, true, !m.hide
 }
 
-func (ta *TextArea) SetStyle(style tcell.Style) {
-	ta.model.style = style
-	ta.CellView.SetStyle(style)
+func (i *Input) SetStyle(style tcell.Style) {
+	i.model.style = style
+	i.CellView.SetStyle(style)
 }
 
-// EnableCursor enables a soft cursor in the TextArea.
-func (ta *TextArea) EnableCursor(on bool) {
-	ta.Init()
-	ta.model.cursor = on
+func (i *Input) HideCursor(on bool) {
+	i.Init()
+	i.model.hide = on
 }
 
-// HideCursor hides or shows the cursor in the TextArea.
-// If on is true, the cursor is hidden.  Note that a cursor is only
-// shown if it is enabled.
-func (ta *TextArea) HideCursor(on bool) {
-	ta.Init()
-	ta.model.hide = on
+func (i *Input) SetContent(text string) {	
+	i.Init()
+	m := i.model
+	m.width = len(text)
+	m.runes = []rune(text)
+
+  i.CellView.SetModel(m)
 }
 
-// SetContent is used to set the textual content, passed as a
-// single string.  Lines within the string are delimited by newlines.
-func (ta *TextArea) SetContent(text string) {
-	ta.Init()
-	lines := strings.Split(strings.Trim(text, "\n"), "\n")
-	ta.SetLines(lines)
+func (i *Input) GetContent() []rune {
+  return i.model.runes
 }
 
-// Init initializes the TextArea.
-func (ta *TextArea) Init() {
-	ta.once.Do(func() {
-		lm := &linesModel{runes: [][]rune{}, width: 0}
-		ta.model = lm
-		ta.CellView.Init()
-		ta.CellView.SetModel(lm)
+
+func (i *Input) HandleEvent(ev tcell.Event) bool {
+  switch ev := ev.(type) {	
+  case *tcell.EventKey:
+		if ev.Key() == tcell.KeyRune {
+		  i.typeAtCursor(ev.Rune())	
+      return true
+		}
+	}
+	return i.CellView.HandleEvent(ev)
+}
+
+func (i *Input) typeAtCursor(char rune) {
+  m := i.GetModel()
+  x, _, on, visible := m.GetCursor()
+
+  if on && visible {
+    c := i.GetContent()
+    previus := c[:x]
+    next := c[x:]
+    newContent := append(previus, char)
+    newContent = append(newContent, next...)
+    i.SetContent(string(newContent))
+    m.MoveCursor(1, 0)
+  }
+}
+
+func (i *Input) Init() {
+	i.once.Do(func() {
+    lm := &linesModel{runes: []rune{}, width: 0, cursor: true}
+		i.model = lm
+		i.CellView.Init()
+		i.CellView.SetModel(lm)
 	})
 }
 
-// NewTextArea creates a blank TextArea.
-func NewTextArea() *TextArea {
-	ta := &TextArea{}
-	ta.Init()
-	return ta
+func NewInput() *Input {
+	i := &Input{}
+	i.Init()
+	return i
 }
 
