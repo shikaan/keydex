@@ -34,11 +34,9 @@ func Run() {
 
   main := views.NewBoxLayout(views.Vertical)
 
-  text := NewInput()
-  text.SetContent("test")
-  main.AddWidget(text, 0)
-
-  main.Watch(text)
+  field := NewField("label", "initial")
+  main.AddWidget(field, 0)
+  
   r.SetContent(main)
 
   status := NewStatus()

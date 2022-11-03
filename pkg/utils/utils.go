@@ -13,3 +13,17 @@ func Merge[K string, V interface{}] (m1, m2 map[K]V) map[K]V {
 
   return m3
 }
+
+func Max(a, b int) int {
+  if a < b {
+    return b
+  }
+  return a
+}
+
+func Min(a,b int) int {
+  if a > b {
+    return b
+  }
+  return a
+}
