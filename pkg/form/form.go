@@ -14,6 +14,10 @@ type root struct {
   views.Panel
 }
 
+type form struct {
+  views.BoxLayout
+}
+
 func (r *root) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
@@ -21,8 +25,38 @@ func (r *root) HandleEvent(ev tcell.Event) bool {
 			app.Quit()
 			return true
 		}
-	}
+    if ev.Key() == tcell.KeyTab {
+      // TODO: This is ugly
+      r.Widgets()[1].(*form).focusNext()
+      return true
+    }
+  }
 	return r.Panel.HandleEvent(ev)
+}
+
+func (m *form) focusNext() {
+  shouldFocus := false
+  firstIndex := -1
+
+  for i, widget := range m.Widgets() {
+    switch widget := widget.(type) {
+    case *Field:
+      if firstIndex < 0 {
+        firstIndex = i
+      }
+      if shouldFocus {
+        widget.SetFocus(true)
+        return
+      } else if widget.HasFocus() {
+        widget.SetFocus(false)
+        shouldFocus = true
+      } 
+    }
+  }
+
+  if shouldFocus {
+    m.Widgets()[firstIndex].(*Field).SetFocus(true)
+  }
 }
 
 func Run() {
@@ -32,11 +66,17 @@ func Run() {
   title := NewTitle("This is the Title")
   r.SetTitle(title)
 
-  main := views.NewBoxLayout(views.Vertical)
+  main := &form{}
+  main.SetOrientation(views.Vertical)
 
   field := NewField("label", "initial")
   main.AddWidget(field, 0)
   
+  field2 := NewField("label2", "initial2")
+  main.AddWidget(field2, 0)
+
+  field.SetFocus(true)
+
   r.SetContent(main)
 
   status := NewStatus()

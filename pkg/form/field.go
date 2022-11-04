@@ -12,6 +12,23 @@ type Field struct {
   views.BoxLayout
 }
 
+func (f *Field) HasFocus() bool {
+  return f.input.HasFocus()
+}
+
+func (f *Field) SetFocus(on bool) {
+  f.input.SetFocus(on)
+}
+
+func (f *Field) HandleEvent(ev tcell.Event) bool {
+ 
+  if !f.HasFocus() {
+    return false
+  }
+
+  return f.input.HandleEvent(ev)
+}
+
 func NewField(label, initialValue string) *Field {
   field := &Field{ }
   field.SetOrientation(0)
