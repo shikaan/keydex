@@ -79,9 +79,19 @@ var browseCopyCmd = &cobra.Command{
 }
 
 var editCmd = &cobra.Command{
-  Use: "edit",
+  Use: "edit DATABASE [REFERENCE]",
   Short: "Edits the entry",
-  Run: func(cmd *cobra.Command, args []string) {
-    Edit()
+  RunE: func(cmd *cobra.Command, args []string) error {
+    database := args[0] 
+    maybeRef := ""
+
+    if len(args) == 2 {
+      maybeRef = args[1]
+    }
+
+		key := cmd.Flag("key").Value.String()
+    passphrase := credentials.GetPassphrase(database)
+
+    return Edit(database, key, passphrase, maybeRef)
   },
 }

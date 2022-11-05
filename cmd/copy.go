@@ -13,7 +13,7 @@ import (
 // Reads reference from stdin and attempts to copy password
 // of referenced entry to the clipboard
 func Copy(databasePath, keyPath, passphrase string) error { 
-  reference, err := readReferenceFromStdin()
+  reference, err := readReferenceFromStdin("")
   if err != nil {
     return err
   }
@@ -30,7 +30,11 @@ func Copy(databasePath, keyPath, passphrase string) error {
   return errors.MakeError("Missing entry at " + reference, "copy") 
 }
 
-func readReferenceFromStdin() (string, error) {
+func readReferenceFromStdin(maybeReference string) (string, error) {
+  if maybeReference != "" {
+    return maybeReference, nil
+  } 
+
   reader := bufio.NewReader(os.Stdin)
   str, err := reader.ReadString('\n')
 

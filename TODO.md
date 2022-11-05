@@ -12,3 +12,12 @@
 - [] @ tests
 - [] @ add api documentation
 
+
+-----
+
+
+Form:
+
+- [] style form in the middle of the Panel
+- [] add button component
+- [] add checkbox component

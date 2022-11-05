@@ -11,31 +11,46 @@ import (
 type Input struct {
 	model *model
 	once  sync.Once
-  
-  Focusable
-  views.CellView
+
+	Focusable
+	views.CellView
 }
 
 type InputOptions struct {
-  InitialValue string
-  MaskCharacter rune
-  Width int
+	InitialValue string
+	Type         InputType
 }
+
+type InputType int
+
+const (
+	InputTypeText InputType = iota
+	InputTypePassword
+)
 
 // Model - Used internally by tcell/views to handle drawing
 
 type model struct {
-	content  string
-	width    int
-	x        int
-	style    tcell.Style
-	hasFocus bool
+	content   string
+	width     int
+	x         int
+	style     tcell.Style
+	hasFocus  bool
+	inputType InputType
 }
 
 func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	if x < 0 || x >= len(m.content) {
+  isPassword := m.inputType == InputTypePassword
+  isPasswordOutOfBound := isPassword && x > 2 // Only show 3 * for passwords
+  isOutOfBound := y != 0 || x < 0 || x >= len(m.content) || isPasswordOutOfBound
+
+	if isOutOfBound || isPasswordOutOfBound {
 		return 0, m.style, nil, 1
 	}
+
+  if isPassword {
+    return '*', m.style, nil, 1
+  }
 
 	return rune(m.content[x]), m.style, nil, 1
 }
@@ -152,8 +167,10 @@ func (i *Input) Init() {
 	})
 }
 
-func NewInput() *Input {
+func NewInput(options *InputOptions) *Input {
 	i := &Input{}
 	i.Init()
+	i.model.inputType = options.Type
+
 	return i
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
-const PASSWORD_KEY = "password"
+const PASSWORD_KEY = "Password"
 
 type Database struct {
 	db   *gokeepasslib.Database
@@ -125,6 +125,7 @@ func makeEntry(e gokeepasslib.Entry) Entry {
     if k != e.GetPasswordIndex() {
       fields = append(fields, Field{ v.Key, v.Value.Content })
     } else {
+      // TODO: also the entry title should have special treatment like this
       fields = append(fields, Field{ PASSWORD_KEY, v.Value.Content })
     }
   }

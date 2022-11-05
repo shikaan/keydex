@@ -14,11 +14,9 @@ type Field struct {
 }
 
 type FieldOptions struct {
-  label string
-  initialValue string
-  mask string
-  labelWidth int16
-  fieldWidth int16
+  Label string
+  InitialValue string
+  InputType InputType 
 }
 
 func (f *Field) HasFocus() bool {
@@ -38,15 +36,17 @@ func (f *Field) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewField(options *FieldOptions) *Field {
+  // TODO: we can maybe add some padding by directly accessing the model and tampering wiht GetBounds
   field := &Field{ }
-  field.SetOrientation(0)
+  field.SetOrientation(views.Horizontal)
 
-  i := NewInput()
-  i.SetContent(options.initialValue)
+  o := &InputOptions{ InitialValue: options.InitialValue, Type: options.InputType }
+  i := NewInput(o)
+  i.SetContent(options.InitialValue)
 
   l := views.NewSimpleStyledText()
   l.SetStyle(tcell.StyleDefault.Attributes(tcell.AttrBold))
-  l.SetText(options.label + ": ")
+  l.SetText(options.Label + ": ")
 
   field.AddWidget(l, 0)
   field.AddWidget(i, 1)

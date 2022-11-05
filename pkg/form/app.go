@@ -1,11 +1,9 @@
 package form
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/kpcli/pkg/kdbx"
 )
 
 var App = &views.Application{}
@@ -26,24 +24,36 @@ func (r *root) HandleEvent(ev tcell.Event) bool {
 	return r.Panel.HandleEvent(ev)
 }
 
-func Run() {
+func OpenEntryEditor(e kdbx.Entry) error {
   r := &root{}
   r.SetStyle(tcell.StyleDefault)
 
-  title := NewTitle("This is the Title")
+  title := NewTitle(e.Name)
   r.SetTitle(title)
 
   main := NewForm()
+  hasSetFocus := false
 
-  fieldOneOptions := &FieldOptions{label: "label", initialValue: "initial"}
-  field := NewField(fieldOneOptions)
-  main.AddWidget(field, 0)
- 
-  fieldTwoOptions := &FieldOptions{label: "label2", initialValue: "initial2"}
-  field2 := NewField(fieldTwoOptions)
-  main.AddWidget(field2, 0)
+  for _, f := range e.Fields {
+    // Do not print empty fields
+    if f[1] == "" {
+      continue 
+    }
 
-  field.SetFocus(true)
+    inputType := InputTypeText
+    if f[0] == kdbx.PASSWORD_KEY {
+      inputType = InputTypePassword
+    }
+
+    fieldOptions := &FieldOptions{Label: f[0] , InitialValue: f[1], InputType: inputType}
+    field := NewField(fieldOptions)
+    main.AddWidget(field, 0)
+  
+    if !hasSetFocus {
+      field.SetFocus(true)
+      hasSetFocus = true
+    }
+  }
 
   flex := NewResponsive(views.Horizontal)
   flex.SetContent(main)
@@ -55,8 +65,5 @@ func Run() {
   App.SetRootWidget(r)
   App.SetScreen(Screen)
 
-  if e := App.Run(); e != nil {
-		fmt.Fprintln(os.Stderr, e.Error())
-		os.Exit(1)
-	}
+  return App.Run()
 }

@@ -10,7 +10,6 @@ type Form struct {
 }
 
 func (f *Form) HandleEvent(ev tcell.Event) bool {
-
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Key() == tcell.KeyUp {
