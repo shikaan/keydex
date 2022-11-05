@@ -9,22 +9,30 @@ import (
 )
 
 type Input struct {
-	model *linesModel
+	model *model
 	once  sync.Once
-	views.CellView
+  
+  Focusable
+  views.CellView
 }
 
-type linesModel struct {
+type InputOptions struct {
+  InitialValue string
+  MaskCharacter rune
+  Width int
+}
+
+// Model - Used internally by tcell/views to handle drawing
+
+type model struct {
 	content  string
 	width    int
 	x        int
-	hide     bool
-	cursor   bool
 	style    tcell.Style
 	hasFocus bool
 }
 
-func (m *linesModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
+func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	if x < 0 || x >= len(m.content) {
 		return 0, m.style, nil, 1
 	}
@@ -32,11 +40,11 @@ func (m *linesModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	return rune(m.content[x]), m.style, nil, 1
 }
 
-func (m *linesModel) GetBounds() (int, int) {
+func (m *model) GetBounds() (int, int) {
 	return m.width, 1
 }
 
-func (m *linesModel) limitCursor() {
+func (m *model) limitCursor() {
 	if m.x > m.width {
 		m.x = m.width
 	}
@@ -45,19 +53,21 @@ func (m *linesModel) limitCursor() {
 	}
 }
 
-func (m *linesModel) SetCursor(x, y int) {
+func (m *model) SetCursor(x, y int) {
 	m.x = x
 	m.limitCursor()
 }
 
-func (m *linesModel) MoveCursor(x, y int) {
+func (m *model) MoveCursor(x, y int) {
 	m.x += x
 	m.limitCursor()
 }
 
-func (m *linesModel) GetCursor() (int, int, bool, bool) {
+func (m *model) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, m.hasFocus
 }
+
+// Input - Models an input (similar to HTML inputs)
 
 func (i *Input) HasFocus() bool {
 	return i.model.hasFocus
@@ -68,11 +78,6 @@ func (i *Input) SetFocus(on bool) {
 	i.model.hasFocus = on
 
 	i.CellView.SetModel(i.model)
-}
-
-func (i *Input) HideCursor(on bool) {
-	i.Init()
-	i.model.hide = on
 }
 
 func (i *Input) SetContent(text string) {
@@ -140,10 +145,10 @@ func (i *Input) handleContentUpdate(cb func(content string, cursorPosition int) 
 
 func (i *Input) Init() {
 	i.once.Do(func() {
-		lm := &linesModel{cursor: true}
-		i.model = lm
+		m := &model{}
+		i.model = m
 		i.CellView.Init()
-		i.CellView.SetModel(lm)
+		i.CellView.SetModel(m)
 	})
 }
 
