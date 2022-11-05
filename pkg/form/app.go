@@ -8,18 +8,18 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 )
 
-var app = &views.Application{}
+var App = &views.Application{}
+var Screen, _ = tcell.NewScreen()
 
 type root struct {
   views.Panel
 }
 
-
 func (r *root) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Key() == tcell.KeyEscape || ev.Name() == "Ctrl+C"{
-			app.Quit()
+			App.Quit()
 			return true
 		}
   }
@@ -45,13 +45,17 @@ func Run() {
 
   field.SetFocus(true)
 
-  r.SetContent(main)
+  flex := NewResponsive(views.Horizontal)
+  flex.SetContent(main)
+  r.SetContent(flex)
 
   status := NewStatus()
   r.SetStatus(status)
 
-  app.SetRootWidget(r)
-  if e := app.Run(); e != nil {
+  App.SetRootWidget(r)
+  App.SetScreen(Screen)
+
+  if e := App.Run(); e != nil {
 		fmt.Fprintln(os.Stderr, e.Error())
 		os.Exit(1)
 	}

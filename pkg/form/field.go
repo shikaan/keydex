@@ -30,7 +30,6 @@ func (f *Field) SetFocus(on bool) {
 }
 
 func (f *Field) HandleEvent(ev tcell.Event) bool {
- 
   if !f.HasFocus() {
     return false
   }
