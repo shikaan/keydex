@@ -1,4 +1,4 @@
-package form
+package tui
 
 type Focusable interface {
   SetFocus(on bool)

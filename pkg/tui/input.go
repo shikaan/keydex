@@ -1,4 +1,4 @@
-package form
+package tui
 
 import (
 	"sync"
@@ -56,12 +56,19 @@ func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 }
 
 func (m *model) GetBounds() (int, int) {
-	return m.width, 1
+	if m.inputType == InputTypePassword {
+    // The 3 * we use instead of the real string
+    return 3, 1
+  }
+
+  return m.width, 1
 }
 
 func (m *model) limitCursor() {
-	if m.x > m.width {
-		m.x = m.width
+  x, _ := m.GetBounds()
+
+  if m.x > x {
+		m.x = x
 	}
 	if m.x < 0 {
 		m.x = 0

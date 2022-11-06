@@ -1,4 +1,4 @@
-package form
+package tui
 
 import "github.com/gdamore/tcell/v2/views"
 

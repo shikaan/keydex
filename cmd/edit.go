@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/form"
+	"github.com/shikaan/kpcli/pkg/tui"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 )
 
@@ -18,7 +18,7 @@ func Edit(databasePath, keyPath, passphrase, maybeReference string) error {
   }
 
   if entry, ok := db.Entries[reference]; ok {
-    return form.OpenEntryEditor(entry)
+    return tui.OpenEntryEditor(entry)
   }
 
   return errors.MakeError("Missing entry at " + reference, "copy") 

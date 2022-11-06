@@ -1,4 +1,4 @@
-package form
+package tui
 
 import (
 	"github.com/gdamore/tcell/v2"
@@ -21,7 +21,7 @@ func (r *root) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
   }
-	return r.Panel.HandleEvent(ev)
+    return r.Panel.HandleEvent(ev)
 }
 
 func OpenEntryEditor(e kdbx.Entry) error {
