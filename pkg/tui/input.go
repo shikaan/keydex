@@ -37,6 +37,7 @@ type model struct {
 	style     tcell.Style
 	hasFocus  bool
 	inputType InputType
+  keyPressHandlers map[int]func(ev *tcell.EventKey) bool
 }
 
 func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
@@ -122,7 +123,17 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
-		if ev.Key() == tcell.KeyRune {
+    handled := false
+
+    for _, handler := range i.model.keyPressHandlers {
+      handled = handler(ev) 
+    }
+
+    if handled {
+      return handled
+    }
+
+    if ev.Key() == tcell.KeyRune {
 			return i.handleContentUpdate(
 				func(c string, x int) (string, int) {
 					return c[:x] + string(ev.Rune()) + c[x:], 1
@@ -165,9 +176,20 @@ func (i *Input) handleContentUpdate(cb func(content string, cursorPosition int) 
 	return true
 }
 
+func (i *Input) OnKeyPress (cb func (ev *tcell.EventKey) bool) func () {
+  id := len(i.model.keyPressHandlers) + 1 
+  i.model.keyPressHandlers[id] = cb
+
+  return func () {
+    delete(i.model.keyPressHandlers, id)
+  }
+}
+
 func (i *Input) Init() {
 	i.once.Do(func() {
-		m := &model{}
+		m := &model{
+      keyPressHandlers: make(map[int]func(ev *tcell.EventKey) bool),
+    }
 		i.model = m
 		i.CellView.Init()
 		i.CellView.SetModel(m)

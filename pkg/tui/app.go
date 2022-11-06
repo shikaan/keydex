@@ -3,6 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 )
 
@@ -35,18 +36,28 @@ func OpenEntryEditor(e kdbx.Entry) error {
   hasSetFocus := false
 
   for _, f := range e.Fields {
+    key := f[0]
+    value := f[1]
     // Do not print empty fields
-    if f[1] == "" {
+    if value == "" {
       continue 
     }
 
     inputType := InputTypeText
-    if f[0] == kdbx.PASSWORD_KEY {
+    if key == kdbx.PASSWORD_KEY {
       inputType = InputTypePassword
     }
 
-    fieldOptions := &FieldOptions{Label: f[0] , InitialValue: f[1], InputType: inputType}
+    fieldOptions := &FieldOptions{Label: key , InitialValue: value, InputType: inputType}
     field := NewField(fieldOptions)
+
+    field.input.OnKeyPress(func(ev *tcell.EventKey) bool {
+      if ev.Key() == tcell.KeyEnter {
+        clipboard.Write(value)
+      }
+      return true
+    })
+
     main.AddWidget(field, 0)
   
     if !hasSetFocus {
