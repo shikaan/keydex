@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"github.com/gdamore/tcell/v2"
@@ -25,8 +25,9 @@ func (f *Form) HandleEvent(ev tcell.Event) bool {
   return f.BoxLayout.HandleEvent(ev)
 }
 
+// Moves focus by `offset` fields
 func (f *Form) MoveFocus (offset int) {
-  fs := f.focusables()
+  fs := f.Focusables()
   count := len(fs)
   current := -1
 
@@ -48,7 +49,8 @@ func (f *Form) MoveFocus (offset int) {
   fs[newIndex].SetFocus(true)
 }
 
-func (f *Form) focusables() []Focusable {
+// Returns the subset of Widgets that can have focus
+func (f *Form) Focusables() []Focusable {
   ws := f.Widgets()
   result := []Focusable{}
 

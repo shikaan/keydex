@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"github.com/gdamore/tcell/v2"
@@ -35,24 +35,28 @@ func (f *Field) HandleEvent(ev tcell.Event) bool {
   return f.input.HandleEvent(ev)
 }
 
+func (f *Field) OnKeyPress (cb func (ev *tcell.EventKey) bool) func () {
+  return f.input.OnKeyPress(cb)
+}
+
 func NewField(options *FieldOptions) *Field {
   // TODO: we can maybe add some padding by directly accessing the model and tampering wiht GetBounds
   field := &Field{ }
   field.SetOrientation(views.Horizontal)
 
-  o := &InputOptions{ InitialValue: options.InitialValue, Type: options.InputType }
-  i := NewInput(o)
-  i.SetContent(options.InitialValue)
+  opts := &InputOptions{ InitialValue: options.InitialValue, Type: options.InputType }
+  input := NewInput(opts)
+  input.SetContent(options.InitialValue)
 
-  l := views.NewSimpleStyledText()
-  l.SetStyle(tcell.StyleDefault.Attributes(tcell.AttrBold))
-  l.SetText(options.Label + ": ")
+  label := views.NewSimpleStyledText()
+  label.SetStyle(tcell.StyleDefault.Attributes(tcell.AttrBold))
+  label.SetText(options.Label + ": ")
 
-  field.AddWidget(l, 0)
-  field.AddWidget(i, 1)
+  field.AddWidget(label, 0)
+  field.AddWidget(input, 1)
 
-  field.input = i
-  field.label = l
+  field.input = input
+  field.label = label
 
   return field
 }
