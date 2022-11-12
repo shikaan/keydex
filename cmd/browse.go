@@ -17,8 +17,9 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
     return err
   }
 
-  keys := make([]string, 0, len(kdbx.Entries)) 
-  for k := range kdbx.Entries {
+  entries := kdbx.GetEntries()
+  keys := make([]string, 0, len(entries)) 
+  for k := range entries {
     keys = append(keys, k)
   }
   sort.Slice(keys, func(i, j int) bool {
@@ -35,8 +36,8 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
         return ""
       }
 
-      if entry, ok := kdbx.Entries[keys[i]]; ok {
-        return previewEntry(entry)
+      if entry, ok := entries[keys[i]]; ok {
+        return previewEntry(*entry)
       }
 
       return ""
@@ -48,8 +49,8 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
   }
 
   reference := keys[idx]
-  if entry, ok := kdbx.Entries[reference]; ok {
-    return callback(entry)
+  if entry, ok := entries[reference]; ok {
+    return callback(*entry)
   }
 
   return errors.MakeError("Unable to find entry at " + reference, "browse") 
@@ -58,21 +59,21 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
 func previewEntry(e kdbx.Entry) string {
   s := &strings.Builder{}
 
-  s.WriteString(e.Name)
+  s.WriteString(e.GetTitle())
   s.WriteString("\n")
 
-  for _, f := range e.Fields {
-    k := f[0]
-    v := f[1]
-    if k == "Title" || v == "" {
+  for i, v := range e.Values {
+    if v.Key == "Title" || v.Value.Content == "" {
       continue
     }
     
+    isPassword := i == e.GetPasswordIndex()
+
     s.WriteString("\n")
-    if k == kdbx.PASSWORD_KEY {
+    if isPassword {
       s.WriteString("Password: ***") 
     } else {
-      s.WriteString(fmt.Sprintf("%s: %s", k, v))
+      s.WriteString(fmt.Sprintf("%s: %s", v.Key, v.Value.Content))
     }
   }
 

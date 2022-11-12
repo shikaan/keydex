@@ -73,7 +73,7 @@ var browseCopyCmd = &cobra.Command{
 		password := credentials.GetPassphrase(databaseName)
 
 		return Browse(database, key, password, func(entry kdbx.Entry) error {
-			return clipboard.Write(entry.Password)
+			return clipboard.Write(entry.GetPassword())
     })
 	},
 }

@@ -13,7 +13,7 @@ import (
 func NewEditView(screen tcell.Screen, e kdbx.Entry) views.Widget {
 	view := NewView()
 
-	title := components.NewTitle(e.Name)
+	title := components.NewTitle(e.GetTitle())
 	status := components.NewStatus()
 	content := newMain(e, status, screen)
 
@@ -27,8 +27,10 @@ func NewEditView(screen tcell.Screen, e kdbx.Entry) views.Widget {
 func newMain(e kdbx.Entry, status *components.Status, screen tcell.Screen) views.Widget {
 	form := components.NewForm()
 
-	for _, f := range e.Fields {
-		if field := newEntryField(f, status); field != nil {
+	for i, f := range e.Values {
+    isPassword := i == e.GetPasswordIndex()
+
+		if field := newEntryField(f, isPassword, status); field != nil {
 			form.AddWidget(field, 0)
 		}
 	}
@@ -44,27 +46,24 @@ func newMain(e kdbx.Entry, status *components.Status, screen tcell.Screen) views
 	return flex
 }
 
-func newEntryField(entryField kdbx.Field, status *components.Status) *components.Field {
-	key := entryField[0]
-	value := entryField[1]
-
+func newEntryField(entryValue kdbx.EntryValue, isPassword bool, status *components.Status) *components.Field {
 	// Do not print empty fields
-	if value == "" {
+	if entryValue.Value.Content == "" {
 		return nil
 	}
 
 	inputType := components.InputTypeText
-	if key == kdbx.PASSWORD_KEY {
+	if isPassword {
 		inputType = components.InputTypePassword
 	}
 
-	fieldOptions := &components.FieldOptions{Label: key, InitialValue: value, InputType: inputType}
+	fieldOptions := &components.FieldOptions{Label: entryValue.Key, InitialValue: entryValue.Value.Content, InputType: inputType}
 	field := components.NewField(fieldOptions)
 
 	field.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Key() == tcell.KeyEnter {
-			clipboard.Write(value)
-			status.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", key))
+			clipboard.Write(entryValue.Value.Content)
+			status.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", entryValue.Key))
 			return true
 		}
 		return false
