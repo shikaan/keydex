@@ -30,13 +30,22 @@ type Group struct {
 }
 
 type Entry struct {
-  Name string
- 
-  Fields []Field
-
-  Password string
+	Name     string
+	Fields   []Field
+	Password string
+	entry    *gokeepasslib.Entry
 }
 
+func (e *Entry) Save() {
+  for _, f := range e.Fields {
+    for _, v := range e.entry.Values {
+      if f[0] == v.Key {
+        v.Value.Content = f[1]
+        continue
+      }
+    }
+  }
+}
 
 // A string like "/Database/Group/EntryName"
 type EntryPath = string
@@ -86,6 +95,18 @@ func (kdbx *Database) Unlock(password Credentials) error {
 	return nil
 }
 
+func (kdbx *Database) Save() {
+  // Update values for all edited entries
+  for _, e := range kdbx.Entries {
+    e.Save()
+  }
+  
+  // Encrypt values
+  kdbx.db.LockProtectedEntries()
+
+  // Write to file
+}
+
 func (kdbx *Database) parseUnlockedDatabase(db gokeepasslib.Database) {
 	kdbx.Name = db.Content.Meta.DatabaseName
 	kdbx.Description = db.Content.Meta.DatabaseDescription
@@ -100,14 +121,14 @@ func parseGroups(root []gokeepasslib.Group, prefix string) ([]Group, map[EntryPa
 	for _, g := range root {
 		groupPrefix := prefix + "/" + g.Name
 		subGroups, subEntries := parseGroups(g.Groups, groupPrefix)
-    parsedEntries := []Entry{}
+		parsedEntries := []Entry{}
 
 		for _, e := range g.Entries {
-      entry := makeEntry(e)
+			entry := makeEntry(e)
 
 			subEntries[prefix+"/"+e.GetTitle()] = entry
-		  parsedEntries = append(parsedEntries, entry)
-    }
+			parsedEntries = append(parsedEntries, entry)
+		}
 
 		group := Group{Name: g.Name, Entries: parsedEntries, Groups: subGroups}
 		groups = append(groups, group)
@@ -119,20 +140,21 @@ func parseGroups(root []gokeepasslib.Group, prefix string) ([]Group, map[EntryPa
 }
 
 func makeEntry(e gokeepasslib.Entry) Entry {
-  fields := []Field{}
+	fields := []Field{}
 
-  for k, v := range e.Values {
-    if k != e.GetPasswordIndex() {
-      fields = append(fields, Field{ v.Key, v.Value.Content })
-    } else {
-      // TODO: also the entry title should have special treatment like this
-      fields = append(fields, Field{ PASSWORD_KEY, v.Value.Content })
-    }
-  }
+	for k, v := range e.Values {
+		if k != e.GetPasswordIndex() {
+			fields = append(fields, Field{v.Key, v.Value.Content})
+		} else {
+			// TODO: also the entry title should have special treatment like this
+			fields = append(fields, Field{PASSWORD_KEY, v.Value.Content})
+		}
+	}
 
-  return Entry{
-    Fields: fields,
-    Name: e.GetTitle(),
-    Password: e.GetPassword(),
-  }
+	return Entry{
+		Fields:   fields,
+		Name:     e.GetTitle(),
+		Password: e.GetPassword(),
+		entry:    &e,
+	}
 }
