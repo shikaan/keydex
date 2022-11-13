@@ -17,10 +17,8 @@ func Edit(databasePath, keyPath, passphrase, maybeReference string) error {
 		return err
 	}
 
-  entries := db.GetEntries()
-
-	if entry, ok := entries[reference]; ok {
-		return tui.RunEditView(*entry)
+  if entry := db.GetEntry(reference); entry != nil { 
+    return tui.RunEditView(tui.EditViewProps{ Entry: *entry, Database: *db, Reference: reference })
 	}
 
 	return errors.MakeError("Missing entry at "+reference, "copy")

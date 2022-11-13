@@ -23,9 +23,7 @@ func Copy(databasePath, keyPath, passphrase string) error {
     return err
   }
 
-  entries := db.GetEntries()
-
-  if entry, ok := entries[reference]; ok {
+  if entry := db.GetEntry(reference);entry != nil {
     return clipboard.Write(entry.GetPassword())
   }
 

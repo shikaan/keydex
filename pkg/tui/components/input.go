@@ -37,7 +37,9 @@ type model struct {
 	style     tcell.Style
 	hasFocus  bool
 	inputType InputType
-  keyPressHandlers map[int]func(ev *tcell.EventKey) bool
+  
+  keyPressHandler func(ev *tcell.EventKey) bool
+  changeHandler func(ev tcell.Event) bool
 }
 
 func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
@@ -125,16 +127,19 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventKey:
     handled := false
 
-    for _, handler := range i.model.keyPressHandlers {
-      handled = handler(ev) 
+    if i.model.keyPressHandler != nil {
+      handled = i.model.keyPressHandler(ev) 
     }
 
     if handled {
       return handled
     }
+  
+    // TODO: password type should not allow typing here
 
     if ev.Key() == tcell.KeyRune {
 			return i.handleContentUpdate(
+        ev,
 				func(c string, x int) (string, int) {
 					return c[:x] + string(ev.Rune()) + c[x:], 1
 				},
@@ -143,7 +148,8 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		if ev.Key() == tcell.KeyBackspace2 || ev.Key() == tcell.KeyBackspace {
 			return i.handleContentUpdate(
-				func(c string, x int) (string, int) {
+				ev,
+        func(c string, x int) (string, int) {
 					safeX := utils.Max(0, x-1)
 
 					return c[:safeX] + c[x:], -1
@@ -153,7 +159,8 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		if ev.Key() == tcell.KeyDelete {
 			return i.handleContentUpdate(
-				func(c string, x int) (string, int) {
+				ev,
+        func(c string, x int) (string, int) {
 					safeX := utils.Min(len(c), x+1)
 
 					return c[:x] + c[safeX:], 0
@@ -164,7 +171,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	return i.CellView.HandleEvent(ev)
 }
 
-func (i *Input) handleContentUpdate(cb func(content string, cursorPosition int) (string, int)) bool {
+func (i *Input) handleContentUpdate(ev tcell.Event, cb func(content string, cursorPosition int) (string, int)) bool {
 	m := i.GetModel()
 	x, _, _, _ := m.GetCursor()
 
@@ -173,23 +180,30 @@ func (i *Input) handleContentUpdate(cb func(content string, cursorPosition int) 
 	i.SetContent(newContent)
 	m.MoveCursor(cursorOffset, 0)
 
+  if i.model.changeHandler != nil {
+    i.model.changeHandler(ev)
+  }
+
 	return true
 }
 
 func (i *Input) OnKeyPress (cb func (ev *tcell.EventKey) bool) func () {
-  id := len(i.model.keyPressHandlers) + 1 
-  i.model.keyPressHandlers[id] = cb
-
+  i.model.keyPressHandler = cb
   return func () {
-    delete(i.model.keyPressHandlers, id)
+    i.model.keyPressHandler = nil
+  }
+}
+
+func (i *Input) OnChange (cb func (ev tcell.Event) bool) func () {
+  i.model.changeHandler = cb
+  return func () {
+    i.model.changeHandler = nil
   }
 }
 
 func (i *Input) Init() {
 	i.once.Do(func() {
-		m := &model{
-      keyPressHandlers: make(map[int]func(ev *tcell.EventKey) bool),
-    }
+		m := &model{}
 		i.model = m
 		i.CellView.Init()
 		i.CellView.SetModel(m)

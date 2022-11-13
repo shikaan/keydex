@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	fuzzyfinder "github.com/ktr0731/go-fuzzyfinder"
@@ -17,14 +16,7 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
     return err
   }
 
-  entries := kdbx.GetEntries()
-  keys := make([]string, 0, len(entries)) 
-  for k := range entries {
-    keys = append(keys, k)
-  }
-  sort.Slice(keys, func(i, j int) bool {
-    return keys[i] > keys[j]
-  })
+  keys := kdbx.GetEntryPaths()
 
   idx, err := fuzzyfinder.Find(
     keys,
@@ -36,7 +28,7 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
         return ""
       }
 
-      if entry, ok := entries[keys[i]]; ok {
+      if entry := kdbx.GetEntry(keys[i]); entry != nil {
         return previewEntry(*entry)
       }
 
@@ -49,7 +41,8 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
   }
 
   reference := keys[idx]
-  if entry, ok := entries[reference]; ok {
+ 
+  if entry := kdbx.GetEntry(reference); entry != nil {
     return callback(*entry)
   }
 

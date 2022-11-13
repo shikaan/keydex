@@ -2,9 +2,9 @@ package kdbx
 
 import (
 	"os"
+	"strings"
 
 	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/utils"
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
@@ -48,43 +48,132 @@ func NewUnlocked(filepath, password string) (*Database, error) {
 	return kdbx, nil
 }
 
-func (kdbx *Database) Unlock(password string) error {
-	kdbx.Credentials = gokeepasslib.NewPasswordCredentials(password)
+func (d *Database) Unlock(password string) error {
+	d.Credentials = gokeepasslib.NewPasswordCredentials(password)
 
-	err := gokeepasslib.NewDecoder(&kdbx.file).Decode(&kdbx.Database)
+	err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database)
 
 	if err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-	kdbx.UnlockProtectedEntries()
+	d.UnlockProtectedEntries()
 	return nil
 }
 
-func (kdbx *Database) GetEntries() Entries {
-  result := make(Entries, 1)
+func (d *Database) GetEntryPaths() []EntryPath {
+	result := []EntryPath{}
 
-  for _, g := range kdbx.Content.Root.Groups {
-    result = utils.Merge(result, getEntriesFromGroup(g, "/"))
-  }
+	for _, g := range d.Content.Root.Groups {
+		result = append(result, getEntryPathsFromGroup(g, "/")...)
+	}
 
-  return result
+	return result
 }
 
-func getEntriesFromGroup(g gokeepasslib.Group, prefix string) Entries {
+func (d *Database) GetEntry(p EntryPath) *Entry {
+	// Skip the first /
+	portions := strings.Split(p[1:], "/")
+
+	for _, g := range d.Content.Root.Groups {
+		if e := getEntryFromGroup(g, portions); e != nil {
+			return e
+		}
+	}
+
+	return nil
+}
+
+func (d *Database) SetEntry(p EntryPath, e Entry) error {
+  // Skip the first /
+	portions := strings.Split(p[1:], "/")
+
+	for _, g := range d.Content.Root.Groups {
+    if err := setEntryFromGroup(g, portions, e); err != nil {
+      return err
+    }
+	}
+
+  return nil
+}
+
+func (d *Database) Save() error {
+	if err := d.LockProtectedEntries(); err != nil {
+		return err
+	}
+
+	file, _ := os.Create(d.file.Name())
+	encoder := gokeepasslib.NewEncoder(file)
+
+	if err := encoder.Encode(&d.Database); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Private
+
+func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []EntryPath {
 	groupPrefix := prefix + g.Name + "/"
-	entries := make(Entries, 1)
+	entries := []EntryPath{}
 
 	for _, subGroup := range g.Groups {
-		subEntries := getEntriesFromGroup(subGroup, groupPrefix)
-		entries = utils.Merge(entries, subEntries)
+		subEntries := getEntryPathsFromGroup(subGroup, groupPrefix)
+		entries = append(entries, subEntries...)
 	}
 
 	for _, entry := range g.Entries {
 		key := prefix + entry.GetTitle()
-
-		entries[key] = &entry
+		entries = append(entries, key)
 	}
-	
-  return entries
+
+	return entries
+}
+
+func getEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string) *Entry {
+	isLeaf := len(entryPathPortions) == 1
+	current := entryPathPortions[0]
+
+	if isLeaf {
+		for _, e := range g.Entries {
+			if e.GetTitle() == current {
+				return &e
+			}
+		}
+
+		return nil
+	}
+
+	for _, gs := range g.Groups {
+		if gs.Name == current {
+			return getEntryFromGroup(gs, entryPathPortions[1:])
+		}
+	}
+
+	return nil
+}
+
+func setEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string, newEntry Entry) error {
+	isLeaf := len(entryPathPortions) == 1
+	current := entryPathPortions[0]
+
+  if isLeaf {
+		for i, e := range g.Entries {
+			if e.GetTitle() == current {
+        g.Entries[i] = newEntry
+				return nil
+			}
+		}
+
+		return errors.MakeError("Could not find the entry", "kdbx")
+	}
+
+	for _, gs := range g.Groups {
+		if gs.Name == current {
+			return setEntryFromGroup(gs, entryPathPortions[1:], newEntry)
+		}
+	}
+
+	return errors.MakeError("Could not find the entry", "kdbx")
 }

@@ -14,7 +14,7 @@ func List(database, key, passphrase string) error {
 		return err
 	}
 
-	entries := kdbx.GetEntries()
+	entries := kdbx.GetEntryPaths()
 
 	for _, k := range getSortedKeys(entries) {
 		fmt.Println(k)
@@ -23,23 +23,19 @@ func List(database, key, passphrase string) error {
 	return nil
 }
 
-func getSortedKeys(entries map[string]*kdbx.Entry) []string {
-	keys := []string{}
-	for k := range entries {
-		keys = append(keys, k)
-	}
+func getSortedKeys(entries []kdbx.EntryPath) []kdbx.EntryPath {
 	less := func(i, j int) bool {
-		numberOfSlashesI := len(strings.Split(keys[i], "/"))
-		numberOfSlashesJ := len(strings.Split(keys[j], "/"))
+		numberOfSlashesI := len(strings.Split(entries[i], "/"))
+		numberOfSlashesJ := len(strings.Split(entries[j], "/"))
 
     // Sort elements in the same group
 		if numberOfSlashesI == numberOfSlashesJ {
-			return sort.StringsAreSorted([]string{strings.ToLower(keys[i]), strings.ToLower(keys[j])})
+			return sort.StringsAreSorted([]string{strings.ToLower(entries[i]), strings.ToLower(entries[j])})
 		}
 
     // Show nested entities close to each other 
 		return numberOfSlashesI > numberOfSlashesJ
 	}
-	sort.Slice(keys, less)
-	return keys
+	sort.Slice(entries, less)
+	return entries
 }
