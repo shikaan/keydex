@@ -22,7 +22,7 @@ type EntryPath = string
 type Entries = map[EntryPath]*gokeepasslib.Entry
 
 func New(filepath string) (*Database, error) {
-	file, err := os.Open(filepath)
+  file, err := os.Open(filepath)
 
 	if err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
@@ -100,12 +100,15 @@ func (d *Database) Save() error {
 		return err
 	}
 
+  d.file.Close()
 	file, _ := os.Create(d.file.Name())
 	encoder := gokeepasslib.NewEncoder(file)
 
 	if err := encoder.Encode(&d.Database); err != nil {
 		return err
 	}
+
+  d.file = *file
 
 	return nil
 }
