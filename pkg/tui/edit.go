@@ -5,18 +5,27 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+
 	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/shikaan/kpcli/pkg/tui/components"
 )
 
+type fieldKey = string
+type fieldMap = map[fieldKey]components.Field
+
 type EditView struct {
+	// Model
 	entry    kdbx.Entry
 	database kdbx.Database
-  ref string
+	reference      string
 
-  fields map[string]components.Field
+	// View
+	fieldByKey fieldMap
+
 	status *components.Status
+	form   views.Widget
+	title  views.Widget
 
 	View
 }
@@ -25,20 +34,20 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
-      entry := v.database.GetEntry(v.ref)
-		
-      for i, vd := range entry.Values {
-        if field, ok := v.fields[vd.Key]; ok {
-          entry.Values[i].Value.Content = field.GetContent()
-        }
-      }
+			entry := v.database.GetEntry(v.reference)
 
-			e := v.database.Save()
-      if e != nil {
-        panic(e.Error())
+			for i, vd := range entry.Values {
+				if field, ok := v.fieldByKey[vd.Key]; ok {
+					entry.Values[i].Value.Content = field.GetContent()
+        }
 			}
 
-			v.status.Notify("Entry saved!")
+			if e := v.database.Save(); e != nil {
+				// TODO: logging
+				v.status.Notify("Could not save. See logs for error.")
+			}
+
+			v.status.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 			return true
 		}
 	}
@@ -47,36 +56,47 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 }
 
 type EditViewProps struct {
-	Entry    kdbx.Entry
-	Database kdbx.Database
-  Reference string
+	Entry     kdbx.Entry
+	Database  kdbx.Database
+	Reference string
 }
 
 func NewEditView(screen tcell.Screen, props EditViewProps) views.Widget {
+	view := &EditView{}
+	view.View = *NewView()
+	view.entry = props.Entry
+	view.database = props.Database
+	view.reference = props.Reference
+
 	title := components.NewTitle(props.Entry.GetTitle())
 	status := components.NewStatus()
-	content, fields := newMain(props.Entry, props.Database, props.Reference, status, screen)
+	form, fieldMap := view.newForm(screen, props)
 
-	view := &EditView{props.Entry, props.Database, props.Reference, fields, status, *NewView()}
+	view.fieldByKey = fieldMap
+
+	view.SetStatus(status)
+	view.status = status
 
 	view.SetTitle(title)
-	view.SetContent(content)
-	view.SetStatus(status)
+  view.title = title
+
+	view.SetContent(form)
+  view.form = form
 
 	return view
 }
 
-func newMain(e kdbx.Entry, db kdbx.Database, ref string, status *components.Status, screen tcell.Screen) (views.Widget, map[string]components.Field) {
+func (view *EditView) newForm(screen tcell.Screen, props EditViewProps) (views.Widget, fieldMap) {
 	form := components.NewForm()
-  fields := map[string]components.Field{}
+	fields := fieldMap{}
 
-	for i, f := range e.Values {
-		isPassword := i == e.GetPasswordIndex()
-
-		if field := newEntryField(f, db, e, ref, isPassword, status); field != nil {
+	for _, f := range props.Entry.Values {
+		if field := view.newEntryField(f.Key, f.Value.Content, f.Value.Protected.Bool); field != nil {
 			form.AddWidget(field, 0)
-      // Use key as binding value instead of value, so Title can change
-      fields[f.Key] = *field
+			// Using f.Value as binding key (for example, is we just used props.reference)
+			// would cause the title field to be unmodifiable, because the reference
+			// which is based on the title would change
+			fields[f.Key] = *field
 		}
 	}
 
@@ -91,26 +111,39 @@ func newMain(e kdbx.Entry, db kdbx.Database, ref string, status *components.Stat
 	return flex, fields
 }
 
-func newEntryField(entryValue kdbx.EntryValue, d kdbx.Database, e kdbx.Entry, ref string, isPassword bool, status *components.Status) *components.Field {
+func (view *EditView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
 	// Do not print empty fields
-	if entryValue.Value.Content == "" {
+	if initialValue == "" {
 		return nil
 	}
 
-	inputType := components.InputTypeText
-	if isPassword {
-		inputType = components.InputTypePassword
+  inputType := components.InputTypeText
+	if isProtected {
+			inputType = components.InputTypePassword
 	}
 
-	fieldOptions := &components.FieldOptions{Label: entryValue.Key, InitialValue: entryValue.Value.Content, InputType: inputType}
+	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
 	field := components.NewField(fieldOptions)
 
 	field.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Name() == "Ctrl+C" {
-			clipboard.Write(entryValue.Value.Content)
-			status.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", entryValue.Key))
+			clipboard.Write(field.GetContent())
+			view.status.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))
 			return true
 		}
+
+    if ev.Name() == "Ctrl+H" || ev.Name() == "Ctrl+J" {
+      if isProtected {
+        if field.GetInputType() == components.InputTypePassword {
+          field.SetInputType(components.InputTypeText)
+        } else {
+          field.SetInputType(components.InputTypePassword)
+        }
+      }
+
+      return true
+    }
+
 		return false
 	})
 

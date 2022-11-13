@@ -33,7 +33,7 @@ func NewStatus() *Status {
 
 	notification := views.NewSimpleStyledTextBar()
 	helpLine1 := makeLine("[^X] Quit", "[▴▾] Navigate", "[^O] Save")
-	helpLine2 := makeLine("[^C] Copy field to clipboard", "[^P] Browse entries", "[^H] Help")
+	helpLine2 := makeLine("[^C] Copy", "[^H] Toggle Visibility", "[^G] Help")
 
 	status.AddWidget(notification, 1)
 	status.AddWidget(helpLine1, 1)

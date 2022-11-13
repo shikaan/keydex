@@ -44,26 +44,21 @@ type model struct {
 
 func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
   isPassword := m.inputType == InputTypePassword
-  isPasswordOutOfBound := isPassword && x > 2 // Only show 3 * for passwords
-  isOutOfBound := y != 0 || x < 0 || x >= len(m.content) || isPasswordOutOfBound
+  isOutOfBound := y != 0 || x < 0 || x >= len(m.content)
 
-	if isOutOfBound || isPasswordOutOfBound {
+	if isOutOfBound {
 		return 0, m.style, nil, 1
 	}
 
+  char := rune(m.content[x])
   if isPassword {
-    return '*', m.style, nil, 1
+    char = '*'
   }
 
-	return rune(m.content[x]), m.style, nil, 1
+	return char, m.style, nil, 1
 }
 
 func (m *model) GetBounds() (int, int) {
-	if m.inputType == InputTypePassword {
-    // The 3 * we use instead of the real string
-    return 3, 1
-  }
-
   return m.width, 1
 }
 
@@ -118,6 +113,15 @@ func (i *Input) GetContent() string {
 	return string(i.model.content)
 }
 
+func (i *Input) SetInputType(t InputType) {
+  i.model.inputType = t
+  i.Init()
+}
+
+func (i *Input) GetInputType() InputType {
+  return i.model.inputType
+}
+
 func (i *Input) HandleEvent(ev tcell.Event) bool {
 	if !i.HasFocus() {
 		return false
@@ -135,8 +139,6 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
       return handled
     }
   
-    // TODO: password type should not allow typing here
-
     if ev.Key() == tcell.KeyRune {
 			return i.handleContentUpdate(
         ev,

@@ -14,10 +14,8 @@ type Database struct {
 	gokeepasslib.Database
 }
 
-// Reexporting the types
-
 type Entry = gokeepasslib.Entry
-type EntryValue = gokeepasslib.ValueData
+type EntryField = gokeepasslib.ValueData
 
 // A string like "/Database/Group/EntryName"
 type EntryPath = string

@@ -39,12 +39,16 @@ func (f *Field) OnKeyPress (cb func (ev *tcell.EventKey) bool) func () {
   return f.input.OnKeyPress(cb)
 }
 
-func (f *Field) OnChange (cb func (ev tcell.Event) bool) func () {
-  return f.input.OnChange(cb)
-}
-
 func (f *Field) GetContent() string {
   return f.input.GetContent()
+}
+
+func (f *Field) SetInputType(t InputType) {
+  f.input.SetInputType(t)
+}
+
+func (f *Field) GetInputType() InputType {
+  return f.input.GetInputType()
 }
 
 func NewField(options *FieldOptions) *Field {
