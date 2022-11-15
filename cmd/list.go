@@ -25,8 +25,8 @@ func List(database, key, passphrase string) error {
 
 func getSortedKeys(entries []kdbx.EntryPath) []kdbx.EntryPath {
 	less := func(i, j int) bool {
-		numberOfSlashesI := len(strings.Split(entries[i], "/"))
-		numberOfSlashesJ := len(strings.Split(entries[j], "/"))
+		numberOfSlashesI := len(strings.Split(entries[i], kdbx.PATH_SEPARATOR))
+		numberOfSlashesJ := len(strings.Split(entries[j], kdbx.PATH_SEPARATOR))
 
     // Sort elements in the same group
 		if numberOfSlashesI == numberOfSlashesJ {

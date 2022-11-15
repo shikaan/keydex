@@ -21,8 +21,10 @@ type EntryField = gokeepasslib.ValueData
 type EntryPath = string
 type Entries = map[EntryPath]*gokeepasslib.Entry
 
+const PATH_SEPARATOR = "/"
+
 func New(filepath string) (*Database, error) {
-  file, err := os.Open(filepath)
+	file, err := os.Open(filepath)
 
 	if err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
@@ -34,12 +36,12 @@ func New(filepath string) (*Database, error) {
 
 func NewUnlocked(filepath, password string) (*Database, error) {
 	kdbx, err := New(filepath)
+
 	if err != nil {
 		return nil, err
 	}
 
-	err = kdbx.Unlock(password)
-	if err != nil {
+	if err := kdbx.Unlock(password); err != nil {
 		return nil, err
 	}
 
@@ -49,9 +51,7 @@ func NewUnlocked(filepath, password string) (*Database, error) {
 func (d *Database) Unlock(password string) error {
 	d.Credentials = gokeepasslib.NewPasswordCredentials(password)
 
-	err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database)
-
-	if err != nil {
+	if err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
@@ -63,7 +63,7 @@ func (d *Database) GetEntryPaths() []EntryPath {
 	result := []EntryPath{}
 
 	for _, g := range d.Content.Root.Groups {
-		result = append(result, getEntryPathsFromGroup(g, "/")...)
+		result = append(result, getEntryPathsFromGroup(g, PATH_SEPARATOR)...)
 	}
 
 	return result
@@ -71,7 +71,7 @@ func (d *Database) GetEntryPaths() []EntryPath {
 
 func (d *Database) GetEntry(p EntryPath) *Entry {
 	// Skip the first /
-	portions := strings.Split(p[1:], "/")
+	portions := strings.Split(p[1:], PATH_SEPARATOR)
 
 	for _, g := range d.Content.Root.Groups {
 		if e := getEntryFromGroup(g, portions); e != nil {
@@ -83,16 +83,16 @@ func (d *Database) GetEntry(p EntryPath) *Entry {
 }
 
 func (d *Database) SetEntry(p EntryPath, e Entry) error {
-  // Skip the first /
-	portions := strings.Split(p[1:], "/")
+	// Skip the first /
+	portions := strings.Split(p[1:], PATH_SEPARATOR)
 
 	for _, g := range d.Content.Root.Groups {
-    if err := setEntryFromGroup(g, portions, e); err != nil {
-      return err
-    }
+		if err := setEntryFromGroup(g, portions, e); err != nil {
+			return err
+		}
 	}
 
-  return nil
+	return nil
 }
 
 func (d *Database) Save() error {
@@ -100,7 +100,7 @@ func (d *Database) Save() error {
 		return err
 	}
 
-  d.file.Close()
+	d.file.Close()
 	file, _ := os.Create(d.file.Name())
 	encoder := gokeepasslib.NewEncoder(file)
 
@@ -108,7 +108,7 @@ func (d *Database) Save() error {
 		return err
 	}
 
-  d.file = *file
+	d.file = *file
 
 	return nil
 }
@@ -116,7 +116,7 @@ func (d *Database) Save() error {
 // Private
 
 func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []EntryPath {
-	groupPrefix := prefix + g.Name + "/"
+	groupPrefix := prefix + sanitizePathPortion(g.Name) + PATH_SEPARATOR
 	entries := []EntryPath{}
 
 	for _, subGroup := range g.Groups {
@@ -125,7 +125,7 @@ func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []EntryPath {
 	}
 
 	for _, entry := range g.Entries {
-		key := prefix + entry.GetTitle()
+		key := prefix + sanitizePathPortion(entry.GetTitle())
 		entries = append(entries, key)
 	}
 
@@ -159,10 +159,10 @@ func setEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string, newEntr
 	isLeaf := len(entryPathPortions) == 1
 	current := entryPathPortions[0]
 
-  if isLeaf {
+	if isLeaf {
 		for i, e := range g.Entries {
 			if e.GetTitle() == current {
-        g.Entries[i] = newEntry
+				g.Entries[i] = newEntry
 				return nil
 			}
 		}
@@ -177,4 +177,8 @@ func setEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string, newEntr
 	}
 
 	return errors.MakeError("Could not find the entry", "kdbx")
+}
+
+func sanitizePathPortion(s string) string {
+	return strings.ReplaceAll(s, PATH_SEPARATOR, "")
 }

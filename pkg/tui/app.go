@@ -4,21 +4,50 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/kpcli/pkg/tui/components"
 )
 
-var App = &views.Application{}
+type Application struct {
+	layout *Layout
+	screen *tcell.Screen
+	state  *State
 
-func runView[K interface{}](newView ViewCreator[K], arguments K) error {
+	views.Application
+}
+
+func (a *Application) NavigateTo(newView func(*tcell.Screen, *State) views.Widget) {
+	a.layout.SetContent(newView(a.screen, a.state))
+}
+
+func (a *Application) Notify(msg string) {
+	a.layout.Status.Notify(msg)
+}
+
+func (a *Application) SetTitle(title string) {
+	a.layout.SetTitle(components.NewTitle(title))
+}
+
+var App = &Application{}
+
+type State struct {
+	Entry     *kdbx.Entry
+	Database  *kdbx.Database
+	Reference string
+}
+
+func Run(state State) error {
 	if screen, err := tcell.NewScreen(); err == nil {
-		App.SetRootWidget(newView(screen, arguments))
 		App.SetScreen(screen)
+    App.screen = &screen
+    App.state = &state
+		App.layout = NewLayout(screen)
+		App.SetRootWidget(App.layout)
+
+		App.NavigateTo(NewEditView)
 
 		return App.Run()
 	}
 
 	return errors.MakeError("Unable to start screen", "tui")
-}
-
-func RunEditView(props EditViewProps) error {
-	return runView(NewEditView, props)
 }

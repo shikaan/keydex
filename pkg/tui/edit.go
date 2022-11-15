@@ -19,15 +19,13 @@ type EditView struct {
 	entry    kdbx.Entry
 	database kdbx.Database
 	reference      string
+  fieldByKey fieldMap
 
 	// View
-	fieldByKey fieldMap
+  form views.Widget
+	
 
-	status *components.Status
-	form   views.Widget
-	title  views.Widget
-
-	View
+  components.Container
 }
 
 func (v *EditView) HandleEvent(ev tcell.Event) bool {
@@ -44,41 +42,26 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 
 			if e := v.database.Save(); e != nil {
 				// TODO: logging
-				v.status.Notify("Could not save. See logs for error.")
+				App.Notify("Could not save. See logs for error.")
 			}
 
-			v.status.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
+			App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 			return true
 		}
-	}
+  }
 
-	return v.View.HandleEvent(ev)
+	return v.Container.HandleEvent(ev)
 }
 
-type EditViewProps struct {
-	Entry     kdbx.Entry
-	Database  kdbx.Database
-	Reference string
-}
-
-func NewEditView(screen tcell.Screen, props EditViewProps) views.Widget {
+func NewEditView(screen *tcell.Screen, state *State) views.Widget {
 	view := &EditView{}
-	view.View = *NewView()
-	view.entry = props.Entry
-	view.database = props.Database
-	view.reference = props.Reference
+  view.Container = *components.NewContainer(*screen)
+	view.entry = *state.Entry
+	view.database = *state.Database
+	view.reference = state.Reference
 
-	title := components.NewTitle(props.Entry.GetTitle())
-	status := components.NewStatus()
-	form, fieldMap := view.newForm(screen, props)
-
+	form, fieldMap := view.newForm(*screen, *state)
 	view.fieldByKey = fieldMap
-
-	view.SetStatus(status)
-	view.status = status
-
-	view.SetTitle(title)
-  view.title = title
 
 	view.SetContent(form)
   view.form = form
@@ -86,7 +69,7 @@ func NewEditView(screen tcell.Screen, props EditViewProps) views.Widget {
 	return view
 }
 
-func (view *EditView) newForm(screen tcell.Screen, props EditViewProps) (views.Widget, fieldMap) {
+func (view *EditView) newForm(screen tcell.Screen, props State) (views.Widget, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
@@ -105,10 +88,7 @@ func (view *EditView) newForm(screen tcell.Screen, props EditViewProps) (views.W
 		fs[0].SetFocus(true)
 	}
 
-	flex := components.NewContainer(screen)
-	flex.SetContent(form)
-
-	return flex, fields
+	return form, fields
 }
 
 func (view *EditView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
@@ -128,7 +108,7 @@ func (view *EditView) newEntryField(label, initialValue string, isProtected bool
 	field.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Name() == "Ctrl+C" {
 			clipboard.Write(field.GetContent())
-			view.status.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))
+			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))
 			return true
 		}
 
