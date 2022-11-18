@@ -16,16 +16,15 @@ type fieldMap = map[fieldKey]components.Field
 
 type EditView struct {
 	// Model
-	entry    kdbx.Entry
-	database kdbx.Database
-	reference      string
-  fieldByKey fieldMap
+	entry      kdbx.Entry
+	database   kdbx.Database
+	reference  string
+	fieldByKey fieldMap
 
 	// View
-  form views.Widget
-	
+	form views.Widget
 
-  components.Container
+	components.Container
 }
 
 func (v *EditView) HandleEvent(ev tcell.Event) bool {
@@ -37,7 +36,7 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 			for i, vd := range entry.Values {
 				if field, ok := v.fieldByKey[vd.Key]; ok {
 					entry.Values[i].Value.Content = field.GetContent()
-        }
+				}
 			}
 
 			if e := v.database.Save(); e != nil {
@@ -48,23 +47,23 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 			App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 			return true
 		}
-  }
+	}
 
 	return v.Container.HandleEvent(ev)
 }
 
-func NewEditView(screen *tcell.Screen, state *State) views.Widget {
+func NewEditView(screen tcell.Screen, state State) views.Widget {
 	view := &EditView{}
-  view.Container = *components.NewContainer(*screen)
+	view.Container = *components.NewContainer(screen)
 	view.entry = *state.Entry
 	view.database = *state.Database
 	view.reference = state.Reference
 
-	form, fieldMap := view.newForm(*screen, *state)
+	form, fieldMap := view.newForm(screen, state)
 	view.fieldByKey = fieldMap
 
 	view.SetContent(form)
-  view.form = form
+	view.form = form
 
 	return view
 }
@@ -97,9 +96,9 @@ func (view *EditView) newEntryField(label, initialValue string, isProtected bool
 		return nil
 	}
 
-  inputType := components.InputTypeText
+	inputType := components.InputTypeText
 	if isProtected {
-			inputType = components.InputTypePassword
+		inputType = components.InputTypePassword
 	}
 
 	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
@@ -112,17 +111,17 @@ func (view *EditView) newEntryField(label, initialValue string, isProtected bool
 			return true
 		}
 
-    if ev.Name() == "Ctrl+H" || ev.Name() == "Ctrl+J" {
-      if isProtected {
-        if field.GetInputType() == components.InputTypePassword {
-          field.SetInputType(components.InputTypeText)
-        } else {
-          field.SetInputType(components.InputTypePassword)
-        }
-      }
+		if ev.Name() == "Ctrl+H" || ev.Name() == "Ctrl+J" {
+			if isProtected {
+				if field.GetInputType() == components.InputTypePassword {
+					field.SetInputType(components.InputTypeText)
+				} else {
+					field.SetInputType(components.InputTypePassword)
+				}
+			}
 
-      return true
-    }
+			return true
+		}
 
 		return false
 	})

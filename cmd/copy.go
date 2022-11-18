@@ -12,35 +12,35 @@ import (
 
 // Reads reference from stdin and attempts to copy password
 // of referenced entry to the clipboard
-func Copy(databasePath, keyPath, passphrase string) error { 
-  reference, err := readReferenceFromStdin("")
-  if err != nil {
-    return err
-  }
-  
-  db, err := kdbx.NewUnlocked(databasePath, passphrase)
-  if err != nil {
-    return err
-  }
+func Copy(databasePath, keyPath, passphrase string) error {
+	reference, err := readReferenceFromStdin("")
+	if err != nil {
+		return err
+	}
 
-  if entry := db.GetEntry(reference);entry != nil {
-    return clipboard.Write(entry.GetPassword())
-  }
+	db, err := kdbx.NewUnlocked(databasePath, passphrase)
+	if err != nil {
+		return err
+	}
 
-  return errors.MakeError("Missing entry at " + reference, "copy") 
+	if entry := db.GetEntry(reference); entry != nil {
+		return clipboard.Write(entry.GetPassword())
+	}
+
+	return errors.MakeError("Missing entry at "+reference, "copy")
 }
 
 func readReferenceFromStdin(maybeReference string) (string, error) {
-  if maybeReference != "" {
-    return maybeReference, nil
-  } 
+	if maybeReference != "" {
+		return maybeReference, nil
+	}
 
-  reader := bufio.NewReader(os.Stdin)
-  str, err := reader.ReadString('\n')
+	reader := bufio.NewReader(os.Stdin)
+	str, err := reader.ReadString('\n')
 
-  if err != nil {
-    return "", err
-  }
+	if err != nil {
+		return "", err
+	}
 
-  return strings.TrimSpace(str), nil
+	return strings.TrimSpace(str), nil
 }

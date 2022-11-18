@@ -169,6 +169,8 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 				},
 			)
 		}
+
+    return false
 	}
 	return i.CellView.HandleEvent(ev)
 }

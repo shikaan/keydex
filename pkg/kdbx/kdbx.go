@@ -68,7 +68,7 @@ func (d *Database) GetEntryPaths() []EntryPath {
 
 	return result
 }
-
+// TODO: this is buggy
 func (d *Database) GetEntry(p EntryPath) *Entry {
 	// Skip the first /
 	portions := strings.Split(p[1:], PATH_SEPARATOR)
