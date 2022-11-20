@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
+	"github.com/shikaan/kpcli/pkg/log"
 	"github.com/shikaan/kpcli/pkg/tui/components"
 )
 
@@ -19,16 +20,23 @@ type EditView struct {
 	components.Container
 }
 
+var IsReadOnly = false
+
 func (v *EditView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
+      if IsReadOnly {
+        App.Notify("Could not save: archive in read-only mode.")
+        return true
+      }
+
       uuid := App.State.Entry.UUID
 			entry := App.State.Database.GetEntry(uuid)
 
       if entry == nil {
         App.Notify("Could not find entry at " + App.State.Reference)
-        return false
+        return true
       }
 
 			for i, vd := range entry.Values {
@@ -40,7 +48,16 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 			if e := App.State.Database.Save(); e != nil {
 				// TODO: logging
 				App.Notify("Could not save. See logs for error.")
-			  return false
+			  return true
+      }
+
+      // Unlocking again to allow further modifications
+      if e := App.State.Database.UnlockProtectedEntries(); e != nil {
+        // TODO: logging
+        IsReadOnly = true
+        App.Notify("Could not save. Switching to read-only to not corrupt data.")
+        log.Log(e.Error())
+        return true
       }
 
 			App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
