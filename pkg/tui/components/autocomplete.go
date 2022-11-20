@@ -40,7 +40,7 @@ func NewAutoComplete(options AutoCompleteOptions) views.Widget {
   autoComplete.AddWidget(input, 0)
 
   input.SetFocus(true)
-	input.OnChange(func(ev tcell.Event) bool {
+  input.OnChange(func(ev tcell.Event) bool {
     entries := options.Entries
 		content := input.GetContent()
 

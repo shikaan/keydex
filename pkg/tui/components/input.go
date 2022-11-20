@@ -170,7 +170,12 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 			)
 		}
 
-    return false
+    // CellView (few lines below) would handle these events, preventing other
+    // components (e.g., autocomplete) to handle them.
+    // Not really nice, but not worth the complication of doing it nicer either
+    if ev.Key() == tcell.KeyUp || ev.Key() == tcell.KeyDown {
+     return false
+    }
 	}
 	return i.CellView.HandleEvent(ev)
 }
