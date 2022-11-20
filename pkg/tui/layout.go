@@ -36,8 +36,12 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
-	title := components.NewTitle("kpcli")
+	title := components.NewTitle("")
 	status := components.NewStatus()
+
+  t := views.NewText()
+  t.SetText(" ")
+  l.SetMenu(t)
 
 	l.SetStatus(status)
 	l.Status = status

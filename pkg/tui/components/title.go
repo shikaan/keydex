@@ -1,16 +1,27 @@
 package components
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/kpcli/pkg/info"
 )
 
-type Title = views.TextBar
+type Title struct {
+  views.TextBar
+}
 
-func NewTitle(title string) *views.TextBar {
-	tb := views.NewTextBar()
-	tb.SetStyle(tcell.StyleDefault.Reverse(true))
-	tb.SetCenter(title, tcell.StyleDefault.Reverse(true))
+func  (t *Title) SetTitle(s string) {
+  t.SetCenter(s, tcell.StyleDefault.Reverse(true))
+}
+
+func NewTitle(title string) *Title {
+	tb := &Title{}
+	tb.TextBar.SetStyle(tcell.StyleDefault.Reverse(true))
+  left := fmt.Sprintf("  %s %s (%s)", info.NAME, info.VERSION, info.REVISION)
+  tb.TextBar.SetLeft(left, tcell.StyleDefault.Reverse(true))
+	tb.TextBar.SetCenter(title, tcell.StyleDefault.Reverse(true))
 
 	return tb
 }

@@ -8,10 +8,13 @@ import (
 	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/credentials"
 	"github.com/shikaan/kpcli/pkg/kdbx"
+	c "github.com/shikaan/kpcli/cmd"
 )
 
-func main() {
-	var rootCmd = &cobra.Command{
+//go:generate make info
+
+func main() {	
+  var rootCmd = &cobra.Command{
 		Use:   "kpcli",
 		Short: "Work with KeePass databases from your terminal",
 	}
@@ -41,7 +44,7 @@ var listCmd = &cobra.Command{
 		key := cmd.Flag("key").Value.String()
     passphrase := credentials.GetPassphrase(database)
 		
-    return List(database, key, passphrase)
+    return c.List(database, key, passphrase)
 	},
 }
 
@@ -54,7 +57,7 @@ var copyCmd = &cobra.Command{
 		key := cmd.Flag("key").Value.String()
     passphrase := credentials.GetPassphrase(database)
 		
-    return Copy(database, key, passphrase)
+    return c.Copy(database, key, passphrase)
 	},
 }
 
@@ -72,7 +75,7 @@ var browseCopyCmd = &cobra.Command{
     databaseName := filepath.Base(database)
 		password := credentials.GetPassphrase(databaseName)
 
-		return Browse(database, key, password, func(entry kdbx.Entry) error {
+		return c.Browse(database, key, password, func(entry kdbx.Entry) error {
 			return clipboard.Write(entry.GetPassword())
     })
 	},
@@ -92,6 +95,6 @@ var editCmd = &cobra.Command{
 		key := cmd.Flag("key").Value.String()
     passphrase := credentials.GetPassphrase(database)
 
-    return Edit(database, key, passphrase, maybeRef)
+    return c.Edit(database, key, passphrase, maybeRef)
   },
 }
