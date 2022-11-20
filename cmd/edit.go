@@ -17,7 +17,7 @@ func Edit(databasePath, keyPath, passphrase, maybeReference string) error {
 		return err
 	}
 
-  if entry := db.GetEntry(reference); entry != nil { 
+  if entry := db.GetFirstEntryByPath(reference); entry != nil { 
     return tui.Run(tui.State{ Entry: entry, Database: db, Reference: reference })
 	}
 

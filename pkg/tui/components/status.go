@@ -34,8 +34,8 @@ func NewStatus() *Status {
 	status.SetOrientation(views.Vertical)
 
 	notification := views.NewSimpleStyledTextBar()
-	helpLine1 := makeLine("^X Quit", "▴▾ Navigate", "^P Browse", "^O Save")
-	helpLine2 := makeLine("^C Copy", "^H Reveal", "ESC Close", "^G Help")
+	helpLine1 := makeLine("^X Exit", "▴▾ Navigate", "^P Browse", "^O Save")
+	helpLine2 := makeLine("^C Copy", "^R Reveal", "ESC Close", "^G Help")
 
 	status.AddWidget(notification, 1)
 	status.AddWidget(helpLine1, 1)

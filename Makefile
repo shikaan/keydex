@@ -11,7 +11,7 @@ info:
 .PHONY: run
 run:
 	go generate
-	go run . edit test.kdbx /test
+	go run . edit test.kdbx /another_test
 
 ## build: Compile example to binary
 .PHONY: build

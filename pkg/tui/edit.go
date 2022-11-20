@@ -7,7 +7,6 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
-	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/shikaan/kpcli/pkg/tui/components"
 )
 
@@ -15,15 +14,8 @@ type fieldKey = string
 type fieldMap = map[fieldKey]components.Field
 
 type EditView struct {
-	// Model
-	entry      kdbx.Entry
-	database   kdbx.Database
-	reference  string
 	fieldByKey fieldMap
-
-	// View
 	form views.Widget
-
 	components.Container
 }
 
@@ -31,7 +23,13 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
-			entry := v.database.GetEntry(v.reference)
+      uuid := App.State.Entry.UUID
+			entry := App.State.Database.GetEntry(uuid)
+
+      if entry == nil {
+        App.Notify("Could not find entry at " + App.State.Reference)
+        return false
+      }
 
 			for i, vd := range entry.Values {
 				if field, ok := v.fieldByKey[vd.Key]; ok {
@@ -39,10 +37,11 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 				}
 			}
 
-			if e := v.database.Save(); e != nil {
+			if e := App.State.Database.Save(); e != nil {
 				// TODO: logging
 				App.Notify("Could not save. See logs for error.")
-			}
+			  return false
+      }
 
 			App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 			return true
@@ -55,9 +54,6 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 func NewEditView(screen tcell.Screen, state State) views.Widget {
 	view := &EditView{}
 	view.Container = *components.NewContainer(screen)
-	view.entry = *state.Entry
-	view.database = *state.Database
-	view.reference = state.Reference
 
 	form, fieldMap := view.newForm(screen, state)
 	view.fieldByKey = fieldMap
@@ -111,7 +107,7 @@ func (view *EditView) newEntryField(label, initialValue string, isProtected bool
 			return true
 		}
 
-		if ev.Name() == "Ctrl+H" || ev.Name() == "Ctrl+J" {
+		if ev.Name() == "Ctrl+R" {
 			if isProtected {
 				if field.GetInputType() == components.InputTypePassword {
 					field.SetInputType(components.InputTypeText)

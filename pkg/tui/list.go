@@ -25,7 +25,8 @@ func NewListView(screen tcell.Screen, state State) views.Widget {
 		MaxX:           maxX,
 		MaxY:           maxY,
 		OnSelect: func(entry string) bool {
-			App.State.Entry = App.State.Database.GetEntry(entry)
+			App.State.Reference = entry
+      App.State.Entry = App.State.Database.GetFirstEntryByPath(entry)
 			App.NavigateTo(NewEditView)
 			return true
 		},

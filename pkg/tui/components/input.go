@@ -9,7 +9,7 @@ import (
 )
 
 type Input struct {
-	model *model
+	model *inputModel
 	once  sync.Once
 
 	Focusable
@@ -30,7 +30,7 @@ const (
 
 // Model - Used internally by tcell/views to handle drawing
 
-type model struct {
+type inputModel struct {
 	content   string
 	width     int
 	x         int
@@ -42,7 +42,7 @@ type model struct {
   changeHandler func(ev tcell.Event) bool
 }
 
-func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
+func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
   isPassword := m.inputType == InputTypePassword
   isOutOfBound := y != 0 || x < 0 || x >= len(m.content)
 
@@ -58,11 +58,11 @@ func (m *model) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	return char, m.style, nil, 1
 }
 
-func (m *model) GetBounds() (int, int) {
+func (m *inputModel) GetBounds() (int, int) {
   return m.width, 1
 }
 
-func (m *model) limitCursor() {
+func (m *inputModel) limitCursor() {
   x, _ := m.GetBounds()
 
   if m.x > x {
@@ -73,17 +73,17 @@ func (m *model) limitCursor() {
 	}
 }
 
-func (m *model) SetCursor(x, y int) {
+func (m *inputModel) SetCursor(x, y int) {
 	m.x = x
 	m.limitCursor()
 }
 
-func (m *model) MoveCursor(x, y int) {
+func (m *inputModel) MoveCursor(x, y int) {
 	m.x += x
 	m.limitCursor()
 }
 
-func (m *model) GetCursor() (int, int, bool, bool) {
+func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, m.hasFocus
 }
 
@@ -207,7 +207,7 @@ func (i *Input) OnChange (cb func (ev tcell.Event) bool) func () {
 
 func (i *Input) Init() {
 	i.once.Do(func() {
-		m := &model{}
+		m := &inputModel{}
 		i.model = m
 		i.CellView.Init()
 		i.CellView.SetModel(m)

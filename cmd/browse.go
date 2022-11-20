@@ -28,7 +28,7 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
         return ""
       }
 
-      if entry := kdbx.GetEntry(keys[i]); entry != nil {
+      if entry := kdbx.GetFirstEntryByPath(keys[i]); entry != nil {
         return previewEntry(*entry)
       }
 
@@ -42,7 +42,7 @@ func Browse(database, key, passphrase string, callback func (entry kdbx.Entry) e
 
   reference := keys[idx]
  
-  if entry := kdbx.GetEntry(reference); entry != nil {
+  if entry := kdbx.GetFirstEntryByPath(reference); entry != nil {
     return callback(*entry)
   }
 

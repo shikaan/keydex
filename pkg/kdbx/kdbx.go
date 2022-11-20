@@ -16,10 +16,10 @@ type Database struct {
 
 type Entry = gokeepasslib.Entry
 type EntryField = gokeepasslib.ValueData
+type UUID = gokeepasslib.UUID
 
 // A string like "/Database/Group/EntryName"
 type EntryPath = string
-type Entries = map[EntryPath]*gokeepasslib.Entry
 
 const PATH_SEPARATOR = "/"
 
@@ -62,33 +62,29 @@ func (d *Database) Unlock(password string) error {
 func (d *Database) GetEntryPaths() []EntryPath {
 	result := []EntryPath{}
 
-	for _, g := range d.Content.Root.Groups {
-		result = append(result, getEntryPathsFromGroup(g, PATH_SEPARATOR)...)
+	for _, uEP := range d.getEntryPathsAndUUIDs() {
+		result = append(result, uEP.path)
 	}
 
 	return result
 }
-// TODO: this is buggy
-func (d *Database) GetEntry(p EntryPath) *Entry {
-	// Skip the first /
-	portions := strings.Split(p[1:], PATH_SEPARATOR)
 
-	for _, g := range d.Content.Root.Groups {
-		if e := getEntryFromGroup(g, portions); e != nil {
-			return e
+// Returns the first entry matching the entry path provided.
+// Please note: the path might not be unique! Use the UUID method
+func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
+	for _, uEP := range d.getEntryPathsAndUUIDs() {
+		if uEP.path == p {
+			return d.GetEntry(uEP.uuid)
 		}
 	}
 
 	return nil
 }
 
-func (d *Database) SetEntry(p EntryPath, e Entry) error {
-	// Skip the first /
-	portions := strings.Split(p[1:], PATH_SEPARATOR)
-
+func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 	for _, g := range d.Content.Root.Groups {
-		if err := setEntryFromGroup(g, portions, e); err != nil {
-			return err
+		if e := getEntryByUUID(g, uuid); e != nil {
+			return e
 		}
 	}
 
@@ -102,9 +98,8 @@ func (d *Database) Save() error {
 
 	d.file.Close()
 	file, _ := os.Create(d.file.Name())
-	encoder := gokeepasslib.NewEncoder(file)
 
-	if err := encoder.Encode(&d.Database); err != nil {
+	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
 		return err
 	}
 
@@ -115,9 +110,24 @@ func (d *Database) Save() error {
 
 // Private
 
-func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []EntryPath {
-	groupPrefix := prefix + sanitizePathPortion(g.Name) + PATH_SEPARATOR
-	entries := []EntryPath{}
+type uniqueEntryPath struct { 
+  path EntryPath 
+  uuid UUID 
+}
+
+func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
+	result := []uniqueEntryPath{}
+
+	for _, g := range d.Content.Root.Groups {
+		result = append(result, getEntryPathsFromGroup(g, PATH_SEPARATOR)...)
+	}
+
+	return result
+}
+
+func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPath {
+	groupPrefix := prefix + g.Name + PATH_SEPARATOR
+	entries := []uniqueEntryPath{}
 
 	for _, subGroup := range g.Groups {
 		subEntries := getEntryPathsFromGroup(subGroup, groupPrefix)
@@ -125,8 +135,8 @@ func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []EntryPath {
 	}
 
 	for _, entry := range g.Entries {
-		key := prefix + sanitizePathPortion(entry.GetTitle())
-		entries = append(entries, key)
+		key := groupPrefix + sanitizePathPortion(entry.GetTitle())
+    entries = append(entries, uniqueEntryPath{path: key, uuid: entry.UUID})
 	}
 
 	return entries
@@ -136,9 +146,12 @@ func getEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string) *Entry 
 	isLeaf := len(entryPathPortions) == 1
 	current := entryPathPortions[0]
 
+  println("searching in", g.Name)
+
 	if isLeaf {
 		for _, e := range g.Entries {
 			if e.GetTitle() == current {
+        println("found in", g.Name)
 				return &e
 			}
 		}
@@ -155,28 +168,20 @@ func getEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string) *Entry 
 	return nil
 }
 
-func setEntryFromGroup(g gokeepasslib.Group, entryPathPortions []string, newEntry Entry) error {
-	isLeaf := len(entryPathPortions) == 1
-	current := entryPathPortions[0]
-
-	if isLeaf {
-		for i, e := range g.Entries {
-			if e.GetTitle() == current {
-				g.Entries[i] = newEntry
-				return nil
-			}
+func getEntryByUUID(g gokeepasslib.Group, uuid gokeepasslib.UUID) *Entry {
+	for _, e := range g.Entries {
+		if e.UUID.Compare(uuid) {
+			return &e
 		}
-
-		return errors.MakeError("Could not find the entry", "kdbx")
 	}
-
-	for _, gs := range g.Groups {
-		if gs.Name == current {
-			return setEntryFromGroup(gs, entryPathPortions[1:], newEntry)
+	
+  for _, gs := range g.Groups {
+		if e := getEntryByUUID(gs, uuid); e != nil {
+			return e
 		}
 	}
 
-	return errors.MakeError("Could not find the entry", "kdbx")
+	return nil
 }
 
 func sanitizePathPortion(s string) string {
