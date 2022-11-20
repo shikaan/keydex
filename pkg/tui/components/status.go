@@ -2,10 +2,12 @@ package components
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/mattn/go-runewidth"
 )
 
 // Notifications will be cleared upon the first interaction
@@ -14,7 +16,7 @@ const NOTIFICATION_MIN_DURATION_IN_SECONDS = 5
 
 type Status struct {
 	notification *views.SimpleStyledTextBar
-	helpLine     *views.TextBar
+	helpLine     views.Widget
 
 	views.BoxLayout
 }
@@ -32,8 +34,8 @@ func NewStatus() *Status {
 	status.SetOrientation(views.Vertical)
 
 	notification := views.NewSimpleStyledTextBar()
-	helpLine1 := makeLine("[^X] Quit", "[▴▾] Navigate", "[^O] Save")
-	helpLine2 := makeLine("[^C] Copy", "[^H] Toggle Visibility", "[^G] Help")
+	helpLine1 := makeLine("^X Quit", "▴▾ Navigate", "^P Browse", "^O Save")
+	helpLine2 := makeLine("^C Copy", "^H Reveal", "ESC Close", "^G Help")
 
 	status.AddWidget(notification, 1)
 	status.AddWidget(helpLine1, 1)
@@ -45,13 +47,21 @@ func NewStatus() *Status {
 	return status
 }
 
-func makeLine(left, center, right string) *views.TextBar {
-	line := views.NewTextBar()
-	line.SetStyle(tcell.StyleDefault.Reverse(true))
+func makeLine(blocks ...string) views.Widget {
+	line := views.NewBoxLayout(views.Horizontal)
 
-	line.SetLeft(left, tcell.StyleDefault.Reverse(true))
-	line.SetCenter(center, tcell.StyleDefault.Reverse(true))
-	line.SetRight(right, tcell.StyleDefault.Reverse(true))
+	for _, block := range blocks {
+		blockElement := views.NewText()
+    blockElement.SetText(block)
+
+    spaceIndex := runewidth.StringWidth(strings.Split(block, " ")[0])
+
+    for i := 0; i < spaceIndex; i++ {
+      blockElement.SetStyleAt(i, tcell.StyleDefault.Reverse(true))
+    }
+
+		line.AddWidget(blockElement, 1.0/float64(len(blocks)))
+	}
 
 	return line
 }
