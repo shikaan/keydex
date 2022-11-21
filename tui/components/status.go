@@ -16,7 +16,6 @@ const NOTIFICATION_MIN_DURATION_IN_SECONDS = 5
 
 type Status struct {
 	notification *views.SimpleStyledTextBar
-	helpLine     views.Widget
 
 	views.BoxLayout
 }
@@ -37,12 +36,12 @@ func NewStatus() *Status {
 	helpLine1 := makeLine("^X Exit", "▴▾ Navigate", "^P Browse", "^O Save")
 	helpLine2 := makeLine("^C Copy", "^R Reveal", "ESC Close", "^G Help")
 
-	status.AddWidget(notification, 1)
-	status.AddWidget(helpLine1, 1)
-	status.AddWidget(helpLine2, 1)
+	status.InsertWidget(0, notification, 0)
+	status.InsertWidget(1, helpLine1, 0)
+	status.InsertWidget(2, helpLine2, 0)
+  status.Resize()
 
 	status.notification = notification
-	status.helpLine = helpLine1
 
 	return status
 }
