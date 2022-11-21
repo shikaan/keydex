@@ -8,7 +8,7 @@ import (
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/log"
-	"github.com/shikaan/kpcli/pkg/tui/components"
+	"github.com/shikaan/kpcli/tui/components"
 )
 
 type fieldKey = string

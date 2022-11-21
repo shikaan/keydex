@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/shikaan/kpcli/pkg/errors"
 	"github.com/shikaan/kpcli/pkg/kdbx"
-	"github.com/shikaan/kpcli/pkg/tui"
+	"github.com/shikaan/kpcli/tui"
 )
 
 func Edit(databasePath, keyPath, passphrase, maybeReference string) error {

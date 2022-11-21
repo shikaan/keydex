@@ -3,7 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/kpcli/pkg/tui/components"
+	"github.com/shikaan/kpcli/tui/components"
 )
 
 type Layout struct {
