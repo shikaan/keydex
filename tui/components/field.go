@@ -27,6 +27,10 @@ func (f *Field) SetFocus(on bool) {
   f.input.SetFocus(on)
 }
 
+func (f *Field) OnFocus(cb func () bool) func () {
+  return f.input.OnFocus(cb)
+}
+
 func (f *Field) HandleEvent(ev tcell.Event) bool {
   if !f.HasFocus() {
     return false

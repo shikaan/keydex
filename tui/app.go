@@ -11,7 +11,9 @@ import (
 type Application struct {
 	layout *Layout
 	screen tcell.Screen
-	State  State
+
+	LastFocused components.Focusable
+  State  State
 
 	views.Application
 }
@@ -24,8 +26,45 @@ func (a *Application) Notify(msg string) {
 	a.layout.Status.Notify(msg)
 }
 
+func (a *Application) Confirm(msg string, onAccept func(), onReject func()) {
+	if a.LastFocused != nil {
+    a.LastFocused.SetFocus(false)
+  }
+  
+  a.layout.Status.Confirm(
+    msg, 
+    func() {
+      if onAccept != nil {
+        onAccept()
+      }
+
+      if a.LastFocused != nil {
+        a.LastFocused.SetFocus(true)
+      }
+    }, 
+    func() {
+      if onReject != nil {
+        onReject()
+      }
+
+      if a.LastFocused != nil {
+        a.LastFocused.SetFocus(true)
+      }
+    },
+  )
+}
+
 func (a *Application) SetTitle(title string) {
 	a.layout.SetTitle(components.NewTitle(title))
+}
+
+func (a *Application) Quit() {
+  if !a.State.HasUnsavedChanges {
+    a.Application.Quit()
+    return
+  }
+
+  a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
 }
 
 var App = &Application{}
@@ -34,6 +73,7 @@ type State struct {
 	Entry     *kdbx.Entry
 	Database  *kdbx.Database
 	Reference string
+  HasUnsavedChanges bool
 }
 
 func Run(state State) error {

@@ -7,7 +7,6 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
-	"github.com/shikaan/kpcli/pkg/log"
 	"github.com/shikaan/kpcli/tui/components"
 )
 
@@ -15,8 +14,9 @@ type fieldKey = string
 type fieldMap = map[fieldKey]components.Field
 
 type EditView struct {
-	fieldByKey fieldMap
-	form views.Widget
+	fieldByKey  fieldMap
+	form        *components.Form
+	lastFocused components.Focusable
 	components.Container
 }
 
@@ -26,42 +26,49 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
-      if IsReadOnly {
-        App.Notify("Could not save: archive in read-only mode.")
-        return true
-      }
-
-      uuid := App.State.Entry.UUID
-			entry := App.State.Database.GetEntry(uuid)
-
-      if entry == nil {
-        App.Notify("Could not find entry at " + App.State.Reference)
-        return true
-      }
-
-			for i, vd := range entry.Values {
-				if field, ok := v.fieldByKey[vd.Key]; ok {
-					entry.Values[i].Value.Content = field.GetContent()
-				}
+			if IsReadOnly {
+				App.Notify("Could not save: archive in read-only mode.")
+				return true
 			}
 
-			if e := App.State.Database.Save(); e != nil {
-				// TODO: logging
-				App.Notify("Could not save. See logs for error.")
-			  return true
-      }
+			uuid := App.State.Entry.UUID
+			entry := App.State.Database.GetEntry(uuid)
 
-      // Unlocking again to allow further modifications
-      if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-        // TODO: logging
-        IsReadOnly = true
-        App.Notify("Could not save. Switching to read-only to not corrupt data.")
-        log.Log(e.Error())
-        return true
-      }
+			if entry == nil {
+				App.Notify("Could not find entry at " + App.State.Reference)
+				return true
+			}
 
-			App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
-			return true
+			App.Confirm(
+				"Are you sure?",
+				func() {
+					for i, vd := range entry.Values {
+						if field, ok := v.fieldByKey[vd.Key]; ok {
+							entry.Values[i].Value.Content = field.GetContent()
+						}
+					}
+
+					if e := App.State.Database.Save(); e != nil {
+						// TODO: logging
+						App.Notify("Could not save. See logs for error.")
+						return
+					}
+
+					// Unlocking again to allow further modifications
+					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
+						// TODO: logging
+						IsReadOnly = true
+						App.Notify("Could not save. Switching to read-only to not corrupt data.")
+						return
+					}
+
+					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
+					App.State.HasUnsavedChanges = false
+					return
+				}, func() {
+					App.Notify("Operation canceled. Entry was not saved")
+				},
+			)
 		}
 	}
 
@@ -81,7 +88,7 @@ func NewEditView(screen tcell.Screen, state State) views.Widget {
 	return view
 }
 
-func (view *EditView) newForm(screen tcell.Screen, props State) (views.Widget, fieldMap) {
+func (view *EditView) newForm(screen tcell.Screen, props State) (*components.Form, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
@@ -117,7 +124,14 @@ func (view *EditView) newEntryField(label, initialValue string, isProtected bool
 	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
 	field := components.NewField(fieldOptions)
 
+	field.OnFocus(func() bool {
+		App.LastFocused = field
+		return true
+	})
+
 	field.OnKeyPress(func(ev *tcell.EventKey) bool {
+		App.State.HasUnsavedChanges = true
+
 		if ev.Name() == "Ctrl+C" {
 			clipboard.Write(field.GetContent())
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))

@@ -16,9 +16,9 @@ type Layout struct {
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
-	switch ev := ev.(type) {
+  switch ev := ev.(type) {
 	case *tcell.EventKey:
-		if ev.Name() == "Ctrl+X" {
+    if ev.Name() == "Ctrl+X" {
 			App.Quit()
 			return true
 		}

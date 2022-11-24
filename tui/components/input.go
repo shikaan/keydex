@@ -40,6 +40,7 @@ type inputModel struct {
   
   keyPressHandler func(ev *tcell.EventKey) bool
   changeHandler func(ev tcell.Event) bool
+  focusHandler func() bool
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
@@ -96,8 +97,10 @@ func (i *Input) HasFocus() bool {
 func (i *Input) SetFocus(on bool) {
 	i.Init()
 	i.model.hasFocus = on
-
 	i.CellView.SetModel(i.model)
+  if i.model.focusHandler != nil {
+    i.model.focusHandler()
+  }
 }
 
 func (i *Input) SetContent(text string) {
@@ -207,6 +210,13 @@ func (i *Input) OnChange (cb func (ev tcell.Event) bool) func () {
   i.model.changeHandler = cb
   return func () {
     i.model.changeHandler = nil
+  }
+}
+
+func (i *Input) OnFocus (cb func () bool) func () {
+  i.model.focusHandler = cb
+  return func() {
+    i.model.focusHandler = nil
   }
 }
 

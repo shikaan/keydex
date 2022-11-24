@@ -4,8 +4,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
-	"github.com/shikaan/kpcli/tui/components"
 	"github.com/shikaan/kpcli/pkg/utils"
+	"github.com/shikaan/kpcli/tui/components"
 )
 
 type ListView struct {
@@ -19,23 +19,28 @@ func NewListView(screen tcell.Screen, state State) views.Widget {
 	maxX, maxY := getBoundaries(screen)
 
 	autoCompleteOptions := components.AutoCompleteOptions{
-		Screen:         screen,
-		Entries: paths,
-		TotalCount:     len(paths),
-		MaxX:           maxX,
-		MaxY:           maxY,
+		Screen:     screen,
+		Entries:    paths,
+		TotalCount: len(paths),
+		MaxX:       maxX,
+		MaxY:       maxY,
 		OnSelect: func(entry string) bool {
 			App.State.Reference = entry
-      App.State.Entry = App.State.Database.GetFirstEntryByPath(entry)
+			App.State.Entry = App.State.Database.GetFirstEntryByPath(entry)
 			App.NavigateTo(NewEditView)
 			return true
 		},
 	}
 
 	autoComplete := components.NewAutoComplete(autoCompleteOptions)
+	autoComplete.OnFocus(func() bool {
+			App.LastFocused = autoComplete
+			return true
+		})
+  autoComplete.SetFocus(true)
   view.AddWidget(autoComplete, 1)
 
-  container.SetContent(view)
+	container.SetContent(view)
 	return container
 }
 
