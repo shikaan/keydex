@@ -1,13 +1,9 @@
 package main
 
 import (
-	"path/filepath"
-
 	"github.com/spf13/cobra"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/credentials"
-	"github.com/shikaan/kpcli/pkg/kdbx"
 	c "github.com/shikaan/kpcli/cmd"
 )
 
@@ -19,9 +15,6 @@ func main() {
 		Short: "Work with KeePass databases from your terminal",
 	}
 	
-  browseCmd.AddCommand(browseCopyCmd)
-  
-  rootCmd.AddCommand(browseCmd)
 	rootCmd.AddCommand(copyCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(editCmd)
@@ -58,26 +51,6 @@ var copyCmd = &cobra.Command{
     passphrase := credentials.GetPassphrase(database)
 		
     return c.Copy(database, key, passphrase)
-	},
-}
-
-var browseCmd = &cobra.Command{
-	Short: "Fuzzy search through the entries in DATABASE",
-	Use:   "browse [command] DATABASE",
-}
-
-var browseCopyCmd = &cobra.Command{
-  Use: "copy",
-  Short: "Copies entry field",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		database := args[0]
-		key := cmd.Flag("key").Value.String()
-    databaseName := filepath.Base(database)
-		password := credentials.GetPassphrase(databaseName)
-
-		return c.Browse(database, key, password, func(entry kdbx.Entry) error {
-			return clipboard.Write(entry.GetPassword())
-    })
 	},
 }
 
