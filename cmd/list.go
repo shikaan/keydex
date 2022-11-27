@@ -5,10 +5,41 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/shikaan/kpcli/pkg/credentials"
 	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/spf13/cobra"
 )
 
-func List(database, key, passphrase string) error {
+var List = &cobra.Command{
+	Short: "Lists all the entries in the database",
+	Long: `Lists all the entries in the database. 
+
+The list of references - in the form of - /database/group/.../entry will be printed on stadout, allowing for piping.
+The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the KPCLI_DATABASE environment variable.
+This command can be used in conjuction with tools such like 'fzf' or 'dmenu' to browse the databse and pipe the result to other commands.
+
+See "Examples" for more details.`,
+	Use:     "list [file]",
+	Aliases: []string{"ls"},
+	Args:    cobra.MaximumNArgs(1),
+	Example: `  # List all entries of vault.kdbx database
+  kpcli list vault.kdbx
+
+  # List entries, browse them with fzf and copy the result to the clipboard
+  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
+  export KPCLI_DATABASE=~/vault.kdbx
+
+  kpcli list | fzf | kpcli copy`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		database, _ := ReadDatabaseArguments(args)
+		key := cmd.Flag("key").Value.String()
+		passphrase := credentials.GetPassphrase(database)
+
+		return list(database, key, passphrase)
+	},
+}
+
+func list(database, key, passphrase string) error {
 	kdbx, err := kdbx.NewUnlocked(database, passphrase)
 	if err != nil {
 		return err
@@ -28,12 +59,12 @@ func getSortedKeys(entries []kdbx.EntryPath) []kdbx.EntryPath {
 		numberOfSlashesI := len(strings.Split(entries[i], kdbx.PATH_SEPARATOR))
 		numberOfSlashesJ := len(strings.Split(entries[j], kdbx.PATH_SEPARATOR))
 
-    // Sort elements in the same group
+		// Sort elements in the same group
 		if numberOfSlashesI == numberOfSlashesJ {
 			return sort.StringsAreSorted([]string{strings.ToLower(entries[i]), strings.ToLower(entries[j])})
 		}
 
-    // Show nested entities close to each other 
+		// Show nested entities close to each other
 		return numberOfSlashesI > numberOfSlashesJ
 	}
 	sort.Slice(entries, less)
