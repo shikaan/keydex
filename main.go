@@ -8,8 +8,6 @@ import (
 
 //go:generate make info
 
-
-// TODO: document environment variables
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "kpcli",

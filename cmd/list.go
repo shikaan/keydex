@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -33,7 +34,7 @@ See "Examples" for more details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, _ := ReadDatabaseArguments(args)
 		key := cmd.Flag("key").Value.String()
-		passphrase := credentials.GetPassphrase(database)
+		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
 	},

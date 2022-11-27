@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/shikaan/kpcli/pkg/credentials"
 	"github.com/shikaan/kpcli/pkg/errors"
 	"github.com/shikaan/kpcli/pkg/kdbx"
@@ -40,7 +42,7 @@ See "Examples" for more details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
     database, reference := ReadDatabaseArguments(args)
     key := cmd.Flag("key").Value.String()
-		passphrase := credentials.GetPassphrase(database)
+    passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return open(database, key, passphrase, reference)
 	},

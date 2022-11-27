@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+const ENV_DATABASE="KPCLI_DATABASE"
+const ENV_PASSPHRASE="KPCLI_PASSPHRASE"
+
 // If zero value reference is passed, reads from stdin to get the value
 func ReadReferenceFromStdin(maybeReference string) (string, error) {
 	if maybeReference != "" {
@@ -21,15 +24,6 @@ func ReadReferenceFromStdin(maybeReference string) (string, error) {
 
 	return strings.TrimSpace(str), nil
 }
-
-
-// cases:
-// no database (but environment) no reference -> only database
-// no database (no environment) no reference -> throw
-// no database (no environment) reference -> use ref as database?
-// no database (but environment) reference -> use last arg as reference
-// database (and environment) no reference -> database from args
-
 
 // Cases: 
 //   DATABASE=lol kpcli copy -> gets ref from stdin (blank ref)
@@ -50,7 +44,7 @@ func ReadDatabaseArguments(args []string) (string, string) {
 
   if len(args) == 0 {
     reference = ""
-    database = os.Getenv("KPCLI_DATABASE")
+    database = os.Getenv(ENV_DATABASE)
   }
 
   if len(args) == 1 {
