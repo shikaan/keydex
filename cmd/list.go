@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/shikaan/kpcli/pkg/credentials"
+	"github.com/shikaan/kpcli/pkg/info"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/spf13/cobra"
 )
@@ -24,13 +25,13 @@ See "Examples" for more details.`,
 	Aliases: []string{"ls"},
 	Args:    cobra.MaximumNArgs(1),
 	Example: `  # List all entries of vault.kdbx database
-  kpcli list vault.kdbx
+  ` + info.NAME + ` list vault.kdbx
 
   # List entries, browse them with fzf and copy the result to the clipboard
   export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
   export KPCLI_DATABASE=~/vault.kdbx
 
-  kpcli list | fzf | kpcli copy`,
+  ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, _ := ReadDatabaseArguments(args)
 		key := cmd.Flag("key").Value.String()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/shikaan/kpcli/pkg/credentials"
 	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/kpcli/pkg/info"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/shikaan/kpcli/tui"
 	"github.com/spf13/cobra"
@@ -19,26 +20,26 @@ var Open = &cobra.Command{
 Reads a 'reference' from the database at 'file' and opens the editor there. If no reference is passed, it opens a fuzzy search within the editor.
 
 The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the KPCLI_DATABASE environment variable.
-The 'reference' can be passed as last argument; if missing reference, it opens a fuzzy search.
+The 'reference' can be passed as last argument; if the reference is missing, it opens a fuzzy search.
 Use the 'list' command to get a list of all the references in the database.
 
 See "Examples" for more details.`,
   Example: `  # Opens the "github" entry in the "coding" group in the "test" database at test.kdbx
-  kpcli open test.kdbx /test/coding/github
+  ` + info.NAME + ` open test.kdbx /test/coding/github
   
   # Open fuzzy search within the test.kdbx database
-  kpcli open test.kdbx
+  ` + info.NAME + ` open test.kdbx
 
   # Or with environment variables
   export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
   export KPCLI_DATABASE=test.kdbx
-  kpcli open
+  ` + info.NAME + ` open
 
   # List entries, browse them with fzf and edit the result
   export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
   export KPCLI_DATABASE=test.kdbx
 
-  kpcli list | fzf | kpcli open`,
+  ` + info.NAME + ` list | fzf | ` + info.NAME + ` open`,
 	RunE: func(cmd *cobra.Command, args []string) error {
     database, reference := ReadDatabaseArguments(args)
     key := cmd.Flag("key").Value.String()
