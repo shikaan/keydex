@@ -7,22 +7,16 @@ NAME=echo "kpcli"
 info:
 	@sed "s/_REVISION_/`$(REVISION)`/; s/_VERSION_/`$(VERSION)`/; s/_NAME_/`$(NAME)`/" ./pkg/info/info.tmpl > ./pkg/info/info.go
 
-## run: Executes the entrypoint
-.PHONY: run
-run:
-	go generate
-	go run . edit test.kdbx /another_test
-
 ## build: Compile example to binary
 .PHONY: build
-build:
+build: docs
 	go generate -x
 	go build -v
 
-## clean: Clean compilation artifacts
-.PHONY: clean
-clean:
-	@echo "Nothing to clean yet!"
+## doc: Generte documentation
+.PHONY: docs
+docs:
+	@go run ./_scripts/docs.go
 
 ## test: Run tests
 .PHONY: test
