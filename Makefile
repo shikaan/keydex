@@ -1,22 +1,23 @@
-REVISION=git log -n1 --pretty=%h
-VERSION=git describe --abbrev=0 --tags 2> /dev/null || echo dev
-NAME=echo "kpcli"
+## build: Compile example to binary
+.PHONY: build
+build: docs
+	@echo "Running go generate to prepare build info..."
+	@go generate
+	@echo "Running the build..."
+	@go build -v
+	@echo "Done!"
 
 ## info: generate package version - run by go:generate
 .PHONY: info
 info:
-	@sed "s/_REVISION_/`$(REVISION)`/; s/_VERSION_/`$(VERSION)`/; s/_NAME_/`$(NAME)`/" ./pkg/info/info.tmpl > ./pkg/info/info.go
+	@echo "> Generating build info..."
+	@go run _scripts/info.go
 
-## build: Compile example to binary
-.PHONY: build
-build: docs
-	go generate -x
-	go build -v
-
-## doc: Generte documentation
+## doc: Generate documentation
 .PHONY: docs
 docs:
-	@go run ./_scripts/docs.go
+	@echo "> Generating documentation..."
+	@go run _scripts/docs.go
 
 ## test: Run tests
 .PHONY: test
