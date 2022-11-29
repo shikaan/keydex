@@ -84,7 +84,12 @@ func Run(state State) error {
 		App.layout = NewLayout(screen)
 		App.SetRootWidget(App.layout)
 
-		App.NavigateTo(NewEditView)
+
+    if state.Reference == "" {
+      App.NavigateTo(NewListView)
+    } else {
+      App.NavigateTo(NewHomeView)
+    }
 
 		return App.Run()
 	}

@@ -27,13 +27,20 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Key() == tcell.KeyEsc {
-		  App.NavigateTo(NewEditView)	
+      if App.State.Entry == nil {
+        App.Notify("No entry selected yet.")
+        return true
+      }
+      
+      App.NavigateTo(NewHomeView)	
 			return true
 		}
 	}
 	return v.Panel.HandleEvent(ev)
 }
 
+// Returns a Layout component responsible for the shell of the application
+// and of the routing in between pages
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
 	title := components.NewTitle("")

@@ -13,7 +13,7 @@ import (
 type fieldKey = string
 type fieldMap = map[fieldKey]components.Field
 
-type EditView struct {
+type HomeView struct {
 	fieldByKey  fieldMap
 	form        *components.Form
 	lastFocused components.Focusable
@@ -22,7 +22,7 @@ type EditView struct {
 
 var IsReadOnly = false
 
-func (v *EditView) HandleEvent(ev tcell.Event) bool {
+func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
@@ -75,8 +75,8 @@ func (v *EditView) HandleEvent(ev tcell.Event) bool {
 	return v.Container.HandleEvent(ev)
 }
 
-func NewEditView(screen tcell.Screen, state State) views.Widget {
-	view := &EditView{}
+func NewHomeView(screen tcell.Screen, state State) views.Widget {
+	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
 	form, fieldMap := view.newForm(screen, state)
@@ -88,7 +88,7 @@ func NewEditView(screen tcell.Screen, state State) views.Widget {
 	return view
 }
 
-func (view *EditView) newForm(screen tcell.Screen, props State) (*components.Form, fieldMap) {
+func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.Form, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
@@ -110,7 +110,7 @@ func (view *EditView) newForm(screen tcell.Screen, props State) (*components.For
 	return form, fields
 }
 
-func (view *EditView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
+func (view *HomeView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
 	// Do not print empty fields
 	if initialValue == "" {
 		return nil

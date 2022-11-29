@@ -27,7 +27,7 @@ func NewListView(screen tcell.Screen, state State) views.Widget {
 		OnSelect: func(entry string) bool {
 			App.State.Reference = entry
 			App.State.Entry = App.State.Database.GetFirstEntryByPath(entry)
-			App.NavigateTo(NewEditView)
+			App.NavigateTo(NewHomeView)
 			return true
 		},
 	}
