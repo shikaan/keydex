@@ -23,7 +23,10 @@ This command can be used in conjuction with tools such like 'fzf' or 'dmenu' to 
 See "Examples" for more details.`,
 	Use:     "list [file]",
 	Aliases: []string{"ls"},
-	Args:    cobra.MaximumNArgs(1),
+  Args: cobra.MatchAll(
+    cobra.MaximumNArgs(1),
+    DatabaseMustBeDefined(),
+  ),
 	Example: `  # List all entries of vault.kdbx database
   ` + info.NAME + ` list vault.kdbx
 

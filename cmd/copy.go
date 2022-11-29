@@ -41,7 +41,10 @@ See "Examples" for more details.`,
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	Use:     "copy [file] [reference]",
 	Aliases: []string{"cp", "password", "pwd"},
-	Args:    cobra.MaximumNArgs(2),
+	Args:    cobra.MatchAll(
+    cobra.MaximumNArgs(2),
+    DatabaseMustBeDefined(),
+  ),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference := ReadDatabaseArguments(args)
 		key := cmd.Flag("key").Value.String()
