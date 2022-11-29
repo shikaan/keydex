@@ -19,7 +19,7 @@ var Open = &cobra.Command{
 
 Reads a 'reference' from the database at 'file' and opens the editor there. If no reference is passed, it opens a fuzzy search within the editor.
 
-The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the KPCLI_DATABASE environment variable.
+The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the ` + ENV_DATABASE + ` environment variable.
 The 'reference' can be passed as last argument; if the reference is missing, it opens a fuzzy search.
 Use the 'list' command to get a list of all the references in the database.
 
@@ -31,13 +31,13 @@ See "Examples" for more details.`,
   ` + info.NAME + ` open test.kdbx
 
   # Or with environment variables
-  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
-  export KPCLI_DATABASE=test.kdbx
+  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
+  export ` + ENV_DATABASE + `=test.kdbx
   ` + info.NAME + ` open
 
   # List entries, browse them with fzf and edit the result
-  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
-  export KPCLI_DATABASE=test.kdbx
+  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
+  export ` + ENV_DATABASE + `=test.kdbx
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` open`,
 	RunE: func(cmd *cobra.Command, args []string) error {

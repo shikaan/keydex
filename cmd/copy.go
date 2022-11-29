@@ -17,7 +17,7 @@ var Copy = &cobra.Command{
 
 Reads a 'reference' from the database at 'file' and copies the password to the clipboard.
 
-The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the KPCLI_DATABASE environment variable.
+The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the ` + ENV_DATABASE + ` environment variable.
 The 'reference' can be passed either as the last argument, or can be read from stdin - to allow piping.
 Use the 'list' command to get a list of all the references in the database.
 
@@ -26,17 +26,17 @@ See "Examples" for more details.`,
   ` + info.NAME + ` copy test.kdbx /test/coding/github
 
   # Or with stdin
-  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
+  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
   echo "/test/coding/github" | ` + info.NAME + ` copy test.kdbx
 
   # Or with stdin and environment variables
-  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
-  export KPCLI_DATABASE=test.kdbx
+  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
+  export ` + ENV_DATABASE + `=test.kdbx
   echo "/test/coding/github" | ` + info.NAME + ` copy
 
   # List entries, browse them with fzf and copy the result to the clipboard
-  export KPCLI_PASSPHRASE=${MY_SECRET_PHRASE}
-  export KPCLI_DATABASE=test.kdbx
+  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
+  export ` + ENV_DATABASE + `=test.kdbx
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	Use:     "copy [file] [reference]",
