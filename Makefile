@@ -1,23 +1,10 @@
 ## build: Compile example to binary
 .PHONY: build
-build: docs
-	@echo "Running go generate to prepare build info..."
-	@go generate
-	@echo "Running the build..."
+build:
+	@echo "> ($@) Running the build..."
+	@mkdir -p .build
 	@go build -v
-	@echo "Done!"
-
-## info: generate package version - run by go:generate
-.PHONY: info
-info:
-	@echo "> Generating build info..."
-	@go run _scripts/info.go
-
-## doc: Generate documentation
-.PHONY: docs
-docs:
-	@echo "> Generating documentation..."
-	@go run _scripts/docs.go
+	@echo "  ($@) Done!"
 
 ## test: Run tests
 .PHONY: test
@@ -32,3 +19,17 @@ help: Makefile
 	@echo
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
+
+## info: generate package version - run by go:generate
+.PHONY: info
+info:
+	@echo "> ($@) Generating build info..."
+	@go run _scripts/info.go -version=${VERSION}
+	@echo "  ($@) Done!"
+
+## doc: Generate documentation - run by go:generate
+.PHONY: docs
+docs: info
+	@echo "> ($@) Generating documentation..."
+	@go run _scripts/docs.go
+	@echo "  ($@) Done!"

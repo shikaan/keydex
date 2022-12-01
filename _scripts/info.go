@@ -30,9 +30,9 @@ func version() string {
 }
 
 func main() {
-  revision := *flag.String("revision", revision(), "Revision to identify the build, usually a git sha")
-  version := *flag.String("version", version(), "Version to identified last published version of the package, usually a git tag")
-  name := *flag.String("name", "kpcli", "Name of this executable")
+  revision := flag.String("revision", revision(), "Revision to identify the build, usually a git sha")
+  version := flag.String("version", version(), "Version to identified last published version of the package, usually a git tag")
+  name := flag.String("name", "kpcli", "Name of this executable")
 
   flag.Parse()
 
@@ -42,9 +42,9 @@ func main() {
     panic(err)
   }
 
-  result := strings.ReplaceAll(string(buffer[:]), "_REVISION_", revision)
-  result = strings.ReplaceAll(result, "_VERSION_", version)
-  result = strings.ReplaceAll(result, "_NAME_", name)
+  result := strings.ReplaceAll(string(buffer[:]), "_REVISION_", *revision)
+  result = strings.ReplaceAll(result, "_VERSION_", *version)
+  result = strings.ReplaceAll(result, "_NAME_", *name)
 
   if err := os.WriteFile(INFO_DESTINATION, []byte(result), 0666); err != nil {
     panic(err)

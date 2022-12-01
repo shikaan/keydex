@@ -1,0 +1,40 @@
+name: Build and package
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: gittools/actions/gitversion/setup@v0.9.7
+        with:
+          versionSpec: '5.x'
+      - uses: gittools/actions/gitversion/execute@v0.9.7
+        id: version
+      - run: |
+          export VERSION="${{ steps.version.outputs.semVer }}"
+          go generate
+      - run: mkdir -p .build
+      - uses: crazy-max/ghaction-xgo@v1
+        with:
+          dest: ${{ env.GITHUB_WORKSPACE }}/.build
+          go_version: 1.19
+          prefix: kpcli
+          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/arm64,darwin/amd64
+          v: true
+          x: true
+      - run: ls ${{ env.GITHUB_WORKSPACE }}/.build
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.semVer }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: true
+          files: |
+            ${{ env.GITHUB_WORKSPACE }}/.build/*

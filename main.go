@@ -5,7 +5,7 @@ import (
 	"github.com/shikaan/kpcli/cmd"
 )
 
-//go:generate make info
+//go:generate make docs
 
 func main() {
 	e := cmd.Root.Execute()
