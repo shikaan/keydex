@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
+	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/shikaan/kpcli/tui/components"
 )
 
@@ -111,8 +112,8 @@ func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.For
 }
 
 func (view *HomeView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
-	// Do not print empty fields
-	if initialValue == "" {
+	// Do not print empty fields, unless they are the title
+	if initialValue == "" && label != kdbx.TITLE_KEY {
 		return nil
 	}
 

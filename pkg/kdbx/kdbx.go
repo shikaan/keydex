@@ -23,6 +23,7 @@ type UUID = gokeepasslib.UUID
 type EntryPath = string
 
 const PATH_SEPARATOR = "/"
+const TITLE_KEY = "Title"
 
 func New(filepath string) (*Database, error) {
 	file, err := os.Open(filepath)
@@ -178,7 +179,13 @@ func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPa
 	}
 
 	for _, entry := range g.Entries {
-		key := groupPrefix + sanitizePathPortion(entry.GetTitle())
+    title := entry.GetTitle()
+
+    if title == "" {
+      title = "(UNKNOWN)"
+    }
+    
+    key := groupPrefix + sanitizePathPortion(title)
     entries = append(entries, uniqueEntryPath{path: key, uuid: entry.UUID})
 	}
 
