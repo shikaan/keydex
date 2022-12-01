@@ -36,23 +36,33 @@ func New(filepath string) (*Database, error) {
 	return &Database{*file, false, *db}, nil
 }
 
-func NewUnlocked(filepath, password string) (*Database, error) {
+func NewUnlocked(filepath, password, keypath string) (*Database, error) {
 	kdbx, err := New(filepath)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := kdbx.UnlockWithPassword(password); err != nil {
+	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
 		return nil, err
 	}
 
 	return kdbx, nil
 }
 
-func (d *Database) UnlockWithPassword(password string) error {
-	d.Credentials = gokeepasslib.NewPasswordCredentials(password)
+func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
+  if keypath == "" {
+    d.Credentials = gokeepasslib.NewPasswordCredentials(password)
+  } else {
+    credentials, err := gokeepasslib.NewPasswordAndKeyCredentials(password, keypath)
   
+    if err != nil {
+      return errors.MakeError(err.Error(), "kdbx")
+    }
+
+    d.Credentials = credentials
+  }
+
   return d.unlock()
 }
 

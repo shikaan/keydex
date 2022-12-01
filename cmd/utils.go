@@ -11,6 +11,7 @@ import (
 
 const ENV_DATABASE = "KPCLI_DATABASE"
 const ENV_PASSPHRASE = "KPCLI_PASSPHRASE"
+const ENV_KEY = "KPCLI_KEY"
 
 // If zero value reference is passed, reads from stdin to get the value
 func ReadReferenceFromStdin(maybeReference string) (string, error) {
@@ -42,7 +43,7 @@ func ReadReferenceFromStdin(maybeReference string) (string, error) {
 // kpcli open database /ref -> OK (db: database, ref: /ref)
 // DATABASE=lol kpcli open database /ref -> (db database, /ref)
 // kpcli open /ref -> uses /ref as db and then fails
-func ReadDatabaseArguments(args []string) (string, string) {
+func ReadDatabaseArguments(cmd *cobra.Command, args []string) (string, string, string) {
 	var reference, database string
 
 	if len(args) == 0 {
@@ -60,12 +61,18 @@ func ReadDatabaseArguments(args []string) (string, string) {
 		reference = args[1]
 	}
 
-	return database, reference
+  key := cmd.Flag("key").Value.String()
+
+  if key == "" {
+    key = os.Getenv(ENV_KEY)
+  }
+
+	return database, reference, key
 }
 
 func DatabaseMustBeDefined() cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
-		database, _ := ReadDatabaseArguments(args)
+		database, _, _ := ReadDatabaseArguments(cmd, args)
 
 		if database == "" {
 			return errors.New("database must be defined")

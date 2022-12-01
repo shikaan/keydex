@@ -46,8 +46,7 @@ See "Examples" for more details.`,
     DatabaseMustBeDefined(),
   ),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		database, reference := ReadDatabaseArguments(args)
-		key := cmd.Flag("key").Value.String()
+		database, reference, key := ReadDatabaseArguments(cmd, args)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return copy(database, key, passphrase, reference)
@@ -60,7 +59,7 @@ func copy(databasePath, keyPath, passphrase, reference string) error {
 		return err
 	}
 
-	db, err := kdbx.NewUnlocked(databasePath, passphrase)
+	db, err := kdbx.NewUnlocked(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

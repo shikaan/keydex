@@ -36,8 +36,7 @@ See "Examples" for more details.`,
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		database, _ := ReadDatabaseArguments(args)
-		key := cmd.Flag("key").Value.String()
+		database, _, key := ReadDatabaseArguments(cmd, args)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
@@ -45,7 +44,7 @@ See "Examples" for more details.`,
 }
 
 func list(database, key, passphrase string) error {
-	kdbx, err := kdbx.NewUnlocked(database, passphrase)
+	kdbx, err := kdbx.NewUnlocked(database, passphrase, key)
 	if err != nil {
 		return err
 	}
