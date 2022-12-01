@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/shikaan/kpcli/pkg/credentials"
-	"github.com/shikaan/kpcli/pkg/errors"
 	"github.com/shikaan/kpcli/pkg/info"
 	"github.com/shikaan/kpcli/pkg/kdbx"
 	"github.com/shikaan/kpcli/tui"
@@ -54,20 +53,13 @@ See "Examples" for more details.`,
 	},
 }
 
-func open(databasePath, keyPath, passphrase, maybeReference string) error {
-	reference, err := ReadReferenceFromStdin(maybeReference)
-	if err != nil {
-		return err
-	}
-
+func open(databasePath, keyPath, passphrase, reference string) error {
 	db, err := kdbx.NewUnlocked(databasePath, passphrase)
 	if err != nil {
 		return err
 	}
 
-	if entry := db.GetFirstEntryByPath(reference); entry != nil {
-		return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
-	}
-
-	return errors.MakeError("Missing entry at "+reference, "copy")
+	entry := db.GetFirstEntryByPath(reference); 
+  
+	return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
 }

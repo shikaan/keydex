@@ -9,24 +9,25 @@ import (
 )
 
 type ListView struct {
-	views.Panel
+	components.Container
 }
 
-func NewListView(screen tcell.Screen, state State) views.Widget {
-	container := components.NewContainer(screen)
+func NewListView(screen tcell.Screen) views.Widget {
 	view := &ListView{}
-	paths := state.Database.GetEntryPaths()
-	maxX, maxY := getBoundaries(screen)
+	view.Container = *components.NewContainer(screen)
+	paths := App.State.Database.GetEntryPaths()
+  count := len(paths)
+  maxX, maxY := getBoundaries(screen)
 
 	autoCompleteOptions := components.AutoCompleteOptions{
 		Screen:     screen,
 		Entries:    paths,
-		TotalCount: len(paths),
+		TotalCount: count,
 		MaxX:       maxX,
 		MaxY:       maxY,
-		OnSelect: func(entry string) bool {
-			App.State.Reference = entry
-			App.State.Entry = App.State.Database.GetFirstEntryByPath(entry)
+		OnSelect: func(ref string) bool {
+			App.State.Reference = ref
+			App.State.Entry = App.State.Database.GetFirstEntryByPath(ref)
 			App.NavigateTo(NewHomeView)
 			return true
 		},
@@ -34,18 +35,17 @@ func NewListView(screen tcell.Screen, state State) views.Widget {
 
 	autoComplete := components.NewAutoComplete(autoCompleteOptions)
 	autoComplete.OnFocus(func() bool {
-			App.LastFocused = autoComplete
-			return true
-		})
-  autoComplete.SetFocus(true)
-  view.AddWidget(autoComplete, 1)
+		App.LastFocused = autoComplete
+		return true
+	})
+	autoComplete.SetFocus(true)
+	view.SetContent(autoComplete)
 
-	container.SetContent(view)
-	return container
+	return view
 }
 
 func getBoundaries(screen tcell.Screen) (int, int) {
-	x, y := (screen).Size()
+	x, y := screen.Size()
 
 	// one third of the screen width
 	// all the height - title, status, search, counter, and notification

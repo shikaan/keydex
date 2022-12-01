@@ -18,8 +18,8 @@ type Application struct {
 	views.Application
 }
 
-func (a *Application) NavigateTo(newView func(tcell.Screen, State) views.Widget) {
-	a.layout.SetContent(newView(a.screen, a.State))
+func (a *Application) NavigateTo(newView func(tcell.Screen) views.Widget) {
+	a.layout.SetContent(newView(a.screen))
 }
 
 func (a *Application) Notify(msg string) {
@@ -84,9 +84,8 @@ func Run(state State) error {
 		App.layout = NewLayout(screen)
 		App.SetRootWidget(App.layout)
 
-
     if state.Reference == "" {
-      App.NavigateTo(NewListView)
+      App.NavigateTo(NewHelpView)
     } else {
       App.NavigateTo(NewHomeView)
     }

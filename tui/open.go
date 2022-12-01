@@ -16,7 +16,6 @@ type fieldMap = map[fieldKey]components.Field
 type HomeView struct {
 	fieldByKey  fieldMap
 	form        *components.Form
-	lastFocused components.Focusable
 	components.Container
 }
 
@@ -75,11 +74,11 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	return v.Container.HandleEvent(ev)
 }
 
-func NewHomeView(screen tcell.Screen, state State) views.Widget {
+func NewHomeView(screen tcell.Screen) views.Widget {
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
-	form, fieldMap := view.newForm(screen, state)
+	form, fieldMap := view.newForm(screen, App.State)
 	view.fieldByKey = fieldMap
 
 	view.SetContent(form)

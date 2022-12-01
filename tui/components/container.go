@@ -5,7 +5,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 )
 
-const MIN_WIDTH = 50
+const MIN_WIDTH = 80
 
 var spacer = &views.Spacer{}
 

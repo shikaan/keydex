@@ -16,23 +16,36 @@ type Layout struct {
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
-  switch ev := ev.(type) {
+	switch ev := ev.(type) {
 	case *tcell.EventKey:
-    if ev.Name() == "Ctrl+X" {
+		if ev.Name() == "Ctrl+X" {
 			App.Quit()
 			return true
 		}
 		if ev.Name() == "Ctrl+P" {
-		  App.NavigateTo(NewListView)	
+			App.NavigateTo(NewListView)
+			return true
+		}	
+		if ev.Name() == "Ctrl+G" {
+			App.NavigateTo(NewHelpView)
 			return true
 		}
-		if ev.Key() == tcell.KeyEsc {
-      if App.State.Entry == nil {
-        App.Notify("No entry selected yet.")
-        return true
+		if ev.Name() == "Ctrl+C" {
+      handled := v.Panel.HandleEvent(ev)
+
+      if !handled {
+        App.Notify("No field selected for copy. Use ^X to close.")
       }
       
-      App.NavigateTo(NewHomeView)	
+      return true
+		}
+    if ev.Key() == tcell.KeyEsc {
+			if App.State.Entry == nil {
+				App.Notify("No entry selected yet.")
+				return true
+			}
+
+			App.NavigateTo(NewHomeView)
 			return true
 		}
 	}
@@ -46,9 +59,9 @@ func NewLayout(screen tcell.Screen) *Layout {
 	title := components.NewTitle("")
 	status := components.NewStatus()
 
-  t := views.NewText()
-  t.SetText(" ")
-  l.SetMenu(t)
+	t := views.NewText()
+	t.SetText(" ")
+	l.SetMenu(t)
 
 	l.SetStatus(status)
 	l.Status = status
@@ -56,7 +69,7 @@ func NewLayout(screen tcell.Screen) *Layout {
 	l.SetTitle(title)
 	l.Title = title
 
-  l.Screen = screen
+	l.Screen = screen
 
 	return l
 }

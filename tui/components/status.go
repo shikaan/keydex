@@ -13,6 +13,7 @@ import (
 // Notifications will be cleared upon the first interaction
 // after NOTIFICATION_MIN_DURATION_IN_SECONDS seconds
 const NOTIFICATION_MIN_DURATION_IN_SECONDS = 5
+const EMPTY_NOTIFICATION = " "
 
 type Status struct {
 	model statusModel
@@ -36,7 +37,7 @@ func (s *Status) Notify(st string) {
 	s.notification.SetCenter(fmt.Sprintf("[ %s ]", st), tcell.StyleDefault)
 	go func() {
 		time.Sleep(NOTIFICATION_MIN_DURATION_IN_SECONDS * time.Second)
-		s.notification.SetCenter("", tcell.StyleDefault)
+		s.notification.SetCenter(EMPTY_NOTIFICATION, tcell.StyleDefault)
 	}()
 }
 
@@ -82,8 +83,11 @@ func NewStatus() *Status {
 	status.SetOrientation(views.Vertical)
 
 	status.notification = views.NewTextBar()
-	status.helpLines[0] = newLine("^X Exit", "▴▾ Navigate", "^P  Browse", "^O Save")
-	status.helpLines[1] = newLine("^C Copy", "^R Reveal  ", "ESC Close ", "^G Help")
+  // Prevents jumps on the first render
+  status.notification.SetCenter(EMPTY_NOTIFICATION, tcell.StyleDefault)
+	
+  status.helpLines[0] = newLine("^X Exit", "▴▾ Navigate", "^P  Browse       ", "^O Save")
+	status.helpLines[1] = newLine("^C Copy", "^R Reveal  ", "ESC To Last Entry", "^G Help")
 
   status.prompt = newPrompt()
   status.prompt.OnKeyPress(func(ev *tcell.EventKey) bool {
