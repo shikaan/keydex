@@ -56,7 +56,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 // and of the routing in between pages
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
-	title := components.NewTitle("")
+	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName + "  ")
 	status := components.NewStatus()
 
 	t := views.NewText()

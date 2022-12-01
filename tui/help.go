@@ -21,6 +21,7 @@ const welcomeBanner = `
 `
 
 func NewHelpView (screen tcell.Screen) views.Widget {
+	App.SetTitle("Help")
   c := components.NewContainer(screen)
   t := views.NewSimpleStyledText()
 

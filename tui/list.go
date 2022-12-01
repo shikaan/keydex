@@ -13,7 +13,8 @@ type ListView struct {
 }
 
 func NewListView(screen tcell.Screen) views.Widget {
-	view := &ListView{}
+	App.SetTitle("Search")
+  view := &ListView{}
 	view.Container = *components.NewContainer(screen)
 	paths := App.State.Database.GetEntryPaths()
   count := len(paths)

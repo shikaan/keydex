@@ -75,6 +75,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewHomeView(screen tcell.Screen) views.Widget {
+  App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 

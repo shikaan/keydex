@@ -55,7 +55,7 @@ func (a *Application) Confirm(msg string, onAccept func(), onReject func()) {
 }
 
 func (a *Application) SetTitle(title string) {
-	a.layout.SetTitle(components.NewTitle(title))
+	a.layout.Title.SetTitle(title)
 }
 
 func (a *Application) Quit() {
