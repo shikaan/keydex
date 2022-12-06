@@ -49,6 +49,7 @@ See "Examples" for more details.`,
 
 		return open(database, key, passphrase, reference)
 	},
+	DisableAutoGenTag: true,
 }
 
 func open(databasePath, keyPath, passphrase, reference string) error {
@@ -57,7 +58,7 @@ func open(databasePath, keyPath, passphrase, reference string) error {
 		return err
 	}
 
-	entry := db.GetFirstEntryByPath(reference); 
-  
+	entry := db.GetFirstEntryByPath(reference)
+
 	return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
 }

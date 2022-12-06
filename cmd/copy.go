@@ -41,16 +41,17 @@ See "Examples" for more details.`,
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	Use:     "copy [file] [reference]",
 	Aliases: []string{"cp", "password", "pwd"},
-	Args:    cobra.MatchAll(
-    cobra.MaximumNArgs(2),
-    DatabaseMustBeDefined(),
-  ),
+	Args: cobra.MatchAll(
+		cobra.MaximumNArgs(2),
+		DatabaseMustBeDefined(),
+	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return copy(database, key, passphrase, reference)
 	},
+	DisableAutoGenTag: true,
 }
 
 func copy(databasePath, keyPath, passphrase, reference string) error {
