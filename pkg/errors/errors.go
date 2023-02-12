@@ -1,12 +1,11 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/shikaan/kpcli/pkg/info"
 )
 
-const AppName = "kpcli"
-
 func MakeError(msg string, namespace string) error {
-	return errors.New(fmt.Sprintf("%s(%s): %s", AppName, namespace, msg))
+	return fmt.Errorf("%s(%s): %s", info.NAME, namespace, msg)
 }
