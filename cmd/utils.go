@@ -43,17 +43,22 @@ func ReadReferenceFromStdin(maybeReference string) (string, error) {
 // kpcli open database /ref -> OK (db: database, ref: /ref)
 // DATABASE=lol kpcli open database /ref -> (db database, /ref)
 // kpcli open /ref -> uses /ref as db and then fails
-func ReadDatabaseArguments(cmd *cobra.Command, args []string) (string, string, string) {
-	var reference, database string
-
+func ReadDatabaseArguments(cmd *cobra.Command, args []string) (database string, reference string, key string) {
 	if len(args) == 0 {
 		reference = ""
 		database = os.Getenv(ENV_DATABASE)
 	}
 
 	if len(args) == 1 {
-		reference = ""
-		database = args[0]
+		envDatabase := os.Getenv(ENV_DATABASE)
+
+		if envDatabase != "" {
+			database = envDatabase
+			reference = args[0]
+		} else {
+			database = args[0]
+			reference = ""
+		}
 	}
 
 	if len(args) == 2 {
@@ -61,11 +66,13 @@ func ReadDatabaseArguments(cmd *cobra.Command, args []string) (string, string, s
 		reference = args[1]
 	}
 
-  key := cmd.Flag("key").Value.String()
+	if keyFlag := cmd.Flag("key"); keyFlag != nil {
+		key = keyFlag.Value.String()
 
-  if key == "" {
-    key = os.Getenv(ENV_KEY)
-  }
+		if key == "" {
+			key = os.Getenv(ENV_KEY)
+		}
+	}
 
 	return database, reference, key
 }
