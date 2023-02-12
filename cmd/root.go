@@ -28,6 +28,7 @@ All the entries are referenced with a path-like reference string shaped like /da
 Some commands make use of the system clipboard, in absence of which the command will silently fail.
 
 More specific help is available contextually or by typing "` + info.NAME + ` help [command]".`,
+	DisableAutoGenTag: true,
 }
 
 func init() {

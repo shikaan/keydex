@@ -23,10 +23,10 @@ This command can be used in conjuction with tools such like 'fzf' or 'dmenu' to 
 See "Examples" for more details.`,
 	Use:     "list [file]",
 	Aliases: []string{"ls"},
-  Args: cobra.MatchAll(
-    cobra.MaximumNArgs(1),
-    DatabaseMustBeDefined(),
-  ),
+	Args: cobra.MatchAll(
+		cobra.MaximumNArgs(1),
+		DatabaseMustBeDefined(),
+	),
 	Example: `  # List all entries of vault.kdbx database
   ` + info.NAME + ` list vault.kdbx
 
@@ -41,6 +41,7 @@ See "Examples" for more details.`,
 
 		return list(database, key, passphrase)
 	},
+	DisableAutoGenTag: true,
 }
 
 func list(database, key, passphrase string) error {
