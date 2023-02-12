@@ -12,11 +12,11 @@ import (
 )
 
 type fieldKey = string
-type fieldMap = map[fieldKey]components.Field
+type fieldMap = map[fieldKey]*components.Field
 
 type HomeView struct {
-	fieldByKey  fieldMap
-	form        *components.Form
+	fieldByKey fieldMap
+	form       *components.Form
 	components.Container
 }
 
@@ -64,7 +64,6 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 
 					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 					App.State.HasUnsavedChanges = false
-					return
 				}, func() {
 					App.Notify("Operation canceled. Entry was not saved")
 				},
@@ -76,7 +75,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewHomeView(screen tcell.Screen) views.Widget {
-  App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
+	App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
@@ -99,7 +98,7 @@ func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.For
 			// Using f.Value as binding key (for example, is we just used props.reference)
 			// would cause the title field to be unmodifiable, because the reference
 			// which is based on the title would change
-			fields[f.Key] = *field
+			fields[f.Key] = field
 		}
 	}
 
