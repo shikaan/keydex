@@ -10,14 +10,13 @@ import (
 )
 
 type AutoComplete struct {
-	options        AutoCompleteOptions
-	matchedEntries []string
+	options AutoCompleteOptions
 
 	list    *WithFocusables
 	counter *views.SimpleStyledText
 	input   *Input
 
-  Focusable
+	Focusable
 	views.BoxLayout
 }
 
@@ -67,21 +66,21 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 	return autoComplete
 }
 
-func (ac *AutoComplete) OnFocus(cb func () bool) func () {
-  return ac.input.OnFocus(cb)
+func (ac *AutoComplete) OnFocus(cb func() bool) func() {
+	return ac.input.OnFocus(cb)
 }
 
 func (ac *AutoComplete) SetFocus(on bool) {
-  ac.input.SetFocus(on)
-} 
+	ac.input.SetFocus(on)
+}
 
-func(ac *AutoComplete) HasFocus() bool {
-  return ac.input.HasFocus()
+func (ac *AutoComplete) HasFocus() bool {
+	return ac.input.HasFocus()
 }
 
 func (ac *AutoComplete) drawList(entries []string) {
-	d := &WithFocusables{}
-	d.SetOrientation(views.Vertical)
+	container := &WithFocusables{}
+	container.SetOrientation(views.Vertical)
 
 	for i, e := range entries {
 		if i >= ac.options.MaxY {
@@ -100,14 +99,14 @@ func (ac *AutoComplete) drawList(entries []string) {
 			return ac.options.OnSelect(entry)
 		})
 
-		d.AddWidget(line, 0)
+		container.AddWidget(line, 0)
 		if i == 0 {
 			line.SetFocus(true)
 		}
 	}
 
 	ac.RemoveWidget(ac.list)
-	ac.list = d
+	ac.list = container
 	ac.AddWidget(ac.list, 0)
 }
 
@@ -165,6 +164,12 @@ func (m *optionModel) MoveCursor(x, y int) {
 
 func (m *optionModel) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, false
+}
+
+func (i *option) Size() (int, int) {
+	// Forces height 1, to fix problems on some terminals
+	x, _ := i.CellView.Size()
+	return x, 1
 }
 
 func (i *option) HasFocus() bool {
