@@ -14,11 +14,11 @@ type ListView struct {
 
 func NewListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Search")
-  view := &ListView{}
+	view := &ListView{}
 	view.Container = *components.NewContainer(screen)
 	paths := App.State.Database.GetEntryPaths()
-  count := len(paths)
-  maxX, maxY := getBoundaries(screen)
+	count := len(paths)
+	maxX, maxY := getBoundaries(screen)
 
 	autoCompleteOptions := components.AutoCompleteOptions{
 		Screen:     screen,

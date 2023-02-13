@@ -44,10 +44,10 @@ func (s *Status) Notify(st string) {
 func (s *Status) Confirm(message string, onAccept func(), onReject func()) {
 	s.model.isConfirming = true
 
-  s.prompt.SetText(message)
-  s.prompt.SetFocus(true)
-  s.model.onAccept = onAccept
-  s.model.onReject = onReject
+	s.prompt.SetText(message)
+	s.prompt.SetFocus(true)
+	s.model.onAccept = onAccept
+	s.model.onReject = onReject
 
 	s.RemoveWidget(s.notification)
 	for _, l := range s.helpLines {
@@ -64,7 +64,7 @@ func (s *Status) Confirm(message string, onAccept func(), onReject func()) {
 
 func (s *Status) reset() {
 	s.model.isConfirming = false
-  s.prompt.SetFocus(false)
+	s.prompt.SetFocus(false)
 
 	s.RemoveWidget(s.prompt)
 	for _, l := range s.confirmLines {
@@ -83,15 +83,15 @@ func NewStatus() *Status {
 	status.SetOrientation(views.Vertical)
 
 	status.notification = views.NewTextBar()
-  // Prevents jumps on the first render
-  status.notification.SetCenter(EMPTY_NOTIFICATION, tcell.StyleDefault)
-	
-  status.helpLines[0] = newLine("^X Exit", "▴▾ Navigate", "^P  Browse       ", "^O Save")
+	// Prevents jumps on the first render
+	status.notification.SetCenter(EMPTY_NOTIFICATION, tcell.StyleDefault)
+
+	status.helpLines[0] = newLine("^X Exit", "▴▾ Navigate", "^P  Browse       ", "^O Save")
 	status.helpLines[1] = newLine("^C Copy", "^R Reveal  ", "ESC To Last Entry", "^G Help")
 
-  status.prompt = newPrompt()
-  status.prompt.OnKeyPress(func(ev *tcell.EventKey) bool {
-    if !status.model.isConfirming {
+	status.prompt = newPrompt()
+	status.prompt.OnKeyPress(func(ev *tcell.EventKey) bool {
+		if !status.model.isConfirming {
 			return status.BoxLayout.HandleEvent(ev)
 		}
 
@@ -111,8 +111,8 @@ func NewStatus() *Status {
 			return true
 		}
 
-    return true
-  })
+		return true
+	})
 	status.confirmLines[0] = newLine("Y Yes")
 	status.confirmLines[1] = newLine("N No")
 
@@ -141,37 +141,37 @@ func newLine(blocks ...string) views.Widget {
 }
 
 type prompt struct {
-  text *views.Text
-  input *Input
+	text  *views.Text
+	input *Input
 
-  views.BoxLayout
+	views.BoxLayout
 }
 
 func (p *prompt) SetText(s string) {
-  p.text.SetText(s)
+	p.text.SetText(s)
 }
 
 func (p *prompt) SetFocus(on bool) {
-  p.input.SetFocus(on)
+	p.input.SetFocus(on)
 }
 
 func (p *prompt) OnKeyPress(cb func(ev *tcell.EventKey) bool) func() {
-  return p.input.OnKeyPress(cb)
+	return p.input.OnKeyPress(cb)
 }
 
 func newPrompt() *prompt {
-  p := &prompt{}
-  p.SetOrientation(views.Horizontal)
+	p := &prompt{}
+	p.SetOrientation(views.Horizontal)
 	p.SetStyle(tcell.StyleDefault.Reverse(true))
 
 	p.text = views.NewText()
-  p.text.SetStyle(tcell.StyleDefault.Reverse(true))
- 
-  p.input = NewInput(&InputOptions{})
-  p.input.SetStyle(tcell.StyleDefault.Reverse(true))
+	p.text.SetStyle(tcell.StyleDefault.Reverse(true))
 
-  p.InsertWidget(0, p.text, 0)
-  p.InsertWidget(1, p.input, 1)
+	p.input = NewInput(&InputOptions{})
+	p.input.SetStyle(tcell.StyleDefault.Reverse(true))
 
-  return p
+	p.InsertWidget(0, p.text, 0)
+	p.InsertWidget(1, p.input, 1)
+
+	return p
 }

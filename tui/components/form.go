@@ -3,13 +3,12 @@ package components
 import "github.com/gdamore/tcell/v2/views"
 
 type Form struct {
-  WithFocusables
+	WithFocusables
 }
 
-
 func NewForm() *Form {
-  f := &Form{}
-  f.SetOrientation(views.Vertical)
+	f := &Form{}
+	f.SetOrientation(views.Vertical)
 
-  return f
+	return f
 }

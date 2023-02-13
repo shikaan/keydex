@@ -13,7 +13,7 @@ type Application struct {
 	screen tcell.Screen
 
 	LastFocused components.Focusable
-  State  State
+	State       State
 
 	views.Application
 }
@@ -28,30 +28,30 @@ func (a *Application) Notify(msg string) {
 
 func (a *Application) Confirm(msg string, onAccept func(), onReject func()) {
 	if a.LastFocused != nil {
-    a.LastFocused.SetFocus(false)
-  }
-  
-  a.layout.Status.Confirm(
-    msg, 
-    func() {
-      if onAccept != nil {
-        onAccept()
-      }
+		a.LastFocused.SetFocus(false)
+	}
 
-      if a.LastFocused != nil {
-        a.LastFocused.SetFocus(true)
-      }
-    }, 
-    func() {
-      if onReject != nil {
-        onReject()
-      }
+	a.layout.Status.Confirm(
+		msg,
+		func() {
+			if onAccept != nil {
+				onAccept()
+			}
 
-      if a.LastFocused != nil {
-        a.LastFocused.SetFocus(true)
-      }
-    },
-  )
+			if a.LastFocused != nil {
+				a.LastFocused.SetFocus(true)
+			}
+		},
+		func() {
+			if onReject != nil {
+				onReject()
+			}
+
+			if a.LastFocused != nil {
+				a.LastFocused.SetFocus(true)
+			}
+		},
+	)
 }
 
 func (a *Application) SetTitle(title string) {
@@ -59,36 +59,36 @@ func (a *Application) SetTitle(title string) {
 }
 
 func (a *Application) Quit() {
-  if !a.State.HasUnsavedChanges {
-    a.Application.Quit()
-    return
-  }
+	if !a.State.HasUnsavedChanges {
+		a.Application.Quit()
+		return
+	}
 
-  a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
+	a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
 }
 
 var App = &Application{}
 
 type State struct {
-	Entry     *kdbx.Entry
-	Database  *kdbx.Database
-	Reference string
-  HasUnsavedChanges bool
+	Entry             *kdbx.Entry
+	Database          *kdbx.Database
+	Reference         string
+	HasUnsavedChanges bool
 }
 
 func Run(state State) error {
 	if screen, err := tcell.NewScreen(); err == nil {
 		App.SetScreen(screen)
-    App.screen = screen
-    App.State = state
+		App.screen = screen
+		App.State = state
 		App.layout = NewLayout(screen)
 		App.SetRootWidget(App.layout)
 
-    if state.Reference == "" {
-      App.NavigateTo(NewHelpView)
-    } else {
-      App.NavigateTo(NewHomeView)
-    }
+		if state.Reference == "" {
+			App.NavigateTo(NewHelpView)
+		} else {
+			App.NavigateTo(NewHomeView)
+		}
 
 		return App.Run()
 	}
