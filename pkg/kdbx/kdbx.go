@@ -9,8 +9,8 @@ import (
 )
 
 type Database struct {
-	file     os.File
-	unlocked bool
+	file   os.File
+	locked bool
 
 	gokeepasslib.Database
 }
@@ -100,26 +100,26 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 }
 
 func (d *Database) LockProtectedEntries() error {
-	if !d.unlocked {
+	if d.locked {
 		return errors.MakeError("Cannot lock a locked database", "kdbx")
 	}
 
 	if e := d.Database.LockProtectedEntries(); e != nil {
 		return errors.MakeError(e.Error(), "kdbx")
 	}
-	d.unlocked = false
+	d.locked = true
 	return nil
 }
 
 func (d *Database) UnlockProtectedEntries() error {
-	if d.unlocked {
+	if !d.locked {
 		return errors.MakeError("Cannot unlock an unlocked database", "kdbx")
 	}
 
 	if e := d.Database.UnlockProtectedEntries(); e != nil {
 		return errors.MakeError(e.Error(), "kdbx")
 	}
-	d.unlocked = true
+	d.locked = false
 	return nil
 }
 
@@ -128,7 +128,10 @@ func (d *Database) Save() error {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-	d.file.Close()
+	if err := d.file.Close(); err != nil {
+		return errors.MakeError(err.Error(), "kdbx")
+	}
+
 	file, err := os.Create(d.file.Name())
 	if err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
@@ -142,8 +145,6 @@ func (d *Database) Save() error {
 
 	return nil
 }
-
-// Private
 
 type uniqueEntryPath struct {
 	path EntryPath

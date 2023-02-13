@@ -38,7 +38,7 @@ func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 
 func makeDatabase(filename string, groups ...gokeepasslib.Group) *Database {
 	gdb := gokeepasslib.NewDatabase()
-	db := &Database{*os.NewFile(0, filename), false, *gdb}
+	db := &Database{os.File{}, false, *gdb}
 	gdb.Content.Root.Groups = groups
 
 	return db
@@ -130,9 +130,23 @@ func TestDatabase_GetEntry(t *testing.T) {
 }
 
 func TestDatabase_Save(t *testing.T) {
+	files := []*os.File{}
+
+	makeFile := func() *os.File {
+		file, _ := os.CreateTemp(os.TempDir(), "test*.kdbx")
+		files = append(files, file)
+		return file
+	}
+
+	defer func() {
+		for _, file := range files {
+			os.Remove(file.Name())
+		}
+	}()
+
 	type fields struct {
 		file     os.File
-		unlocked bool
+		locked   bool
 		Database gokeepasslib.Database
 	}
 	tests := []struct {
@@ -140,17 +154,61 @@ func TestDatabase_Save(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"does not save locked database", fields{*makeFile(), true, *gokeepasslib.NewDatabase()}, true},
+		{"does not save with missing file", fields{os.File{}, false, *gokeepasslib.NewDatabase()}, true},
+		{"saves the database to file", fields{*makeFile(), false, *gokeepasslib.NewDatabase()}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := &Database{
 				file:     tt.fields.file,
-				unlocked: tt.fields.unlocked,
+				locked:   tt.fields.locked,
 				Database: tt.fields.Database,
 			}
 			if err := d.Save(); (err != nil) != tt.wantErr {
 				t.Errorf("Database.Save() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDatabase_LockProtectedEntries(t *testing.T) {
+	locked := makeDatabase("test.kdbx")
+	locked.locked = true
+
+	tests := []struct {
+		name     string
+		database Database
+		wantErr  bool
+	}{
+		{"does not lock locked database", *locked, true},
+		{"locks unlocked database", *makeDatabase("test"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.database.LockProtectedEntries(); (err != nil) != tt.wantErr {
+				t.Errorf("Database.LockProtectedEntries() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDatabase_UnlockProtectedEntries(t *testing.T) {
+	locked := makeDatabase("test.kdbx")
+	locked.locked = true
+
+	tests := []struct {
+		name     string
+		database Database
+		wantErr  bool
+	}{
+		{"locks unlocked database", *locked, false},
+		{"does not unlock unlocked database", *makeDatabase("test"), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.database.UnlockProtectedEntries(); (err != nil) != tt.wantErr {
+				t.Errorf("Database.UnlockProtectedEntries() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
