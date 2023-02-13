@@ -60,7 +60,7 @@ func copy(databasePath, keyPath, passphrase, reference string) error {
 		return err
 	}
 
-	db, err := kdbx.NewUnlocked(databasePath, passphrase, keyPath)
+	db, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

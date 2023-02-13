@@ -53,7 +53,7 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string) error {
-	db, err := kdbx.NewUnlocked(databasePath, passphrase, keyPath)
+	db, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

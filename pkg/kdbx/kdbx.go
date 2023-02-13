@@ -25,26 +25,17 @@ type EntryPath = string
 const PATH_SEPARATOR = "/"
 const TITLE_KEY = "Title"
 
-func New(filepath string) (*Database, error) {
+func New(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
-	db := gokeepasslib.NewDatabase()
-	return &Database{*file, false, *db}, nil
-}
-
-func NewUnlocked(filepath, password, keypath string) (*Database, error) {
-	kdbx, err := New(filepath)
-
-	if err != nil {
-		return nil, err
-	}
+	kdbx := &Database{*file, false, *gokeepasslib.NewDatabase()}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
-		return nil, err
+		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
 	return kdbx, nil

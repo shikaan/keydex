@@ -45,7 +45,7 @@ See "Examples" for more details.`,
 }
 
 func list(database, key, passphrase string) error {
-	kdbx, err := kdbx.NewUnlocked(database, passphrase, key)
+	kdbx, err := kdbx.New(database, passphrase, key)
 	if err != nil {
 		return err
 	}
