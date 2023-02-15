@@ -1,7 +1,5 @@
 # kpcli
 
-- unit test for pkg modules
-- logging
 - when compiling the version does not make into the "info" (it still "deV" when it's a new version)
 - the help test is tooo long, better sutied in a manpage
 - README

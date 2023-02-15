@@ -8,6 +8,7 @@ import (
 
 	"github.com/shikaan/kpcli/pkg/clipboard"
 	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/kpcli/pkg/log"
 	"github.com/shikaan/kpcli/tui/components"
 )
 
@@ -28,6 +29,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 		if ev.Name() == "Ctrl+O" {
 			if IsReadOnly {
 				App.Notify("Could not save: archive in read-only mode.")
+				log.Info("Could not save: archive in read-only mode.")
 				return true
 			}
 
@@ -36,6 +38,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 
 			if entry == nil {
 				App.Notify("Could not find entry at " + App.State.Reference)
+				log.Info("Could not find entry at " + App.State.Reference)
 				return true
 			}
 
@@ -49,23 +52,24 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.Save(); e != nil {
-						// TODO: logging
+						log.Error("Could not save. See logs for error.", e)
 						App.Notify("Could not save. See logs for error.")
 						return
 					}
 
 					// Unlocking again to allow further modifications
 					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-						// TODO: logging
 						IsReadOnly = true
 						App.Notify("Could not save. Switching to read-only to not corrupt data.")
+						log.Error("Could not save. Switching to read-only to not corrupt data.", e)
 						return
 					}
 
 					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 					App.State.HasUnsavedChanges = false
 				}, func() {
-					App.Notify("Operation canceled. Entry was not saved")
+					App.Notify("Operation cancelled. Entry was not saved")
+					log.Info("Operation cancelled. Entry was not saved")
 				},
 			)
 		}
