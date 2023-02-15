@@ -7,6 +7,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/mattn/go-runewidth"
+	"github.com/shikaan/kpcli/pkg/utils"
 )
 
 type AutoComplete struct {
@@ -56,7 +58,6 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 
 	counter := views.NewSimpleStyledText()
 	counter.SetAlignment(views.HAlignRight)
-	counter.SetStyle(tcell.StyleDefault.Reverse(true))
 	autoComplete.counter = counter
 	autoComplete.AddWidget(counter, 0)
 
@@ -82,21 +83,28 @@ func (ac *AutoComplete) drawList(entries []string) {
 	container := &WithFocusables{}
 	container.SetOrientation(views.Vertical)
 
-	for i, e := range entries {
+	// The 2 characters are used for when the entry is selected
+	// and you have "> " prepended
+	maxLineLength := ac.options.MaxX - 2
+
+	if len(entries) == 0 {
+		line := views.NewSimpleStyledText()
+		line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
+		container.AddWidget(line, 0)
+	}
+
+	for i, entry := range entries {
 		if i >= ac.options.MaxY {
 			break
 		}
 
 		line := newOption()
-		if len(e) > ac.options.MaxX {
-			line.SetContent(e[:ac.options.MaxX])
-		} else {
-			line.SetContent(e)
-		}
+		line.SetContent(runewidth.FillRight(runewidth.Truncate(entry, maxLineLength, ""), maxLineLength))
 
-		entry := e
+		// For memoization
+		e := entry
 		line.OnSelect(func() bool {
-			return ac.options.OnSelect(entry)
+			return ac.options.OnSelect(e)
 		})
 
 		container.AddWidget(line, 0)
@@ -111,7 +119,7 @@ func (ac *AutoComplete) drawList(entries []string) {
 }
 
 func (ac *AutoComplete) drawCounter(entries []string) {
-	matched := len(entries)
+	matched := utils.Min(len(entries), ac.options.MaxY)
 	counter := fmt.Sprintf("%d/%d", matched, len(ac.options.Entries))
 
 	ac.counter.SetStyle(tcell.StyleDefault.Bold(matched == 0))
