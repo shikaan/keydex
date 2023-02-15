@@ -25,11 +25,16 @@ Some commands make use of the system clipboard, in absence of which the command 
 
 More specific help is available contextually or by typing "kpcli help [command]".
 
+```
+kpcli [flags]
+```
+
 ### Options
 
 ```
   -h, --help         help for kpcli
-  -k, --key string   Path to the key file to unlock the database
+  -k, --key string   path to the key file to unlock the database
+  -v, --version      print the version number of kpcli.
 ```
 
 ### SEE ALSO
@@ -37,4 +42,5 @@ More specific help is available contextually or by typing "kpcli help [command]"
 * [kpcli copy](kpcli_copy.md)	 - Copies the password of a reference to the clipboard.
 * [kpcli list](kpcli_list.md)	 - Lists all the entries in the database
 * [kpcli open](kpcli_open.md)	 - Open the entry editor for a reference.
+* [kpcli version](kpcli_version.md)	 - Print the version number of kpcli.
 

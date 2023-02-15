@@ -48,7 +48,7 @@ kpcli open [file] [reference] [flags]
 ### Options inherited from parent commands
 
 ```
-  -k, --key string   Path to the key file to unlock the database
+  -k, --key string   path to the key file to unlock the database
 ```
 
 ### SEE ALSO
