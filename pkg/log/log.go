@@ -6,12 +6,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/info"
+	"github.com/shikaan/keydex/pkg/errors"
+	"github.com/shikaan/keydex/pkg/info"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const LOG_FILE = "kpcli.log"
+const LOG_FILE = "keydex.log"
 const CONFIG_FOLDER = ".config"
 
 func init() {

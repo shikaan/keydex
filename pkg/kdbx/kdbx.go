@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
 )
 

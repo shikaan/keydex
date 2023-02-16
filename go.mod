@@ -1,4 +1,4 @@
-module github.com/shikaan/kpcli
+module github.com/shikaan/keydex
 
 go 1.19
 

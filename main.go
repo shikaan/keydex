@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/shikaan/kpcli/cmd"
+	"github.com/shikaan/keydex/cmd"
 )
 
 //go:generate make docs

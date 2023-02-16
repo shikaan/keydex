@@ -3,8 +3,8 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/kpcli/pkg/info"
-	"github.com/shikaan/kpcli/tui/components"
+	"github.com/shikaan/keydex/pkg/info"
+	"github.com/shikaan/keydex/tui/components"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

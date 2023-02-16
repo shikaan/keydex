@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/shikaan/kpcli/pkg/credentials"
-	"github.com/shikaan/kpcli/pkg/info"
-	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/credentials"
+	"github.com/shikaan/keydex/pkg/info"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/spf13/cobra"
 )
 

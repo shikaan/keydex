@@ -5,7 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/kpcli/pkg/utils"
+	"github.com/shikaan/keydex/pkg/utils"
 )
 
 type Input struct {

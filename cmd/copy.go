@@ -3,11 +3,11 @@ package cmd
 import (
 	"os"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
-	"github.com/shikaan/kpcli/pkg/credentials"
-	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/info"
-	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/clipboard"
+	"github.com/shikaan/keydex/pkg/credentials"
+	"github.com/shikaan/keydex/pkg/errors"
+	"github.com/shikaan/keydex/pkg/info"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ See "Examples" for more details.`,
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	Use:     "copy [file] [reference]",
-	Aliases: []string{"cp", "password", "pwd"},
+	Aliases: []string{"cp", "password", "pwd", "copy-password"},
 	Args: cobra.MatchAll(
 		cobra.MaximumNArgs(2),
 		DatabaseMustBeDefined(),

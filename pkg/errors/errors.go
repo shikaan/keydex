@@ -3,7 +3,7 @@ package errors
 import (
 	"fmt"
 
-	"github.com/shikaan/kpcli/pkg/info"
+	"github.com/shikaan/keydex/pkg/info"
 )
 
 func MakeError(msg string, namespace string) error {

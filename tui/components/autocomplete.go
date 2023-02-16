@@ -8,7 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-runewidth"
-	"github.com/shikaan/kpcli/pkg/utils"
+	"github.com/shikaan/keydex/pkg/utils"
 )
 
 type AutoComplete struct {

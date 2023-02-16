@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/shikaan/kpcli/pkg/info"
+	"github.com/shikaan/keydex/pkg/info"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ var Root = &cobra.Command{
 ` + info.NAME + ` can read the following environment variables:
 
   - ` + ENV_PASSPHRASE + ` 
-    When this variable is set, kpcli will skip the password prompt. It can be replaced by utils such as 'autoexpect'.
+    When this variable is set, keydex will skip the password prompt. It can be replaced by utils such as 'autoexpect'.
 
   - ` + ENV_DATABASE + `
     Is the path to the *.kbdx database to unlock. Providing 'file' inline overrides this value.
