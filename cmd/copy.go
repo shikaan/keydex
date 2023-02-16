@@ -3,11 +3,11 @@ package cmd
 import (
 	"os"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
-	"github.com/shikaan/kpcli/pkg/credentials"
-	"github.com/shikaan/kpcli/pkg/errors"
-	"github.com/shikaan/kpcli/pkg/info"
-	"github.com/shikaan/kpcli/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/clipboard"
+	"github.com/shikaan/keydex/pkg/credentials"
+	"github.com/shikaan/keydex/pkg/errors"
+	"github.com/shikaan/keydex/pkg/info"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/spf13/cobra"
 )
 
@@ -40,17 +40,18 @@ See "Examples" for more details.`,
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	Use:     "copy [file] [reference]",
-	Aliases: []string{"cp", "password", "pwd"},
-	Args:    cobra.MatchAll(
-    cobra.MaximumNArgs(2),
-    DatabaseMustBeDefined(),
-  ),
+	Aliases: []string{"cp", "password", "pwd", "copy-password"},
+	Args: cobra.MatchAll(
+		cobra.MaximumNArgs(2),
+		DatabaseMustBeDefined(),
+	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return copy(database, key, passphrase, reference)
 	},
+	DisableAutoGenTag: true,
 }
 
 func copy(databasePath, keyPath, passphrase, reference string) error {
@@ -59,7 +60,7 @@ func copy(databasePath, keyPath, passphrase, reference string) error {
 		return err
 	}
 
-	db, err := kdbx.NewUnlocked(databasePath, passphrase, keyPath)
+	db, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

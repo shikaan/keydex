@@ -22,11 +22,11 @@ jobs:
           export VERSION="${{ steps.version.outputs.semVer }}"
           go generate
       - run: mkdir -p .build
-      - uses: crazy-max/ghaction-xgo@v1
+      - uses: crazy-max/ghaction-xgo@v2
         with:
           dest: ${{ env.GITHUB_WORKSPACE }}/.build
           go_version: 1.19
-          prefix: kpcli
+          prefix: keydex
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/arm64,darwin/amd64
           v: true
           x: true

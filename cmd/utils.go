@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const ENV_DATABASE = "KPCLI_DATABASE"
-const ENV_PASSPHRASE = "KPCLI_PASSPHRASE"
-const ENV_KEY = "KPCLI_KEY"
+const ENV_DATABASE = "KEYDEX_DATABASE"
+const ENV_PASSPHRASE = "KEYDEX_PASSPHRASE"
+const ENV_KEY = "KEYDEX_KEY"
 
 // If zero value reference is passed, reads from stdin to get the value
 func ReadReferenceFromStdin(maybeReference string) (string, error) {
@@ -30,30 +30,35 @@ func ReadReferenceFromStdin(maybeReference string) (string, error) {
 }
 
 // Cases:
-//   DATABASE=lol kpcli copy -> gets ref from stdin (blank ref)
-//   kpcli copy database -> gets ref from stdin (blank ref)
-//   DATABASE=lol kpcli copy /ref -> OK (db: lol, ref: /ref)
-//   kpcli copy database /ref -> OK (db: database, ref: /ref)
-//   DATABASE=lol kpcli copy database /ref -> (db database, /ref)
-//   kpcli copy /ref -> uses /ref as db and fails
+//   DATABASE=lol keydex copy -> gets ref from stdin (blank ref)
+//   keydex copy database -> gets ref from stdin (blank ref)
+//   DATABASE=lol keydex copy /ref -> OK (db: lol, ref: /ref)
+//   keydex copy database /ref -> OK (db: database, ref: /ref)
+//   DATABASE=lol keydex copy database /ref -> (db database, /ref)
+//   keydex copy /ref -> uses /ref as db and fails
 
-// DATABASE=lol kpcli open -> opens list (blank ref)
-// kpcli copy database -> gets ref from stdin (blank ref)
-// DATABASE=lol kpcli open /ref -> OK (db: lol, ref: /ref)
-// kpcli open database /ref -> OK (db: database, ref: /ref)
-// DATABASE=lol kpcli open database /ref -> (db database, /ref)
-// kpcli open /ref -> uses /ref as db and then fails
-func ReadDatabaseArguments(cmd *cobra.Command, args []string) (string, string, string) {
-	var reference, database string
-
+// DATABASE=lol keydex open -> opens list (blank ref)
+// keydex copy database -> gets ref from stdin (blank ref)
+// DATABASE=lol keydex open /ref -> OK (db: lol, ref: /ref)
+// keydex open database /ref -> OK (db: database, ref: /ref)
+// DATABASE=lol keydex open database /ref -> (db database, /ref)
+// keydex open /ref -> uses /ref as db and then fails
+func ReadDatabaseArguments(cmd *cobra.Command, args []string) (database string, reference string, key string) {
 	if len(args) == 0 {
 		reference = ""
 		database = os.Getenv(ENV_DATABASE)
 	}
 
 	if len(args) == 1 {
-		reference = ""
-		database = args[0]
+		envDatabase := os.Getenv(ENV_DATABASE)
+
+		if envDatabase != "" {
+			database = envDatabase
+			reference = args[0]
+		} else {
+			database = args[0]
+			reference = ""
+		}
 	}
 
 	if len(args) == 2 {
@@ -61,11 +66,13 @@ func ReadDatabaseArguments(cmd *cobra.Command, args []string) (string, string, s
 		reference = args[1]
 	}
 
-  key := cmd.Flag("key").Value.String()
+	if keyFlag := cmd.Flag("key"); keyFlag != nil {
+		key = keyFlag.Value.String()
 
-  if key == "" {
-    key = os.Getenv(ENV_KEY)
-  }
+		if key == "" {
+			key = os.Getenv(ENV_KEY)
+		}
+	}
 
 	return database, reference, key
 }

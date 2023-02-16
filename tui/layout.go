@@ -3,7 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/kpcli/tui/components"
+	"github.com/shikaan/keydex/tui/components"
 )
 
 type Layout struct {
@@ -25,21 +25,21 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 		if ev.Name() == "Ctrl+P" {
 			App.NavigateTo(NewListView)
 			return true
-		}	
+		}
 		if ev.Name() == "Ctrl+G" {
 			App.NavigateTo(NewHelpView)
 			return true
 		}
 		if ev.Name() == "Ctrl+C" {
-      handled := v.Panel.HandleEvent(ev)
+			handled := v.Panel.HandleEvent(ev)
 
-      if !handled {
-        App.Notify("No field selected for copy. Use ^X to close.")
-      }
-      
-      return true
+			if !handled {
+				App.Notify("No field selected for copy. Use ^X to close.")
+			}
+
+			return true
 		}
-    if ev.Key() == tcell.KeyEsc {
+		if ev.Key() == tcell.KeyEsc {
 			if App.State.Entry == nil {
 				App.Notify("No entry selected yet.")
 				return true

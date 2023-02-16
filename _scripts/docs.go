@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/shikaan/kpcli/cmd"
+	"github.com/shikaan/keydex/cmd"
 	"github.com/spf13/cobra/doc"
 )
 

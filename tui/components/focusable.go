@@ -6,65 +6,64 @@ import (
 )
 
 type Focusable interface {
-  SetFocus(on bool)
-  HasFocus() bool
+	SetFocus(on bool)
+	HasFocus() bool
 }
 
 type WithFocusables struct {
-  views.BoxLayout
+	views.BoxLayout
 }
 
 func (wf *WithFocusables) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
-    if ev.Key() == tcell.KeyUp {
-      wf.MoveFocus(-1)
-      return true
-    }
-    if ev.Key() == tcell.KeyDown {
-      wf.MoveFocus(1)
-      return true
-    }
-  }
+		if ev.Key() == tcell.KeyUp {
+			wf.MoveFocus(-1)
+			return true
+		}
+		if ev.Key() == tcell.KeyDown {
+			wf.MoveFocus(1)
+			return true
+		}
+	}
 
-  return wf.BoxLayout.HandleEvent(ev)
+	return wf.BoxLayout.HandleEvent(ev)
 }
 
 // Moves focus by `offset` focusables
-func (wf *WithFocusables) MoveFocus (offset int) {
-  fs := wf.Focusables()
-  count := len(fs)
-  current := -1
+func (wf *WithFocusables) MoveFocus(offset int) {
+	fs := wf.Focusables()
+	count := len(fs)
+	current := -1
 
-  for i, f := range fs {
-    if f.HasFocus() {
-      current = i
-      f.SetFocus(false)
-      break
-    }
-  }
+	for i, f := range fs {
+		if f.HasFocus() {
+			current = i
+			f.SetFocus(false)
+			break
+		}
+	}
 
-  notFound := current == -1
-  if notFound {
-    return
-  }
+	notFound := current == -1
+	if notFound {
+		return
+	}
 
-  newIndex := (count + current + offset) % count
+	newIndex := (count + current + offset) % count
 
-  fs[newIndex].SetFocus(true)
+	fs[newIndex].SetFocus(true)
 }
 
 // Returns the subset of Widgets that can have focus
 func (wf *WithFocusables) Focusables() []Focusable {
-  ws := wf.Widgets()
-  result := []Focusable{}
+	ws := wf.Widgets()
+	result := []Focusable{}
 
-  for _, w := range ws {
-    switch w := w.(type) {
-    case Focusable:
-      result = append(result, w)
-    }
-  }
-  return result
+	for _, w := range ws {
+		switch w := w.(type) {
+		case Focusable:
+			result = append(result, w)
+		}
+	}
+	return result
 }
-

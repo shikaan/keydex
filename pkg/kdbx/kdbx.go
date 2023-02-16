@@ -4,13 +4,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
 type Database struct {
-	file os.File
-  unlocked bool
+	file   os.File
+	locked bool
 
 	gokeepasslib.Database
 }
@@ -25,45 +25,36 @@ type EntryPath = string
 const PATH_SEPARATOR = "/"
 const TITLE_KEY = "Title"
 
-func New(filepath string) (*Database, error) {
+func New(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
-	db := gokeepasslib.NewDatabase()
-	return &Database{*file, false, *db}, nil
-}
-
-func NewUnlocked(filepath, password, keypath string) (*Database, error) {
-	kdbx, err := New(filepath)
-
-	if err != nil {
-		return nil, err
-	}
+	kdbx := &Database{*file, false, *gokeepasslib.NewDatabase()}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
-		return nil, err
+		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
 	return kdbx, nil
 }
 
 func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
-  if keypath == "" {
-    d.Credentials = gokeepasslib.NewPasswordCredentials(password)
-  } else {
-    credentials, err := gokeepasslib.NewPasswordAndKeyCredentials(password, keypath)
-  
-    if err != nil {
-      return errors.MakeError(err.Error(), "kdbx")
-    }
+	if keypath == "" {
+		d.Credentials = gokeepasslib.NewPasswordCredentials(password)
+	} else {
+		credentials, err := gokeepasslib.NewPasswordAndKeyCredentials(password, keypath)
 
-    d.Credentials = credentials
-  }
+		if err != nil {
+			return errors.MakeError(err.Error(), "kdbx")
+		}
 
-  return d.unlock()
+		d.Credentials = credentials
+	}
+
+	return d.unlock()
 }
 
 func (d *Database) GetEntryPaths() []EntryPath {
@@ -77,8 +68,8 @@ func (d *Database) GetEntryPaths() []EntryPath {
 }
 
 // Returns the first entry matching the entry path provided.
-// Note that the path might not be unique. Use the UUID method 
-// when identifying a precise entry is necessary 
+// Note that the path might not be unique. Use the UUID method
+// when identifying a precise entry is necessary
 func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
 	for _, uEP := range d.getEntryPathsAndUUIDs() {
 		if uEP.path == p {
@@ -100,39 +91,42 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 }
 
 func (d *Database) LockProtectedEntries() error {
-  if !d.unlocked {
-    return errors.MakeError("Cannot lock a locked database", "kdbx")
-  }
+	if d.locked {
+		return errors.MakeError("Cannot lock a locked database", "kdbx")
+	}
 
-  if e := d.Database.LockProtectedEntries(); e != nil {
-    return errors.MakeError(e.Error(), "kdbx")
-  }
-  d.unlocked = false
-  return nil
+	if e := d.Database.LockProtectedEntries(); e != nil {
+		return errors.MakeError(e.Error(), "kdbx")
+	}
+	d.locked = true
+	return nil
 }
 
 func (d *Database) UnlockProtectedEntries() error {
-  if d.unlocked {
-    return errors.MakeError("Cannot unlock an unlocked database", "kdbx")
-  }
+	if !d.locked {
+		return errors.MakeError("Cannot unlock an unlocked database", "kdbx")
+	}
 
-  if e := d.Database.UnlockProtectedEntries(); e != nil {
-    return errors.MakeError(e.Error(), "kdbx")
-  }
-  d.unlocked = true
-  return nil
+	if e := d.Database.UnlockProtectedEntries(); e != nil {
+		return errors.MakeError(e.Error(), "kdbx")
+	}
+	d.locked = false
+	return nil
 }
 
-func (d *Database) Save() error {	
-  if err := d.LockProtectedEntries(); err != nil {
+func (d *Database) Save() error {
+	if err := d.LockProtectedEntries(); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
-	
-  d.file.Close()
+
+	if err := d.file.Close(); err != nil {
+		return errors.MakeError(err.Error(), "kdbx")
+	}
+
 	file, err := os.Create(d.file.Name())
-  if err != nil {
-    return errors.MakeError(err.Error(), "kdbx")
-  }
+	if err != nil {
+		return errors.MakeError(err.Error(), "kdbx")
+	}
 
 	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
@@ -140,15 +134,12 @@ func (d *Database) Save() error {
 
 	d.file = *file
 
-  return nil
+	return nil
 }
 
-
-// Private
-
-type uniqueEntryPath struct { 
-  path EntryPath 
-  uuid UUID 
+type uniqueEntryPath struct {
+	path EntryPath
+	uuid UUID
 }
 
 func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
@@ -164,20 +155,19 @@ func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
 // Decodes and unlocks a database whose credentials are known.
 // Use UnlockWith* methods to store credentials
 func (d *Database) unlock() error {
-  // TODO: it's probably possible to unlock without password,
-  // since you can create credentials-less archives
+	// TODO: it's probably possible to unlock without password,
+	// since you can create credentials-less archives
 	if d.Credentials == nil {
-    return errors.MakeError("Cannot unlock without credentials", "kdbx")
-  }
+		return errors.MakeError("Cannot unlock without credentials", "kdbx")
+	}
 
-  if err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database); err != nil {
+	if err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
 	d.UnlockProtectedEntries()
 	return nil
 }
-
 
 func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPath {
 	groupPrefix := prefix + g.Name + PATH_SEPARATOR
@@ -189,14 +179,14 @@ func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPa
 	}
 
 	for _, entry := range g.Entries {
-    title := entry.GetTitle()
+		title := entry.GetTitle()
 
-    if title == "" {
-      title = "(UNKNOWN)"
-    }
-    
-    key := groupPrefix + sanitizePathPortion(title)
-    entries = append(entries, uniqueEntryPath{path: key, uuid: entry.UUID})
+		if title == "" {
+			title = "(UNKNOWN)"
+		}
+
+		key := groupPrefix + sanitizePathPortion(title)
+		entries = append(entries, uniqueEntryPath{path: key, uuid: entry.UUID})
 	}
 
 	return entries
@@ -208,8 +198,8 @@ func getEntryByUUID(g gokeepasslib.Group, uuid gokeepasslib.UUID) *Entry {
 			return &e
 		}
 	}
-	
-  for _, gs := range g.Groups {
+
+	for _, gs := range g.Groups {
 		if e := getEntryByUUID(gs, uuid); e != nil {
 			return e
 		}
