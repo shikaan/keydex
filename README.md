@@ -8,12 +8,6 @@
 Manage KeePass databases from your terminal.
 </p>
 
-<p align="center">
-  <a href="https://asciinema.org/a/548928" target="_blank">
-    <img src="https://asciinema.org/a/548928.svg" height="288"/>
-  </a>
-</p>
-
 ## ⚡️ Quick start
 
 ### Installation
