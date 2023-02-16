@@ -46,5 +46,4 @@ func init() {
 	Root.AddCommand(Open)
 
 	Root.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
-	Root.Flags().BoolP("version", "v", false, fmt.Sprintf("print the version number of %s.", info.NAME))
 }
