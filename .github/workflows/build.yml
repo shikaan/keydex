@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - testing
     paths-ignore:
       - '**.md'
 
