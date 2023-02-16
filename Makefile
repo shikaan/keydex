@@ -9,7 +9,13 @@ build:
 ## test: Run tests
 .PHONY: test
 test:
-	@echo "No tests yet!"
+	@go test ./...
+
+## coverage: Run coverage
+.PHONY: coverage
+coverage:
+	@go test -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out
 
 ## help: Show help and exit
 .PHONY: help

@@ -2,7 +2,7 @@ package clipboard
 
 import (
 	"github.com/atotto/clipboard"
-	"github.com/shikaan/kpcli/pkg/errors"
+	"github.com/shikaan/keydex/pkg/errors"
 )
 
 func Write(msg string) error {

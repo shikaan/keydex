@@ -1,16 +1,15 @@
 package main
 
 import (
+	"os"
 
-	"github.com/shikaan/kpcli/cmd"
+	"github.com/shikaan/keydex/cmd"
 )
 
 //go:generate make docs
 
 func main() {
-	e := cmd.Root.Execute()
-
-	if e != nil {
-		println(e.Error())
+	if err := cmd.Root.Execute(); err != nil {
+		os.Exit(1)
 	}
 }

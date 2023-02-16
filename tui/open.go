@@ -6,17 +6,18 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
-	"github.com/shikaan/kpcli/pkg/clipboard"
-	"github.com/shikaan/kpcli/pkg/kdbx"
-	"github.com/shikaan/kpcli/tui/components"
+	"github.com/shikaan/keydex/pkg/clipboard"
+	"github.com/shikaan/keydex/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/log"
+	"github.com/shikaan/keydex/tui/components"
 )
 
 type fieldKey = string
-type fieldMap = map[fieldKey]components.Field
+type fieldMap = map[fieldKey]*components.Field
 
 type HomeView struct {
-	fieldByKey  fieldMap
-	form        *components.Form
+	fieldByKey fieldMap
+	form       *components.Form
 	components.Container
 }
 
@@ -28,6 +29,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 		if ev.Name() == "Ctrl+O" {
 			if IsReadOnly {
 				App.Notify("Could not save: archive in read-only mode.")
+				log.Info("Could not save: archive in read-only mode.")
 				return true
 			}
 
@@ -36,6 +38,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 
 			if entry == nil {
 				App.Notify("Could not find entry at " + App.State.Reference)
+				log.Info("Could not find entry at " + App.State.Reference)
 				return true
 			}
 
@@ -49,24 +52,24 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.Save(); e != nil {
-						// TODO: logging
+						log.Error("Could not save. See logs for error.", e)
 						App.Notify("Could not save. See logs for error.")
 						return
 					}
 
 					// Unlocking again to allow further modifications
 					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-						// TODO: logging
 						IsReadOnly = true
 						App.Notify("Could not save. Switching to read-only to not corrupt data.")
+						log.Error("Could not save. Switching to read-only to not corrupt data.", e)
 						return
 					}
 
 					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
 					App.State.HasUnsavedChanges = false
-					return
 				}, func() {
-					App.Notify("Operation canceled. Entry was not saved")
+					App.Notify("Operation cancelled. Entry was not saved")
+					log.Info("Operation cancelled. Entry was not saved")
 				},
 			)
 		}
@@ -76,7 +79,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewHomeView(screen tcell.Screen) views.Widget {
-  App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
+	App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
@@ -99,7 +102,7 @@ func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.For
 			// Using f.Value as binding key (for example, is we just used props.reference)
 			// would cause the title field to be unmodifiable, because the reference
 			// which is based on the title would change
-			fields[f.Key] = *field
+			fields[f.Key] = field
 		}
 	}
 

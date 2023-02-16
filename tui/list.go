@@ -4,8 +4,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
-	"github.com/shikaan/kpcli/pkg/utils"
-	"github.com/shikaan/kpcli/tui/components"
+	"github.com/shikaan/keydex/pkg/utils"
+	"github.com/shikaan/keydex/tui/components"
 )
 
 type ListView struct {
@@ -14,11 +14,11 @@ type ListView struct {
 
 func NewListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Search")
-  view := &ListView{}
+	view := &ListView{}
 	view.Container = *components.NewContainer(screen)
 	paths := App.State.Database.GetEntryPaths()
-  count := len(paths)
-  maxX, maxY := getBoundaries(screen)
+	count := len(paths)
+	maxX, maxY := getBoundaries(screen)
 
 	autoCompleteOptions := components.AutoCompleteOptions{
 		Screen:     screen,
@@ -49,6 +49,7 @@ func getBoundaries(screen tcell.Screen) (int, int) {
 	x, y := screen.Size()
 
 	// one third of the screen width
-	// all the height - title, status, search, counter, and notification
-	return utils.Max(x/3, components.MIN_WIDTH), y - 6
+	// all the height - title, status, search, counter, notification,
+	// and 4 more lines of buffer just in case
+	return utils.Max(x/3, components.MIN_WIDTH), y - 10
 }

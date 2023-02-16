@@ -7,17 +7,18 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/mattn/go-runewidth"
+	"github.com/shikaan/keydex/pkg/utils"
 )
 
 type AutoComplete struct {
-	options        AutoCompleteOptions
-	matchedEntries []string
+	options AutoCompleteOptions
 
 	list    *WithFocusables
 	counter *views.SimpleStyledText
 	input   *Input
 
-  Focusable
+	Focusable
 	views.BoxLayout
 }
 
@@ -57,7 +58,6 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 
 	counter := views.NewSimpleStyledText()
 	counter.SetAlignment(views.HAlignRight)
-	counter.SetStyle(tcell.StyleDefault.Reverse(true))
 	autoComplete.counter = counter
 	autoComplete.AddWidget(counter, 0)
 
@@ -67,52 +67,59 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 	return autoComplete
 }
 
-func (ac *AutoComplete) OnFocus(cb func () bool) func () {
-  return ac.input.OnFocus(cb)
+func (ac *AutoComplete) OnFocus(cb func() bool) func() {
+	return ac.input.OnFocus(cb)
 }
 
 func (ac *AutoComplete) SetFocus(on bool) {
-  ac.input.SetFocus(on)
-} 
+	ac.input.SetFocus(on)
+}
 
-func(ac *AutoComplete) HasFocus() bool {
-  return ac.input.HasFocus()
+func (ac *AutoComplete) HasFocus() bool {
+	return ac.input.HasFocus()
 }
 
 func (ac *AutoComplete) drawList(entries []string) {
-	d := &WithFocusables{}
-	d.SetOrientation(views.Vertical)
+	container := &WithFocusables{}
+	container.SetOrientation(views.Vertical)
 
-	for i, e := range entries {
+	// The 2 characters are used for when the entry is selected
+	// and you have "> " prepended
+	maxLineLength := ac.options.MaxX - 2
+
+	if len(entries) == 0 {
+		line := views.NewSimpleStyledText()
+		line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
+		container.AddWidget(line, 0)
+	}
+
+	for i, entry := range entries {
 		if i >= ac.options.MaxY {
 			break
 		}
 
 		line := newOption()
-		if len(e) > ac.options.MaxX {
-			line.SetContent(e[:ac.options.MaxX])
-		} else {
-			line.SetContent(e)
-		}
+		line.SetContent(runewidth.FillRight(runewidth.Truncate(entry, maxLineLength, ""), maxLineLength))
 
-		entry := e
+		// For memoization
+		e := entry
 		line.OnSelect(func() bool {
-			return ac.options.OnSelect(entry)
+			return ac.options.OnSelect(e)
 		})
 
-		d.AddWidget(line, 0)
+		container.AddWidget(line, 0)
 		if i == 0 {
 			line.SetFocus(true)
 		}
 	}
 
 	ac.RemoveWidget(ac.list)
-	ac.list = d
+	ac.list = container
 	ac.AddWidget(ac.list, 0)
 }
 
 func (ac *AutoComplete) drawCounter(entries []string) {
-	matched := len(entries)
+	matched := utils.Min(len(entries), ac.options.MaxY)
 	counter := fmt.Sprintf("%d/%d", matched, len(ac.options.Entries))
 
 	ac.counter.SetStyle(tcell.StyleDefault.Bold(matched == 0))
@@ -165,6 +172,12 @@ func (m *optionModel) MoveCursor(x, y int) {
 
 func (m *optionModel) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, false
+}
+
+func (i *option) Size() (int, int) {
+	// Forces height 1, to fix problems on some terminals
+	x, _ := i.CellView.Size()
+	return x, 1
 }
 
 func (i *option) HasFocus() bool {
