@@ -14,12 +14,11 @@ Manage KeePass databases from your terminal.
 
 _MacOS and Linux_
 ```sh
-OS=$(uname | tr '[:upper:]' '[:lower:]')
-ARCH=$([[ $(uname -m) == "x86_64" ]] && echo "amd64" || echo "386")
+sudo sh -c "curl -s https://raw.githubusercontent.com/shikaan/keydex/main/install.sh | sh -"
 
-sudo wget -O /usr/local/bin/keydex https://github.com/shikaan/keydex/releases/latest/download/keydex-${OS}-${ARCH}
-sudo chmod u+x /usr/local/bin/keydex
-sudo chown $(logname) /usr/local/bin/keydex
+# or
+
+sudo sh -c "wget -q https://raw.githubusercontent.com/shikaan/keydex/main/install.sh -O- | sh -"
 ```
 
 _Windows and manual instructions_
@@ -61,7 +60,7 @@ Opening a given entry and [listing](./docs/keydex_list.md) accept environment va
 # opens the editor at the given location
 keydex open /example/group/entry
 
-# lists all the 
+# lists all the entries in the database
 keydex list
 ```
 
