@@ -9,8 +9,7 @@ import (
 )
 
 type Database struct {
-	file   os.File
-	locked bool
+	file os.File
 
 	gokeepasslib.Database
 }
@@ -32,7 +31,7 @@ func New(filepath, password, keypath string) (*Database, error) {
 		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
-	kdbx := &Database{*file, false, *gokeepasslib.NewDatabase()}
+	kdbx := &Database{*file, *gokeepasslib.NewDatabase()}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
@@ -90,32 +89,8 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 	return nil
 }
 
-func (d *Database) LockProtectedEntries() error {
-	if d.locked {
-		return errors.MakeError("Cannot lock a locked database", "kdbx")
-	}
-
-	if e := d.Database.LockProtectedEntries(); e != nil {
-		return errors.MakeError(e.Error(), "kdbx")
-	}
-	d.locked = true
-	return nil
-}
-
-func (d *Database) UnlockProtectedEntries() error {
-	if !d.locked {
-		return errors.MakeError("Cannot unlock an unlocked database", "kdbx")
-	}
-
-	if e := d.Database.UnlockProtectedEntries(); e != nil {
-		return errors.MakeError(e.Error(), "kdbx")
-	}
-	d.locked = false
-	return nil
-}
-
 func (d *Database) Save() error {
-	if err := d.LockProtectedEntries(); err != nil {
+	if err := d.Database.LockProtectedEntries(); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
@@ -165,7 +140,7 @@ func (d *Database) unlock() error {
 		return errors.MakeError(err.Error(), "kdbx")
 	}
 
-	d.UnlockProtectedEntries()
+	d.Database.UnlockProtectedEntries()
 	return nil
 }
 
