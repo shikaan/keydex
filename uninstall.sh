@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/env sh
 
 if [ "$(id -u)" -ne 0 ]; then 
   echo "Uninstallation needs to be run as super user. Please run 'sudo $0' to proceed."

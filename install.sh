@@ -1,10 +1,9 @@
-#!/bin/env bash
+#!/bin/env sh
 
 get_architecture () {
-  local arch
   arch="$(uname -m)"
 
-  if [ "$arch" == "x86_64" ]; then
+  if [ "$arch" = "x86_64" ]; then
     echo "am64"
   else
     echo "$arch"
