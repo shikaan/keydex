@@ -19,6 +19,7 @@ ARCH=$([[ $(uname -m) == "x86_64" ]] && echo "amd64" || echo "386")
 
 sudo wget -O /usr/local/bin/keydex https://github.com/shikaan/keydex/releases/latest/download/keydex-${OS}-${ARCH}
 sudo chmod u+x /usr/local/bin/keydex
+sudo chown $(logname) /usr/local/bin/keydex
 ```
 
 _Windows and manual instructions_
