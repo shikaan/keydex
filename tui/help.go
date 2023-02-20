@@ -13,7 +13,7 @@ import (
 // with the useage of the constant. Do not align it!
 const welcomeBanner = `
     +--------------------------------------------------+
-    | Welcome to ` + info.NAME + `!                                |
+    | Welcome to ` + info.NAME + `!                               |
     |                                                  |  
     |   Press Ctrl+P to start browsing the database.   |
     +--------------------------------------------------+`
