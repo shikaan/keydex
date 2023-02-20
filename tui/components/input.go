@@ -6,6 +6,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/utils"
+	"golang.org/x/exp/utf8string"
 )
 
 type Input struct {
@@ -44,14 +45,15 @@ type inputModel struct {
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
+	content := utf8string.NewString(m.content)
 	isPassword := m.inputType == InputTypePassword
-	isOutOfBound := y != 0 || x < 0 || x >= len(m.content)
+	isOutOfBound := y != 0 || x < 0 || x >= content.RuneCount()
 
 	if isOutOfBound {
 		return 0, m.style, nil, 1
 	}
 
-	char := rune(m.content[x])
+	char := content.At(x)
 	if isPassword {
 		char = '*'
 	}

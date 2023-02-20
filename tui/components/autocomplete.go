@@ -9,6 +9,7 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-runewidth"
 	"github.com/shikaan/keydex/pkg/utils"
+	"golang.org/x/exp/utf8string"
 )
 
 type AutoComplete struct {
@@ -150,9 +151,10 @@ type optionModel struct {
 }
 
 func (m *optionModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
+	content := utf8string.NewString(m.content)
 	char := ' '
-	if len(m.content) > x {
-		char = rune(m.content[x])
+	if content.RuneCount() > x {
+		char = content.At(x)
 	}
 
 	return char, m.style, nil, 1

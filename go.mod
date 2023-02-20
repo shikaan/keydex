@@ -9,6 +9,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/spf13/cobra v1.6.1
 	github.com/tobischo/gokeepasslib/v3 v3.5.0
+	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3
 	golang.org/x/term v0.5.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
