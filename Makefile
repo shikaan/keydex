@@ -8,7 +8,7 @@ build:
 
 ## test: Run tests
 .PHONY: test
-test:
+test: info
 	@go test ./...
 
 ## coverage: Run coverage
