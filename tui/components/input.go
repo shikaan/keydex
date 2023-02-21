@@ -6,7 +6,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/utils"
-	"golang.org/x/exp/utf8string"
 )
 
 type Input struct {
@@ -18,7 +17,7 @@ type Input struct {
 }
 
 type InputOptions struct {
-	InitialValue string
+	InitialValue []rune
 	Type         InputType
 }
 
@@ -29,10 +28,8 @@ const (
 	InputTypePassword
 )
 
-// Model - Used internally by tcell/views to handle drawing
-
 type inputModel struct {
-	content   string
+	content   []rune
 	width     int
 	x         int
 	style     tcell.Style
@@ -45,15 +42,14 @@ type inputModel struct {
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	content := utf8string.NewString(m.content)
 	isPassword := m.inputType == InputTypePassword
-	isOutOfBound := y != 0 || x < 0 || x >= content.RuneCount()
+	isOutOfBound := y != 0 || x < 0 || x >= len(m.content)
 
 	if isOutOfBound {
 		return 0, m.style, nil, 1
 	}
 
-	char := content.At(x)
+	char := m.content[x]
 	if isPassword {
 		char = '*'
 	}
@@ -90,8 +86,6 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, m.hasFocus
 }
 
-// Input - Models an input (similar to HTML inputs)
-
 func (i *Input) HasFocus() bool {
 	return i.model.hasFocus
 }
@@ -105,7 +99,7 @@ func (i *Input) SetFocus(on bool) {
 	}
 }
 
-func (i *Input) SetContent(text string) {
+func (i *Input) SetContent(text []rune) {
 	i.Init()
 	m := i.model
 	m.width = len(text)
@@ -114,8 +108,8 @@ func (i *Input) SetContent(text string) {
 	i.CellView.SetModel(m)
 }
 
-func (i *Input) GetContent() string {
-	return string(i.model.content)
+func (i *Input) GetContent() []rune {
+	return i.model.content
 }
 
 func (i *Input) SetInputType(t InputType) {
@@ -147,8 +141,8 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 		if ev.Key() == tcell.KeyRune {
 			return i.handleContentUpdate(
 				ev,
-				func(c string, x int) (string, int) {
-					return c[:x] + string(ev.Rune()) + c[x:], 1
+				func(c []rune, x int) ([]rune, int) {
+					return append(append(c[:x], ev.Rune()), c[x:]...), 1
 				},
 			)
 		}
@@ -156,10 +150,10 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 		if ev.Key() == tcell.KeyBackspace2 || ev.Key() == tcell.KeyBackspace {
 			return i.handleContentUpdate(
 				ev,
-				func(c string, x int) (string, int) {
+				func(c []rune, x int) ([]rune, int) {
 					safeX := utils.Max(0, x-1)
 
-					return c[:safeX] + c[x:], -1
+					return append(c[:safeX], c[x:]...), -1
 				},
 			)
 		}
@@ -167,10 +161,10 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 		if ev.Key() == tcell.KeyDelete {
 			return i.handleContentUpdate(
 				ev,
-				func(c string, x int) (string, int) {
+				func(c []rune, x int) ([]rune, int) {
 					safeX := utils.Min(len(c), x+1)
 
-					return c[:x] + c[safeX:], 0
+					return append(c[:x], c[safeX:]...), 0
 				},
 			)
 		}
@@ -185,7 +179,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	return i.CellView.HandleEvent(ev)
 }
 
-func (i *Input) handleContentUpdate(ev tcell.Event, cb func(content string, cursorPosition int) (string, int)) bool {
+func (i *Input) handleContentUpdate(ev tcell.Event, cb func(content []rune, cursorPosition int) ([]rune, int)) bool {
 	m := i.GetModel()
 	x, _, _, _ := m.GetCursor()
 

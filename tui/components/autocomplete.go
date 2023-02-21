@@ -47,8 +47,8 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 		entries := options.Entries
 		content := input.GetContent()
 
-		if content != "" {
-			entries = fuzzy.FindFold(content, options.Entries)
+		if len(content) > 0 {
+			entries = fuzzy.FindFold(string(content), options.Entries)
 		}
 
 		autoComplete.drawList(entries)

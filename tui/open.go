@@ -47,7 +47,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 				func() {
 					for i, vd := range entry.Values {
 						if field, ok := v.fieldByKey[vd.Key]; ok {
-							entry.Values[i].Value.Content = field.GetContent()
+							entry.Values[i].Value.Content = string(field.GetContent())
 						}
 					}
 
@@ -125,7 +125,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		inputType = components.InputTypePassword
 	}
 
-	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
+	fieldOptions := &components.FieldOptions{Label: label, InitialValue: []rune(initialValue), InputType: inputType}
 	field := components.NewField(fieldOptions)
 
 	field.OnFocus(func() bool {
@@ -137,7 +137,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		App.State.HasUnsavedChanges = true
 
 		if ev.Name() == "Ctrl+C" {
-			clipboard.Write(field.GetContent())
+			clipboard.Write(string(field.GetContent()))
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))
 			return true
 		}
