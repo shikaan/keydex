@@ -5,7 +5,7 @@
 <h1 align="center">keydex</h1>
 
 <p align="center">
-Manage KeePass databases from your terminal.
+Terminal based password manager for KeePass databases.
 </p>
 
 ## ⚡️ Quick start
