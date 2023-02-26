@@ -14,11 +14,11 @@ Manage KeePass databases from your terminal.
 
 _MacOS and Linux_
 ```sh
-sudo sh -c "curl -s https://raw.githubusercontent.com/shikaan/keydex/main/install.sh | sh -"
+sudo sh -c "curl -s https://shikaan.github.io/sup/install | REPO=shikaan/keydex sh -"
 
 # or
 
-sudo sh -c "wget -q https://raw.githubusercontent.com/shikaan/keydex/main/install.sh -O- | sh -"
+sudo sh -c "wget -q https://shikaan.github.io/sup/install -O- | REPO=shikaan/keydex sh -"
 ```
 
 _Windows and manual instructions_
