@@ -125,7 +125,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		inputType = components.InputTypePassword
 	}
 
-	fieldOptions := &components.FieldOptions{Label: label, InitialValue: []rune(initialValue), InputType: inputType}
+	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
 	field := components.NewField(fieldOptions)
 
 	field.OnFocus(func() bool {

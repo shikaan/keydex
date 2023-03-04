@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -49,6 +50,10 @@ func logf(template string, values ...any) {
 
 func Info(msg string) {
 	logf("[info] %s", msg)
+}
+
+func Infof(template string, values ...any) {
+	Info(fmt.Sprintf(template, values...))
 }
 
 func Error(msg string, err error) {

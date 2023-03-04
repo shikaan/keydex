@@ -2,13 +2,13 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-runewidth"
-	"github.com/shikaan/keydex/pkg/utils"
 )
 
 type AutoComplete struct {
@@ -47,7 +47,7 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 		content := input.GetContent()
 
 		if len(content) > 0 {
-			entries = fuzzy.FindFold(content, options.Entries)
+			entries = fuzzy.FindFold(string(content), options.Entries)
 		}
 
 		autoComplete.drawList(entries)
@@ -119,7 +119,7 @@ func (ac *AutoComplete) drawList(entries []string) {
 }
 
 func (ac *AutoComplete) drawCounter(entries []string) {
-	matched := utils.Min(len(entries), ac.options.MaxY)
+	matched := int(math.Min(float64(len(entries)), float64(ac.options.MaxY)))
 	counter := fmt.Sprintf("%d/%d", matched, len(ac.options.Entries))
 
 	ac.counter.SetStyle(tcell.StyleDefault.Bold(matched == 0))

@@ -15,7 +15,7 @@ type Field struct {
 
 type FieldOptions struct {
 	Label        string
-	InitialValue []rune
+	InitialValue string
 	InputType    InputType
 }
 
@@ -43,7 +43,7 @@ func (f *Field) OnKeyPress(cb func(ev *tcell.EventKey) bool) func() {
 	return f.input.OnKeyPress(cb)
 }
 
-func (f *Field) GetContent() []rune {
+func (f *Field) GetContent() string {
 	return f.input.GetContent()
 }
 

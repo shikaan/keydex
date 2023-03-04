@@ -1,10 +1,11 @@
 package tui
 
 import (
+	"math"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
-	"github.com/shikaan/keydex/pkg/utils"
 	"github.com/shikaan/keydex/tui/components"
 )
 
@@ -51,5 +52,5 @@ func getBoundaries(screen tcell.Screen) (int, int) {
 	// one third of the screen width
 	// all the height - title, status, search, counter, notification,
 	// and 4 more lines of buffer just in case
-	return utils.Max(x/3, components.MIN_WIDTH), y - 10
+	return int(math.Max(float64(x/3), components.MIN_WIDTH)), y - 10
 }
