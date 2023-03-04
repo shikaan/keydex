@@ -37,8 +37,8 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 			entry := App.State.Database.GetEntry(uuid)
 
 			if entry == nil {
-				App.Notify("Could not find entry at " + App.State.Reference)
-				log.Info("Could not find entry at " + App.State.Reference)
+				App.Notify("Could not find entry at " + App.State.Reference + ".")
+				log.Info("Could not find entry at " + App.State.Reference + ".")
 				return true
 			}
 
@@ -65,11 +65,11 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 						return
 					}
 
-					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully", entry.GetTitle()))
+					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully.", entry.GetTitle()))
 					App.State.HasUnsavedChanges = false
 				}, func() {
-					App.Notify("Operation cancelled. Entry was not saved")
-					log.Info("Operation cancelled. Entry was not saved")
+					App.Notify("Operation cancelled. Entry was not saved.")
+					log.Info("Operation cancelled. Entry was not saved.")
 				},
 			)
 		}
@@ -138,7 +138,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 
 		if ev.Name() == "Ctrl+C" {
 			clipboard.Write(string(field.GetContent()))
-			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard", label))
+			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard.", label))
 			return true
 		}
 
@@ -152,6 +152,12 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 			}
 
 			return true
+		}
+
+		if ev.Key() == tcell.KeyRune {
+			if isProtected && field.GetInputType() == components.InputTypePassword {
+				App.Notify("Reveal [^R] the field to edit.")
+			}
 		}
 
 		return false

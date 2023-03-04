@@ -31,6 +31,7 @@ const (
 )
 
 const EMPTY_CELL = 0
+const PASSWORD_FIELD_LENGTH = 8
 
 type inputModel struct {
 	// This value is used only for caching purposes. It's the content as exposed outside,
@@ -54,7 +55,7 @@ type inputModel struct {
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	isPassword := m.inputType == InputTypePassword
-	isOutOfBound := y != 0 || x < 0 || x >= len(m.cells)
+	isOutOfBound := y != 0 || x < 0 || (!isPassword && x >= len(m.cells)) || (isPassword && x >= PASSWORD_FIELD_LENGTH)
 
 	if isOutOfBound {
 		return EMPTY_CELL, m.style, nil, 1
@@ -159,6 +160,7 @@ func (i *Input) GetContent() string {
 
 func (i *Input) SetInputType(t InputType) {
 	i.model.inputType = t
+	i.model.x = 0
 	i.Init()
 }
 
@@ -181,6 +183,11 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		if handled {
 			return handled
+		}
+
+		// Don't allow interactions with password fields when hidden
+		if i.model.inputType == InputTypePassword {
+			return true
 		}
 
 		switch ev.Key() {
