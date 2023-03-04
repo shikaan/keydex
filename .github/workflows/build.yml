@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - feat/support-unicode
     paths-ignore:
       - '**.md'
 
