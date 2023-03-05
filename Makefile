@@ -8,7 +8,7 @@ build:
 
 ## test: Run tests
 .PHONY: test
-test:
+test: info
 	@go test ./...
 
 ## coverage: Run coverage
@@ -30,12 +30,12 @@ help: Makefile
 .PHONY: info
 info:
 	@echo "> ($@) Generating build info..."
-	@go run _scripts/info.go -version=${VERSION}
+	@go run info.go -version=${VERSION}
 	@echo "  ($@) Done!"
 
 ## doc: Generate documentation - run by go:generate
 .PHONY: docs
 docs: info
 	@echo "> ($@) Generating documentation..."
-	@go run _scripts/docs.go
+	@go run docs.go
 	@echo "  ($@) Done!"

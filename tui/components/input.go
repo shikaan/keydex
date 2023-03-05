@@ -1,12 +1,13 @@
 package components
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/keydex/pkg/utils"
-	"golang.org/x/exp/utf8string"
+	"github.com/mattn/go-runewidth"
+	"golang.org/x/exp/slices"
 )
 
 type Input struct {
@@ -29,10 +30,18 @@ const (
 	InputTypePassword
 )
 
-// Model - Used internally by tcell/views to handle drawing
+const EMPTY_CELL = 0
+const PASSWORD_FIELD_LENGTH = 8
 
 type inputModel struct {
-	content   string
+	// This value is used only for caching purposes. It's the content as exposed outside,
+	// but all the actual operations on the values need to be done on cells
+	content string
+	// Unicode chars can take more than one cell.
+	// If a char takes two cells, its representation will be [char, 0].
+	// For example: "😀" (len 2) is represented as []rune{😀, 0}
+	cells []rune
+
 	width     int
 	x         int
 	style     tcell.Style
@@ -45,32 +54,37 @@ type inputModel struct {
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	content := utf8string.NewString(m.content)
 	isPassword := m.inputType == InputTypePassword
-	isOutOfBound := y != 0 || x < 0 || x >= content.RuneCount()
+	isOutOfBound := y != 0 || x < 0 || (!isPassword && x >= len(m.cells)) || (isPassword && x >= PASSWORD_FIELD_LENGTH)
 
 	if isOutOfBound {
-		return 0, m.style, nil, 1
+		return EMPTY_CELL, m.style, nil, 1
 	}
 
-	char := content.At(x)
 	if isPassword {
-		char = '*'
+		return '*', m.style, nil, 1
 	}
 
-	return char, m.style, nil, 1
+	char := m.cells[x]
+	if char == EMPTY_CELL {
+		return EMPTY_CELL, m.style, nil, 1
+	}
+
+	return char, m.style, nil, runewidth.RuneWidth(char)
 }
 
 func (m *inputModel) GetBounds() (int, int) {
 	return m.width, 1
 }
 
+// Prevents the cursor from going out of bounds
 func (m *inputModel) limitCursor() {
 	x, _ := m.GetBounds()
 
 	if m.x > x {
 		m.x = x
 	}
+
 	if m.x < 0 {
 		m.x = 0
 	}
@@ -90,7 +104,22 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, 0, true, m.hasFocus
 }
 
-// Input - Models an input (similar to HTML inputs)
+// m.cells contains both runes and placeholder chars (0) to accommodate rendering.
+// This method stably returns the rune at cursor, regardless of the 0s.
+// It will however return 0 when cursor is out of bounds
+func (m *inputModel) FindRuneAtPosition(cursorPosition int) (rune, int) {
+	if cursorPosition < 0 || cursorPosition >= len(m.cells) {
+		return EMPTY_CELL, -1
+	}
+
+	for j := cursorPosition; j >= 0; j-- {
+		if m.cells[j] != 0 {
+			return m.cells[j], j
+		}
+	}
+
+	return EMPTY_CELL, -1
+}
 
 func (i *Input) HasFocus() bool {
 	return i.model.hasFocus
@@ -108,18 +137,30 @@ func (i *Input) SetFocus(on bool) {
 func (i *Input) SetContent(text string) {
 	i.Init()
 	m := i.model
-	m.width = len(text)
+	m.width = runewidth.StringWidth(text)
 	m.content = text
+
+	// Pad rune with 0 cells, in case the rune is longer than one cell
+	m.cells = []rune{}
+	for _, char := range text {
+		cells := runewidth.RuneWidth(char)
+
+		m.cells = append(m.cells, char)
+		for i := 1; i < cells; i++ {
+			m.cells = append(m.cells, 0)
+		}
+	}
 
 	i.CellView.SetModel(m)
 }
 
 func (i *Input) GetContent() string {
-	return string(i.model.content)
+	return i.model.content
 }
 
 func (i *Input) SetInputType(t InputType) {
 	i.model.inputType = t
+	i.model.x = 0
 	i.Init()
 }
 
@@ -144,55 +185,59 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 			return handled
 		}
 
-		if ev.Key() == tcell.KeyRune {
-			return i.handleContentUpdate(
-				ev,
-				func(c string, x int) (string, int) {
-					return c[:x] + string(ev.Rune()) + c[x:], 1
-				},
-			)
+		// Don't allow interactions with password fields when hidden
+		if i.model.inputType == InputTypePassword {
+			return true
 		}
 
-		if ev.Key() == tcell.KeyBackspace2 || ev.Key() == tcell.KeyBackspace {
+		switch ev.Key() {
+		case tcell.KeyLeft:
+			_, p := i.model.FindRuneAtPosition(i.model.x - 1)
+			i.model.SetCursor(p, 0)
+			return true
+		case tcell.KeyRight:
+			char, _ := i.model.FindRuneAtPosition(i.model.x)
+			i.model.MoveCursor(runewidth.RuneWidth(char), 0)
+			return true
+		case tcell.KeyRune:
 			return i.handleContentUpdate(
 				ev,
-				func(c string, x int) (string, int) {
-					safeX := utils.Max(0, x-1)
-
-					return c[:safeX] + c[x:], -1
+				func(c []rune, x int) ([]rune, int) {
+					char := ev.Rune()
+					return slices.Insert(c, x, char), runewidth.RuneWidth(char)
 				},
 			)
-		}
-
-		if ev.Key() == tcell.KeyDelete {
+		case tcell.KeyBackspace2:
+			fallthrough
+		case tcell.KeyBackspace:
 			return i.handleContentUpdate(
 				ev,
-				func(c string, x int) (string, int) {
-					safeX := utils.Min(len(c), x+1)
-
-					return c[:x] + c[safeX:], 0
+				func(c []rune, x int) ([]rune, int) {
+					char, _ := i.model.FindRuneAtPosition(x - 1)
+					offset := runewidth.RuneWidth(char)
+					return slices.Delete(c, x-offset, x), -offset
 				},
 			)
-		}
-
-		// CellView (few lines below) would handle these events, preventing other
-		// components (e.g., autocomplete) to handle them.
-		// Not really nice, but not worth the complication of doing it nicer either
-		if ev.Key() == tcell.KeyUp || ev.Key() == tcell.KeyDown {
-			return false
+		case tcell.KeyDelete:
+			return i.handleContentUpdate(
+				ev,
+				func(c []rune, x int) ([]rune, int) {
+					char, _ := i.model.FindRuneAtPosition(x)
+					offset := runewidth.RuneWidth(char)
+					return slices.Delete(c, x, x+offset), 0
+				},
+			)
 		}
 	}
-	return i.CellView.HandleEvent(ev)
+
+	return false
 }
 
-func (i *Input) handleContentUpdate(ev tcell.Event, cb func(content string, cursorPosition int) (string, int)) bool {
-	m := i.GetModel()
-	x, _, _, _ := m.GetCursor()
+func (i *Input) handleContentUpdate(ev tcell.Event, cb func([]rune, int) ([]rune, int)) bool {
+	cells, offset := cb(i.model.cells, i.model.x)
 
-	content := i.GetContent()
-	newContent, cursorOffset := cb(content, x)
-	i.SetContent(newContent)
-	m.MoveCursor(cursorOffset, 0)
+	i.SetContent(toString(cells))
+	i.model.MoveCursor(offset, 0)
 
 	if i.model.changeHandler != nil {
 		i.model.changeHandler(ev)
@@ -237,4 +282,15 @@ func NewInput(options *InputOptions) *Input {
 	i.model.inputType = options.Type
 
 	return i
+}
+
+// Takes a list of cells and returns a string, filtering out empty cells
+func toString(cells []rune) string {
+	b := &strings.Builder{}
+	for _, cell := range cells {
+		if cell != EMPTY_CELL {
+			b.WriteRune(cell)
+		}
+	}
+	return b.String()
 }

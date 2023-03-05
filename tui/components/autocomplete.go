@@ -2,14 +2,13 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/mattn/go-runewidth"
-	"github.com/shikaan/keydex/pkg/utils"
-	"golang.org/x/exp/utf8string"
 )
 
 type AutoComplete struct {
@@ -47,7 +46,7 @@ func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
 		entries := options.Entries
 		content := input.GetContent()
 
-		if content != "" {
+		if len(content) > 0 {
 			entries = fuzzy.FindFold(content, options.Entries)
 		}
 
@@ -100,7 +99,7 @@ func (ac *AutoComplete) drawList(entries []string) {
 		}
 
 		line := newOption()
-		line.SetContent(runewidth.FillRight(runewidth.Truncate(entry, maxLineLength, ""), maxLineLength))
+		line.SetContent((runewidth.FillRight(runewidth.Truncate(entry, maxLineLength, ""), maxLineLength)))
 
 		// For memoization
 		e := entry
@@ -120,7 +119,7 @@ func (ac *AutoComplete) drawList(entries []string) {
 }
 
 func (ac *AutoComplete) drawCounter(entries []string) {
-	matched := utils.Min(len(entries), ac.options.MaxY)
+	matched := int(math.Min(float64(len(entries)), float64(ac.options.MaxY)))
 	counter := fmt.Sprintf("%d/%d", matched, len(ac.options.Entries))
 
 	ac.counter.SetStyle(tcell.StyleDefault.Bold(matched == 0))
@@ -139,7 +138,11 @@ type option struct {
 }
 
 type optionModel struct {
-	content   string
+	// Content as it appears outside
+	content string
+	// 0-spaced rune sequence, to facilitate printing of Unicode chars
+	runes []rune
+
 	width     int
 	x         int
 	style     tcell.Style
@@ -151,13 +154,17 @@ type optionModel struct {
 }
 
 func (m *optionModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	content := utf8string.NewString(m.content)
-	char := ' '
-	if content.RuneCount() > x {
-		char = content.At(x)
+	if x >= len(m.runes) {
+		return 0, m.style, nil, 1
 	}
 
-	return char, m.style, nil, 1
+	char := m.runes[x]
+
+	if char == 0 {
+		return 0, m.style, nil, 1
+	}
+
+	return char, m.style, nil, runewidth.RuneWidth(char)
 }
 
 func (m *optionModel) GetBounds() (int, int) {
@@ -195,7 +202,6 @@ func (i *option) SetFocus(on bool) {
 	}
 
 	i.model.hasFocus = on
-
 	i.CellView.SetModel(i.model)
 
 	if i.model.focusHandler != nil {
@@ -206,14 +212,24 @@ func (i *option) SetFocus(on bool) {
 func (i *option) SetContent(text string) {
 	i.Init()
 	m := i.model
-	m.width = len(text)
+	m.width = runewidth.StringWidth(text)
 	m.content = text
+	m.runes = []rune{}
+
+	for _, c := range text {
+		l := runewidth.RuneWidth(c)
+
+		m.runes = append(m.runes, c)
+		for i := 1; i < l; i++ {
+			m.runes = append(m.runes, 0)
+		}
+	}
 
 	i.CellView.SetModel(m)
 }
 
 func (i *option) GetContent() string {
-	return string(i.model.content)
+	return i.model.content
 }
 
 func (i *option) SetInputType(t InputType) {
