@@ -156,7 +156,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 
 		if ev.Key() == tcell.KeyRune {
 			if isProtected && field.GetInputType() == components.InputTypePassword {
-				App.Notify("Reveal [^R] the field to edit.")
+				App.Notify("Reveal (^R) the field to edit.")
 			}
 		}
 
