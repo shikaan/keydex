@@ -58,5 +58,8 @@ func Infof(template string, values ...any) {
 
 func Error(msg string, err error) {
 	logf("[error] %s", msg)
-	logf("[debug] %v", err)
+	
+  if err != nil {
+    logf("[debug] %v", err)
+  }
 }
