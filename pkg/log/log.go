@@ -18,7 +18,7 @@ const CONFIG_FOLDER = ".config"
 func init() {
 	var logPath string
 	home, err := os.UserHomeDir()
-	if runtime.GOOS == "linux" {
+	if runtime.GOOS != "windows" {
 		logPath = strings.Join([]string{home, CONFIG_FOLDER, info.NAME}, string(os.PathSeparator))
 	} else {
 		logPath = strings.Join([]string{home, info.NAME}, string(os.PathSeparator))
