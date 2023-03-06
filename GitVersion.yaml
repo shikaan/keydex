@@ -1,3 +1,0 @@
-major-version-bump-message: '(breaking|major)'
-minor-version-bump-message: 'feat'
-patch-version-bump-message: '(fix|refactor)'
