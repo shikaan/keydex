@@ -56,10 +56,18 @@ func Infof(template string, values ...any) {
 	Info(fmt.Sprintf(template, values...))
 }
 
+func Debug(msg string) {
+	logf("[debug] %s", msg)
+}
+
+func Debugf(template string, values ...any) {
+	Debug(fmt.Sprintf(template, values...))
+}
+
 func Error(msg string, err error) {
 	logf("[error] %s", msg)
 
 	if err != nil {
-		logf("[debug] %v", err)
+		Debug(err.Error())
 	}
 }
