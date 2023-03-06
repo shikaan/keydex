@@ -44,8 +44,14 @@ func main() {
 		panic(err)
 	}
 
+  // This is needed for local development where env.VERSION might be nil
+  versionWithDefault := *version
+  if versionWithDefault == "" {
+    versionWithDefault = "dev"
+  } 
+
 	result := strings.ReplaceAll(string(buffer[:]), "_REVISION_", *revision)
-	result = strings.ReplaceAll(result, "_VERSION_", *version)
+	result = strings.ReplaceAll(result, "_VERSION_", versionWithDefault)
 	result = strings.ReplaceAll(result, "_NAME_", *name)
 
 	if err := os.WriteFile(INFO_DESTINATION, []byte(result), 0666); err != nil {
