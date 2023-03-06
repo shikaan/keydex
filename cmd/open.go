@@ -6,6 +6,7 @@ import (
 	"github.com/shikaan/keydex/pkg/credentials"
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/log"
 	"github.com/shikaan/keydex/tui"
 	"github.com/spf13/cobra"
 )
@@ -45,7 +46,9 @@ See "Examples" for more details.`,
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
-		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
+    log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
+
+    passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return open(database, key, passphrase, reference)
 	},
@@ -53,7 +56,7 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string) error {
-	db, err := kdbx.New(databasePath, passphrase, keyPath)
+  db, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

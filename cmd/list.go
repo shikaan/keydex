@@ -9,6 +9,7 @@ import (
 	"github.com/shikaan/keydex/pkg/credentials"
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +38,7 @@ See "Examples" for more details.`,
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, _, key := ReadDatabaseArguments(cmd, args)
+    log.Debugf("Using: database %s, key %s", database, key)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
