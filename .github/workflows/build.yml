@@ -3,9 +3,9 @@ on:
   push:
     branches:
       - main
-      - ci/remove-git-version
     paths-ignore:
       - '**.md'
+      - '**.yaml'
 
 jobs:
   release:
@@ -19,6 +19,7 @@ jobs:
         with:
           enable_prerelease_mode: true
           major_pattern: "BREAKING"
+          minor_pattern: "feat:"
       - run: |
           export VERSION="${{ steps.version.outputs.version }}"
           go generate
