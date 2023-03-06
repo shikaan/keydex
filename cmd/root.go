@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/spf13/cobra"
 )
@@ -29,11 +27,6 @@ Internally all the entries are referenced by a UUID, however ` + info.NAME + ` w
     
 Some commands make use of the system clipboard, in absence of which ` + info.NAME + ` will fail.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if cmd.Flag("version").Changed {
-			fmt.Println(info.VERSION)
-			return
-		}
-
 		cmd.Help()
 	},
 	DisableAutoGenTag: true,
