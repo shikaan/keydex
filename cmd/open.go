@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/shikaan/keydex/pkg/credentials"
+	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/pkg/log"
@@ -61,7 +62,9 @@ func open(databasePath, keyPath, passphrase, reference string) error {
 		return err
 	}
 
-	entry := db.GetFirstEntryByPath(reference)
-
-	return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
+	if entry := db.GetFirstEntryByPath(reference); entry != nil {
+    return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
+  }
+ 
+	return errors.MakeError("Missing entry at "+reference, "open")
 }
