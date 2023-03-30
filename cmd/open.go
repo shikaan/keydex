@@ -47,9 +47,9 @@ See "Examples" for more details.`,
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
-    log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
+		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
 
-    passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
+		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return open(database, key, passphrase, reference)
 	},
@@ -57,14 +57,18 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string) error {
-  db, err := kdbx.New(databasePath, passphrase, keyPath)
+	db, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}
 
+	if reference == "" {
+		return tui.Run(tui.State{Entry: nil, Database: db, Reference: reference})
+	}
+
 	if entry := db.GetFirstEntryByPath(reference); entry != nil {
-    return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
-  }
- 
+		return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
+	}
+
 	return errors.MakeError("Missing entry at "+reference, "open")
 }
