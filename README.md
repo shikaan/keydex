@@ -15,9 +15,11 @@ Terminal based password manager for KeePass databases.
 _MacOS and Linux_
 ```sh
 sudo sh -c "curl -s https://shikaan.github.io/sup/install | REPO=shikaan/keydex sh -"
+```
 
-# or
+or
 
+```sh
 sudo sh -c "wget -q https://shikaan.github.io/sup/install -O- | REPO=shikaan/keydex sh -"
 ```
 
