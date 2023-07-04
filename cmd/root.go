@@ -21,7 +21,7 @@ var Root = &cobra.Command{
   - ` + ENV_KEY + `
     Is the path to the optional *.key file used to unlock the database. Providing the '--key' flag inline overrides this value.
 
-All the entries are referenced with a path-like reference string shaped like /database/group1/../groupN/entry where 'database' is the database name, 'groupX' is the group name, and 'entry' is the entry title. 
+All the entries are referenced with a path-like reference string shaped like /database/group1/../groupN/entry where 'database' is the database name, 'groupN' is the group name, and 'entry' is the entry title. 
 
 Internally all the entries are referenced by a UUID, however ` + info.NAME + ` will read the first occurrence of a reference in cases of conflicts. Writes are always done via UUID and they are threfore conflict-safe.
     
@@ -39,4 +39,5 @@ func init() {
 	Root.AddCommand(Open)
 
 	Root.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
+  Copy.Flags().StringP("field", "f", DEFAULT_FIELD, "field whose value will be copied")
 }
