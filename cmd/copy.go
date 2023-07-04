@@ -45,20 +45,20 @@ See "Examples" for more details.`,
   export ` + ENV_DATABASE + `=test.kdbx
 
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy -f username`,
-	Use:     "copy [file] [reference]",
-  // Initially this command only copied passowrds, hence the aliases.
-  // Keeping them around for backwards compatibility.
-  Aliases: []string{"cp", "password", "pwd", "copy-password"},
+	Use: "copy [file] [reference]",
+	// Initially this command only copied passowrds, hence the aliases.
+	// Keeping them around for backwards compatibility.
+	Aliases: []string{"cp", "password", "pwd", "copy-password"},
 	Args: cobra.MatchAll(
 		cobra.MaximumNArgs(2),
 		DatabaseMustBeDefined(),
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
-    field := cmd.Flag("field").Value.String()
+		field := cmd.Flag("field").Value.String()
 		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
 
-    passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
+		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return copy(database, key, passphrase, reference, field)
 	},
@@ -77,19 +77,19 @@ func copy(databasePath, keyPath, passphrase, reference, field string) error {
 	}
 
 	if entry := db.GetFirstEntryByPath(reference); entry != nil {
-    var value string
-    
-    if field == DEFAULT_FIELD {
-      value = entry.GetPassword()
-    } else {
-      value = entry.GetContent(field)
-    }
+		var value string
 
-    if value == "" {
-      return errors.MakeError(`Missing field "`+field+`" in entry `+reference, "copy")
-    }
+		if field == DEFAULT_FIELD {
+			value = entry.GetPassword()
+		} else {
+			value = entry.GetContent(field)
+		}
 
-    return clipboard.Write(value)
+		if value == "" {
+			return errors.MakeError(`Missing field "`+field+`" in entry `+reference, "copy")
+		}
+
+		return clipboard.Write(value)
 	}
 
 	return errors.MakeError("Missing entry at "+reference, "copy")

@@ -39,5 +39,5 @@ func init() {
 	Root.AddCommand(Open)
 
 	Root.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
-  Copy.Flags().StringP("field", "f", DEFAULT_FIELD, "field whose value will be copied")
+	Copy.Flags().StringP("field", "f", DEFAULT_FIELD, "field whose value will be copied")
 }
