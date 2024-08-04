@@ -34,7 +34,7 @@ func New(filepath, password, keypath string) (*Database, error) {
 	kdbx := &Database{*file, *gokeepasslib.NewDatabase()}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
-		return nil, errors.MakeError(err.Error(), "kdbx")
+		return nil, err
 	}
 
 	return kdbx, nil
