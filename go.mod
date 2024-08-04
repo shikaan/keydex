@@ -1,8 +1,6 @@
 module github.com/shikaan/keydex
 
-go 1.22.0
-
-toolchain go1.22.5
+go 1.22.1
 
 require (
 	github.com/atotto/clipboard v0.1.4
@@ -24,8 +22,6 @@ require (
 )
 
 require (
-	github.com/aead/argon2 v0.0.0-20180111183520-a87724528b07 // indirect
-	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
