@@ -32,6 +32,7 @@ const (
 
 const EMPTY_CELL = 0
 const PASSWORD_FIELD_LENGTH = 8
+const LINE_BREAK = '\n'
 
 type inputModel struct {
 	// This value is used only for caching purposes. It's the content as exposed outside,
@@ -40,10 +41,12 @@ type inputModel struct {
 	// Unicode chars can take more than one cell.
 	// If a char takes two cells, its representation will be [char, 0].
 	// For example: "😀" (len 2) is represented as []rune{😀, 0}
-	cells []rune
+	cells [][]rune
 
 	width     int
+	height    int
 	x         int
+	y         int
 	style     tcell.Style
 	hasFocus  bool
 	inputType InputType
@@ -55,7 +58,8 @@ type inputModel struct {
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	isPassword := m.inputType == InputTypePassword
-	isOutOfBound := y != 0 || x < 0 || (!isPassword && x >= len(m.cells)) || (isPassword && x >= PASSWORD_FIELD_LENGTH)
+	isOutOfBoundY := y < 0 || (!isPassword && y >= len(m.cells)) || (isPassword && y >= 1)
+	isOutOfBound := isOutOfBoundY || x < 0 || (!isPassword && x >= len(m.cells[y])) || (isPassword && x >= PASSWORD_FIELD_LENGTH)
 
 	if isOutOfBound {
 		return EMPTY_CELL, m.style, nil, 1
@@ -65,8 +69,8 @@ func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 		return '*', m.style, nil, 1
 	}
 
-	char := m.cells[x]
-	if char == EMPTY_CELL {
+	char := m.cells[y][x]
+	if isEmptyCell(char) {
 		return EMPTY_CELL, m.style, nil, 1
 	}
 
@@ -74,47 +78,45 @@ func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 }
 
 func (m *inputModel) GetBounds() (int, int) {
-	return m.width, 1
+	return m.width, m.height
 }
 
 // Prevents the cursor from going out of bounds
 func (m *inputModel) limitCursor() {
-	x, _ := m.GetBounds()
-
-	if m.x > x {
-		m.x = x
-	}
-
-	if m.x < 0 {
-		m.x = 0
-	}
+	m.y = clamp(m.y, 0, len(m.cells))
+	// Not len-1 to allow an extra spot to backspace last char of the line
+	m.x = clamp(m.x, 0, len(m.cells[m.y]))
 }
 
 func (m *inputModel) SetCursor(x, y int) {
 	m.x = x
+	m.y = y
 	m.limitCursor()
 }
 
 func (m *inputModel) MoveCursor(x, y int) {
 	m.x += x
+	m.y += y
 	m.limitCursor()
 }
 
 func (m *inputModel) GetCursor() (int, int, bool, bool) {
-	return m.x, 0, true, m.hasFocus
+	return m.x, m.y, true, m.hasFocus
 }
 
 // m.cells contains both runes and placeholder chars (0) to accommodate rendering.
 // This method stably returns the rune at cursor, regardless of the 0s.
 // It will however return 0 when cursor is out of bounds
-func (m *inputModel) FindRuneAtPosition(cursorPosition int) (rune, int) {
-	if cursorPosition < 0 || cursorPosition >= len(m.cells) {
+func (m *inputModel) FindRuneAtPosition(x, y int) (rune, int) {
+	lines := len(m.cells)
+
+	if y < 0 || x < 0 || lines == 0 || y >= lines || x >= len(m.cells[0]) {
 		return EMPTY_CELL, -1
 	}
 
-	for j := cursorPosition; j >= 0; j-- {
-		if m.cells[j] != 0 {
-			return m.cells[j], j
+	for j := x; j >= 0; j-- {
+		if !isEmptyCell(m.cells[y][j]) {
+			return m.cells[y][j], j
 		}
 	}
 
@@ -137,17 +139,24 @@ func (i *Input) SetFocus(on bool) {
 func (i *Input) SetContent(text string) {
 	i.Init()
 	m := i.model
-	m.width = runewidth.StringWidth(text)
 	m.content = text
+	lines := strings.Split(text, "\n") // TODO: is this OS independent?
+	m.height = len(lines)
+	m.width = 0
+	m.cells = make([][]rune, m.height)
 
-	// Pad rune with 0 cells, in case the rune is longer than one cell
-	m.cells = []rune{}
-	for _, char := range text {
-		cells := runewidth.RuneWidth(char)
+	for line, text := range lines {
+		m.cells[line] = []rune{}
+		m.width = max(m.width, runewidth.StringWidth(text))
 
-		m.cells = append(m.cells, char)
-		for i := 1; i < cells; i++ {
-			m.cells = append(m.cells, 0)
+		for _, char := range text {
+			cells := runewidth.RuneWidth(char)
+
+			m.cells[line] = append(m.cells[line], char)
+			// Pad rune with 0 cells, in case the rune is longer than one cell
+			for i := 1; i < cells; i++ {
+				m.cells[line] = append(m.cells[line], 0)
+			}
 		}
 	}
 
@@ -161,6 +170,7 @@ func (i *Input) GetContent() string {
 func (i *Input) SetInputType(t InputType) {
 	i.model.inputType = t
 	i.model.x = 0
+	i.model.y = 0
 	i.Init()
 }
 
@@ -185,26 +195,39 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 			return handled
 		}
 
-		// Don't allow interactions with password fields when hidden
+		// Don't allow interactions with password fields when hidden,
 		if i.model.inputType == InputTypePassword {
-			return true
+			return false
 		}
 
 		switch ev.Key() {
 		case tcell.KeyLeft:
-			_, p := i.model.FindRuneAtPosition(i.model.x - 1)
-			i.model.SetCursor(p, 0)
+			_, p := i.model.FindRuneAtPosition(i.model.x-1, i.model.y)
+			i.model.SetCursor(p, i.model.y)
 			return true
 		case tcell.KeyRight:
-			char, _ := i.model.FindRuneAtPosition(i.model.x)
+			char, _ := i.model.FindRuneAtPosition(i.model.x, i.model.y)
 			i.model.MoveCursor(runewidth.RuneWidth(char), 0)
 			return true
+		case tcell.KeyDown:
+			if i.model.y < i.model.height-1 {
+				i.model.MoveCursor(0, 1)
+				return true
+			}
+			return false
+		case tcell.KeyUp:
+			if i.model.y > 0 {
+				i.model.MoveCursor(0, -1)
+				return true
+			}
+			return false
 		case tcell.KeyRune:
 			return i.handleContentUpdate(
 				ev,
-				func(c []rune, x int) ([]rune, int) {
+				func(c [][]rune, x int, y int) ([][]rune, int) {
 					char := ev.Rune()
-					return slices.Insert(c, x, char), runewidth.RuneWidth(char)
+					c[y] = slices.Insert(c[y], x, char)
+					return c, runewidth.RuneWidth(char)
 				},
 			)
 		case tcell.KeyBackspace2:
@@ -212,19 +235,21 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 		case tcell.KeyBackspace:
 			return i.handleContentUpdate(
 				ev,
-				func(c []rune, x int) ([]rune, int) {
-					char, _ := i.model.FindRuneAtPosition(x - 1)
+				func(c [][]rune, x, y int) ([][]rune, int) {
+					char, _ := i.model.FindRuneAtPosition(x-1, y)
 					offset := runewidth.RuneWidth(char)
-					return slices.Delete(c, x-offset, x), -offset
+					c[y] = slices.Delete(c[y], x-offset, x)
+					return c, -offset
 				},
 			)
 		case tcell.KeyDelete:
 			return i.handleContentUpdate(
 				ev,
-				func(c []rune, x int) ([]rune, int) {
-					char, _ := i.model.FindRuneAtPosition(x)
+				func(c [][]rune, x, y int) ([][]rune, int) {
+					char, _ := i.model.FindRuneAtPosition(x, y)
 					offset := runewidth.RuneWidth(char)
-					return slices.Delete(c, x, x+offset), 0
+					c[y] = slices.Delete(c[y], x+offset, x)
+					return c, 0
 				},
 			)
 		}
@@ -233,11 +258,11 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (i *Input) handleContentUpdate(ev tcell.Event, cb func([]rune, int) ([]rune, int)) bool {
-	cells, offset := cb(i.model.cells, i.model.x)
+func (i *Input) handleContentUpdate(ev tcell.Event, cb func(initialCells [][]rune, x int, y int) (cells [][]rune, width int)) bool {
+	cells, offsetX := cb(i.model.cells, i.model.x, i.model.y)
 
 	i.SetContent(toString(cells))
-	i.model.MoveCursor(offset, 0)
+	i.model.MoveCursor(offsetX, 0)
 
 	if i.model.changeHandler != nil {
 		i.model.changeHandler(ev)
@@ -285,12 +310,25 @@ func NewInput(options *InputOptions) *Input {
 }
 
 // Takes a list of cells and returns a string, filtering out empty cells
-func toString(cells []rune) string {
+func toString(cells [][]rune) string {
 	b := &strings.Builder{}
-	for _, cell := range cells {
-		if cell != EMPTY_CELL {
-			b.WriteRune(cell)
+	for lineIndex, line := range cells {
+		for _, cell := range line {
+			if cell != EMPTY_CELL {
+				b.WriteRune(cell)
+			}
+		}
+		if lineIndex != len(cells)-1 {
+			b.WriteRune(LINE_BREAK)
 		}
 	}
 	return b.String()
+}
+
+func isEmptyCell(c rune) bool {
+	return c == EMPTY_CELL
+}
+
+func clamp(n, minValue, maxValue int) int {
+	return max(min(n, maxValue), minValue)
 }

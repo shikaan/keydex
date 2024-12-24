@@ -18,12 +18,16 @@ func (wf *WithFocusables) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Key() == tcell.KeyUp {
-			wf.MoveFocus(-1)
-			return true
+			if !wf.BoxLayout.HandleEvent(ev) {
+				wf.MoveFocus(-1)
+				return true
+			}
 		}
 		if ev.Key() == tcell.KeyDown {
-			wf.MoveFocus(1)
-			return true
+			if !wf.BoxLayout.HandleEvent(ev) {
+				wf.MoveFocus(1)
+				return true
+			}
 		}
 	}
 
