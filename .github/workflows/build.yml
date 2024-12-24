@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - fix/19--hang-on-line-breaks
     paths-ignore:
       - '**.md'
       - '**.yaml'
