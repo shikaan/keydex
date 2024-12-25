@@ -217,13 +217,15 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 			return true
 		case tcell.KeyDown:
 			if i.model.y < i.model.height-1 {
-				i.model.MoveCursor(0, 1)
+				_, p := i.model.FindRuneAtPosition(i.model.x, i.model.y+1)
+				i.model.SetCursor(p, i.model.y+1)
 				return true
 			}
 			return false
 		case tcell.KeyUp:
 			if i.model.y > 0 {
-				i.model.MoveCursor(0, -1)
+				_, p := i.model.FindRuneAtPosition(i.model.x, i.model.y-1)
+				i.model.SetCursor(p, i.model.y-1)
 				return true
 			}
 			return false
