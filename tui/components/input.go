@@ -103,9 +103,13 @@ func (m *inputModel) GetBounds() (int, int) {
 
 // Prevents the cursor from going out of bounds
 func (m *inputModel) limitCursor() {
-	m.y = clamp(m.y, 0, len(m.cells))
-	// Not len-1 to allow an extra spot to backspace last char of the line
-	m.x = clamp(m.x, 0, len(m.cells[m.y]))
+	m.y = clamp(m.y, 0, len(m.cells)-1)
+	if len(m.cells) == 0 {
+		m.x = 0
+	} else {
+		// Not len-1 to allow an extra spot to backspace last char of the line
+		m.x = clamp(m.x, 0, len(m.cells[m.y]))
+	}
 }
 
 func (m *inputModel) SetCursor(x, y int) {
@@ -127,9 +131,13 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 // m.cells contains both runes and padding zeros to accommodate rendering.
 // This method stably returns the rune at cursor, regardless of the 0s.
 // It will however return 0 when cursor is out of bounds
-func (m *inputModel) FindRuneAtPosition(x, y int) (rune, int) {
+func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
 	if m.isOutOfBounds(x, y) {
 		return EMPTY_CELL, -1
+	}
+
+	if m.inputType == InputTypePassword {
+		return '*', x
 	}
 
 	for j := x; j >= 0; j-- {
@@ -179,7 +187,7 @@ func (i *Input) SetContent(text string) {
 			cells := runewidth.RuneWidth(char)
 
 			m.cells[lineIndex] = append(m.cells[lineIndex], char)
-			// Pad rune with 0 cells, in case the rune is longer than one cell
+			// Pad rune with PAD_BYTE, in case the rune is longer than one cell
 			for i := 1; i < cells; i++ {
 				m.cells[lineIndex] = append(m.cells[lineIndex], PAD_BYTE)
 			}
@@ -228,56 +236,59 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		switch ev.Key() {
 		case tcell.KeyLeft:
-			_, p := i.model.FindRuneAtPosition(i.model.x-1, i.model.y)
+			_, p := i.model.GetRuneAtPosition(i.model.x-1, i.model.y)
 			i.model.SetCursor(p, i.model.y)
 			return true
 		case tcell.KeyRight:
-			char, _ := i.model.FindRuneAtPosition(i.model.x, i.model.y)
+			char, _ := i.model.GetRuneAtPosition(i.model.x, i.model.y)
 			i.model.MoveCursor(runewidth.RuneWidth(char), 0)
 			return true
 		case tcell.KeyDown:
 			if i.model.y < i.model.height-1 {
-				_, p := i.model.FindRuneAtPosition(i.model.x, i.model.y+1)
+				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y+1)
 				i.model.SetCursor(p, i.model.y+1)
 				return true
 			}
 			return false
 		case tcell.KeyUp:
 			if i.model.y > 0 {
-				_, p := i.model.FindRuneAtPosition(i.model.x, i.model.y-1)
+				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y-1)
 				i.model.SetCursor(p, i.model.y-1)
 				return true
 			}
 			return false
 		case tcell.KeyRune:
-			return i.handleContentUpdate(
+			return i.handleCellsUpdate(
 				ev,
-				func(c [][]rune, x int, y int) ([][]rune, int) {
+				func() int {
+					c, x, y := i.model.cells, i.model.x, i.model.y
 					char := ev.Rune()
 					c[y] = slices.Insert(c[y], x, char)
-					return c, runewidth.RuneWidth(char)
+					return runewidth.RuneWidth(char)
 				},
 			)
 		case tcell.KeyBackspace2:
 			fallthrough
 		case tcell.KeyBackspace:
-			return i.handleContentUpdate(
+			return i.handleCellsUpdate(
 				ev,
-				func(c [][]rune, x, y int) ([][]rune, int) {
-					char, _ := i.model.FindRuneAtPosition(x-1, y)
+				func() int {
+					c, x, y := i.model.cells, i.model.x, i.model.y
+					char, _ := i.model.GetRuneAtPosition(x-1, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x-offset, x)
-					return c, -offset
+					return -offset
 				},
 			)
 		case tcell.KeyDelete:
-			return i.handleContentUpdate(
+			return i.handleCellsUpdate(
 				ev,
-				func(c [][]rune, x, y int) ([][]rune, int) {
-					char, _ := i.model.FindRuneAtPosition(x, y)
+				func() int {
+					c, x, y := i.model.cells, i.model.x, i.model.y
+					char, _ := i.model.GetRuneAtPosition(x, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x+offset, x)
-					return c, 0
+					return 0
 				},
 			)
 		}
@@ -286,14 +297,14 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (i *Input) handleContentUpdate(ev tcell.Event, cb func(initialCells [][]rune, x int, y int) (cells [][]rune, width int)) bool {
-	cells, offsetX := cb(i.model.cells, i.model.x, i.model.y)
-
-	i.SetContent(toString(cells))
-	i.model.MoveCursor(offsetX, 0)
+func (i *Input) handleCellsUpdate(ev tcell.Event, updateCells func() int) bool {
+	// Warning: this is order dependent!
+	deltaX := updateCells()
+	i.SetContent(toString(i.model.cells))
+	i.model.MoveCursor(deltaX, 0)
 
 	if i.model.changeHandler != nil {
-		i.model.changeHandler(ev)
+		return i.model.changeHandler(ev)
 	}
 
 	return true
@@ -337,7 +348,8 @@ func NewInput(options *InputOptions) *Input {
 	return i
 }
 
-// Takes a list of cells and returns a string, filtering out empty cells
+// Takes a list of cells and returns a string, cleaning up pad bytes
+// and using the correct line endings, depending on the platform
 func toString(cells [][]rune) string {
 	b := &strings.Builder{}
 	for lineIndex, line := range cells {
