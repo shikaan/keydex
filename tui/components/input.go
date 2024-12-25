@@ -34,30 +34,50 @@ const (
 )
 
 const EMPTY_CELL = 0
+const PAD_BYTE = 0
 const PASSWORD_FIELD_LENGTH = 8
 const LINE_BREAK = '\n'
 
 type inputModel struct {
-	// This value is used only for caching purposes. It's the content as exposed
-	// outside (for example, the clipboard manager), but all the actual operations
-	// on the values need to be done on cells
+	// A read-only string representation of the content for outside to prevent
+	// on-the-fly conversions on every frame. Its value is used by other
+	// components (e.g., clipboard, kdbx).
+	// Again, it's read-only: modifications will not be preserved.
 	content string
-	// Unicode chars can take more than one cell.
-	// If a char takes two cells, its representation will be [char, 0].
-	// For example: "😀" (len 2) is represented as []rune{😀, 0}
+
+	// Holds the runes that make up the content of the field. It's structured
+	// as a grid to account for multi-line input fields. A rune is accessed by
+	// `cell[lineIndex][columnIndex]` (aka `cell[y][x]`).
+	//
+	// Unicode chars can take more than one cell. To have cells representing
+	// correctly the grid on which the cursor moves, we right-pad unicode chars
+	// that are larger than a cell with PAD_BYTE.
+	//
+	// If a char takes two cells, its representation will be [char, PAD_BYTE].
+	// For example: "😀" (len 2) is represented as []rune{😀, PAD_BYTE}
 	cells [][]rune
 
-	width     int
-	height    int
-	x         int
-	y         int
-	style     tcell.Style
-	hasFocus  bool
+	// Display width of the input being displayed
+	width int
+	// Display height of the input being displayed
+	height int
+	// X coordinate of the cursor position
+	x int
+	// Y coordnate of the cursor position
+	y int
+	// Style. See tcell.Style for details
+	style tcell.Style
+	// Returns true if the field is focused
+	hasFocus bool
+	// Whether the field is a password field or a regular one
 	inputType InputType
 
+	// Handle a keypress event. Returns true if handled, false if needs cascading
 	keyPressHandler func(ev *tcell.EventKey) bool
-	changeHandler   func(ev tcell.Event) bool
-	focusHandler    func() bool
+	// Handle a change event. Returns true if handled, false if needs cascading
+	changeHandler func(ev tcell.Event) bool
+	// Handle a focus event. Returns true if handled, false if needs cascading
+	focusHandler func() bool
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
@@ -104,7 +124,7 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, m.y, true, m.hasFocus
 }
 
-// m.cells contains both runes and placeholder chars (0) to accommodate rendering.
+// m.cells contains both runes and padding zeros to accommodate rendering.
 // This method stably returns the rune at cursor, regardless of the 0s.
 // It will however return 0 when cursor is out of bounds
 func (m *inputModel) FindRuneAtPosition(x, y int) (rune, int) {
@@ -113,7 +133,7 @@ func (m *inputModel) FindRuneAtPosition(x, y int) (rune, int) {
 	}
 
 	for j := x; j >= 0; j-- {
-		if m.cells[y][j] != EMPTY_CELL {
+		if m.cells[y][j] != PAD_BYTE {
 			return m.cells[y][j], j
 		}
 	}
@@ -161,7 +181,7 @@ func (i *Input) SetContent(text string) {
 			m.cells[lineIndex] = append(m.cells[lineIndex], char)
 			// Pad rune with 0 cells, in case the rune is longer than one cell
 			for i := 1; i < cells; i++ {
-				m.cells[lineIndex] = append(m.cells[lineIndex], 0)
+				m.cells[lineIndex] = append(m.cells[lineIndex], PAD_BYTE)
 			}
 		}
 	}
