@@ -1,8 +1,11 @@
 package components
 
 import (
+	"bufio"
+	"fmt"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -35,8 +38,9 @@ const PASSWORD_FIELD_LENGTH = 8
 const LINE_BREAK = '\n'
 
 type inputModel struct {
-	// This value is used only for caching purposes. It's the content as exposed outside,
-	// but all the actual operations on the values need to be done on cells
+	// This value is used only for caching purposes. It's the content as exposed
+	// outside (for example, the clipboard manager), but all the actual operations
+	// on the values need to be done on cells
 	content string
 	// Unicode chars can take more than one cell.
 	// If a char takes two cells, its representation will be [char, 0].
@@ -57,24 +61,20 @@ type inputModel struct {
 }
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	isPassword := m.inputType == InputTypePassword
-	isOutOfBoundY := y < 0 || (!isPassword && y >= len(m.cells)) || (isPassword && y >= 1)
-	isOutOfBound := isOutOfBoundY || x < 0 || (!isPassword && x >= len(m.cells[y])) || (isPassword && x >= PASSWORD_FIELD_LENGTH)
-
-	if isOutOfBound {
+	if m.isOutOfBounds(x, y) {
 		return EMPTY_CELL, m.style, nil, 1
 	}
 
-	if isPassword {
+	if m.inputType == InputTypePassword {
 		return '*', m.style, nil, 1
 	}
 
 	char := m.cells[y][x]
-	if isEmptyCell(char) {
-		return EMPTY_CELL, m.style, nil, 1
+	if unicode.IsPrint(char) {
+		return char, m.style, nil, runewidth.RuneWidth(char)
 	}
 
-	return char, m.style, nil, runewidth.RuneWidth(char)
+	return EMPTY_CELL, m.style, nil, 1
 }
 
 func (m *inputModel) GetBounds() (int, int) {
@@ -108,19 +108,25 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 // This method stably returns the rune at cursor, regardless of the 0s.
 // It will however return 0 when cursor is out of bounds
 func (m *inputModel) FindRuneAtPosition(x, y int) (rune, int) {
-	lines := len(m.cells)
-
-	if y < 0 || x < 0 || lines == 0 || y >= lines || x >= len(m.cells[0]) {
+	if m.isOutOfBounds(x, y) {
 		return EMPTY_CELL, -1
 	}
 
 	for j := x; j >= 0; j-- {
-		if !isEmptyCell(m.cells[y][j]) {
+		if m.cells[y][j] != EMPTY_CELL {
 			return m.cells[y][j], j
 		}
 	}
 
 	return EMPTY_CELL, -1
+}
+
+func (m *inputModel) isOutOfBounds(x, y int) bool {
+	if m.inputType == InputTypePassword {
+		return x < 0 || x >= PASSWORD_FIELD_LENGTH || y != 0
+	}
+
+	return y < 0 || x < 0 || y >= len(m.cells) || x >= len(m.cells[y])
 }
 
 func (i *Input) HasFocus() bool {
@@ -140,22 +146,22 @@ func (i *Input) SetContent(text string) {
 	i.Init()
 	m := i.model
 	m.content = text
-	lines := strings.Split(text, "\n") // TODO: is this OS independent?
+	lines := getLines(text)
 	m.height = len(lines)
 	m.width = 0
 	m.cells = make([][]rune, m.height)
 
-	for line, text := range lines {
-		m.cells[line] = []rune{}
-		m.width = max(m.width, runewidth.StringWidth(text))
+	for lineIndex, line := range lines {
+		m.cells[lineIndex] = []rune{}
+		m.width = max(m.width, runewidth.StringWidth(line))
 
-		for _, char := range text {
+		for _, char := range line {
 			cells := runewidth.RuneWidth(char)
 
-			m.cells[line] = append(m.cells[line], char)
+			m.cells[lineIndex] = append(m.cells[lineIndex], char)
 			// Pad rune with 0 cells, in case the rune is longer than one cell
 			for i := 1; i < cells; i++ {
-				m.cells[line] = append(m.cells[line], 0)
+				m.cells[lineIndex] = append(m.cells[lineIndex], 0)
 			}
 		}
 	}
@@ -314,21 +320,29 @@ func toString(cells [][]rune) string {
 	b := &strings.Builder{}
 	for lineIndex, line := range cells {
 		for _, cell := range line {
-			if cell != EMPTY_CELL {
+			if unicode.IsPrint(cell) {
 				b.WriteRune(cell)
 			}
 		}
 		if lineIndex != len(cells)-1 {
-			b.WriteRune(LINE_BREAK)
+			fmt.Fprintln(b, "") // Cross-platform way of adding a line-ending
 		}
 	}
 	return b.String()
 }
 
-func isEmptyCell(c rune) bool {
-	return c == EMPTY_CELL
-}
-
+// Clamps an integer between minVale and maxValue (both included)
 func clamp(n, minValue, maxValue int) int {
 	return max(min(n, maxValue), minValue)
+}
+
+// Breaks a text in lines in a platform independent way
+func getLines(text string) []string {
+	reader := strings.NewReader(text)
+	scanner := bufio.NewScanner(reader)
+	lines := []string{}
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines
 }
