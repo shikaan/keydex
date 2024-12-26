@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/autocomplete"
 )
 
 type ListView struct {
@@ -21,7 +22,7 @@ func NewListView(screen tcell.Screen) views.Widget {
 	count := len(paths)
 	maxX, maxY := getBoundaries(screen)
 
-	autoCompleteOptions := components.AutoCompleteOptions{
+	autoCompleteOptions := autocomplete.AutoCompleteOptions{
 		Screen:     screen,
 		Entries:    paths,
 		TotalCount: count,
@@ -35,7 +36,7 @@ func NewListView(screen tcell.Screen) views.Widget {
 		},
 	}
 
-	autoComplete := components.NewAutoComplete(autoCompleteOptions)
+	autoComplete := autocomplete.NewAutoComplete(autoCompleteOptions)
 	autoComplete.OnFocus(func() bool {
 		App.LastFocused = autoComplete
 		return true
