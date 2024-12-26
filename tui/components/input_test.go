@@ -201,7 +201,7 @@ func TestInput_SetContent(t *testing.T) {
 		wantCells   [][]rune
 		wantContent string
 	}{
-		{"empty string", "", [][]rune{}, ""},
+		{"empty string", "", [][]rune{{}}, ""},
 		{"bytes only", "test", [][]rune{{'t', 'e', 's', 't'}}, "test"},
 		{"non-ASCII only", "🤖ß", [][]rune{{'🤖', PAD_BYTE, 'ß'}}, "🤖ß"},
 		{"mixed input", "I💙ßs", [][]rune{{'I', '💙', PAD_BYTE, 'ß', 's'}}, "I💙ßs"},
@@ -232,6 +232,7 @@ func Test_toString(t *testing.T) {
 		{"non-ascii", [][]rune{{'✅', 'æ'}}, "✅æ"},
 		{"multi-line", [][]rune{{'✅', 'æ'}, {'l'}}, "✅æ\nl"},
 		{"non-print chars", [][]rune{{'✅', '\a', '\f'}, {'l'}}, "✅\nl"},
+		{"empty lines", [][]rune{{'t', 'e'}, {}}, "te\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -245,9 +246,9 @@ func Test_toString(t *testing.T) {
 func TestInput_handleCellsUpdate(t *testing.T) {
 	t.Run("updates content and moves cursor", func(t *testing.T) {
 		i := &Input{model: &inputModel{}}
-		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() int {
+		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() (int, int) {
 			i.model.cells = [][]rune{{'l'}}
-			return 1
+			return 1, 0
 		})
 
 		wantCells := [][]rune{{'l'}}
@@ -274,7 +275,7 @@ func TestInput_handleCellsUpdate(t *testing.T) {
 			triggered = true
 			return true
 		}
-		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() int { return 0 })
+		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() (int, int) { return 0, 0 })
 
 		if !triggered {
 			t.Errorf("Input.handleCellsUpdate() expected change handler to be triggered")
@@ -292,7 +293,7 @@ func TestInput_handleCellsUpdate(t *testing.T) {
 			triggered = true
 			return false
 		}
-		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() int { return 0 })
+		handled := i.handleCellsUpdate(&tcell.EventKey{}, func() (int, int) { return 0, 0 })
 
 		if !triggered {
 			t.Errorf("Input.handleCellsUpdate() expected change handler to be triggered")
@@ -302,4 +303,26 @@ func TestInput_handleCellsUpdate(t *testing.T) {
 			t.Errorf("Input.handleCellsUpdate() change not to be handled")
 		}
 	})
+}
+
+func TestInput_HandleEvent(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields Input
+		event  tcell.Event
+		want   bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Input{
+				model:     tt.fields.model,
+				Focusable: tt.fields.Focusable,
+			}
+			if got := i.HandleEvent(tt.event); got != tt.want {
+				t.Errorf("Input.HandleEvent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

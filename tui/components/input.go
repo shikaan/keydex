@@ -1,7 +1,6 @@
 package components
 
 import (
-	"bufio"
 	"fmt"
 	"strings"
 	"sync"
@@ -34,9 +33,7 @@ const (
 )
 
 const EMPTY_CELL = 0
-const PAD_BYTE = 0
 const PASSWORD_FIELD_LENGTH = 8
-const LINE_BREAK = '\n'
 
 type inputModel struct {
 	// A read-only string representation of the content for outside to prevent
@@ -72,11 +69,14 @@ type inputModel struct {
 	// Whether the field is a password field or a regular one
 	inputType InputType
 
-	// Handle a keypress event. Returns true if handled, false if needs cascading
+	// Handle keypress events: triggered every time a key is pressed
+	// Returns true if handled, false if needs cascading
 	keyPressHandler func(ev *tcell.EventKey) bool
-	// Handle a change event. Returns true if handled, false if needs cascading
+	// Handle change events: triggered every time content has changed
+	// Returns true if handled, false if needs cascading
 	changeHandler func(ev tcell.Event) bool
-	// Handle a focus event. Returns true if handled, false if needs cascading
+	// Handle focus events: triggered every time the input is highlighted
+	// Returns true if handled, false if needs cascading
 	focusHandler func() bool
 }
 
@@ -128,9 +128,6 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, m.y, true, m.hasFocus
 }
 
-// m.cells contains both runes and padding zeros to accommodate rendering.
-// This method stably returns the rune at cursor, regardless of the 0s.
-// It will however return 0 when cursor is out of bounds
 func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
 	if m.isOutOfBounds(x, y) {
 		return EMPTY_CELL, -1
@@ -140,13 +137,7 @@ func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
 		return '*', x
 	}
 
-	for j := x; j >= 0; j-- {
-		if m.cells[y][j] != PAD_BYTE {
-			return m.cells[y][j], j
-		}
-	}
-
-	return EMPTY_CELL, -1
+	return GetRune(m.cells[y], x)
 }
 
 func (m *inputModel) isOutOfBounds(x, y int) bool {
@@ -174,24 +165,14 @@ func (i *Input) SetContent(text string) {
 	i.Init()
 	m := i.model
 	m.content = text
-	lines := getLines(text)
+	lines := GetLines(text)
 	m.height = len(lines)
 	m.width = 0
 	m.cells = make([][]rune, m.height)
 
 	for lineIndex, line := range lines {
-		m.cells[lineIndex] = []rune{}
 		m.width = max(m.width, runewidth.StringWidth(line))
-
-		for _, char := range line {
-			cells := runewidth.RuneWidth(char)
-
-			m.cells[lineIndex] = append(m.cells[lineIndex], char)
-			// Pad rune with PAD_BYTE, in case the rune is longer than one cell
-			for i := 1; i < cells; i++ {
-				m.cells[lineIndex] = append(m.cells[lineIndex], PAD_BYTE)
-			}
-		}
+		m.cells[lineIndex] = NewPaddedLine(line)
 	}
 
 	i.CellView.SetModel(m)
@@ -257,14 +238,33 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 			return false
+		case tcell.KeyEnter:
+			return i.handleCellsUpdate(
+				ev,
+				func() (int, int) {
+					c, x, y := i.model.cells, i.model.x, i.model.y
+					line := c[y]
+
+					if y == len(c)-1 && x == len(line) {
+						i.model.cells = append(c, []rune{0})
+						return 0, 1
+					}
+
+					// Break lines if hit enter mid-line
+					secondHalf := line[x:]
+					i.model.cells[y] = line[:x]
+					i.model.cells = slices.Insert(c, y+1, secondHalf)
+					return -x, 1
+				},
+			)
 		case tcell.KeyRune:
 			return i.handleCellsUpdate(
 				ev,
-				func() int {
+				func() (int, int) {
 					c, x, y := i.model.cells, i.model.x, i.model.y
 					char := ev.Rune()
 					c[y] = slices.Insert(c[y], x, char)
-					return runewidth.RuneWidth(char)
+					return runewidth.RuneWidth(char), 0
 				},
 			)
 		case tcell.KeyBackspace2:
@@ -272,23 +272,51 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 		case tcell.KeyBackspace:
 			return i.handleCellsUpdate(
 				ev,
-				func() int {
+				func() (int, int) {
 					c, x, y := i.model.cells, i.model.x, i.model.y
+
+					if x == 0 {
+						if y == 0 {
+							return 0, 0
+						}
+
+						// Merge lines when backspacing from line start
+						currentLine, previousLineLength := c[y], len(c[y-1])
+						c[y-1] = append(c[y-1], currentLine...)
+						i.model.cells = slices.Delete(c, y, y+1)
+						return previousLineLength - x, -1
+					}
+
 					char, _ := i.model.GetRuneAtPosition(x-1, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x-offset, x)
-					return -offset
+					return -offset, 0
 				},
 			)
+		case tcell.KeyCtrlD:
+			fallthrough
 		case tcell.KeyDelete:
 			return i.handleCellsUpdate(
 				ev,
-				func() int {
+				func() (int, int) {
 					c, x, y := i.model.cells, i.model.x, i.model.y
+					currentLineLength := len(c[y])
+
+					if x >= currentLineLength-1 {
+						if y == 0 {
+							return 0, 0
+						}
+
+						// Merge lines when delete from line end
+						c[y] = append(c[y], c[y-1]...)
+						i.model.cells = slices.Delete(c, y, y+1)
+						return currentLineLength - x, 0
+					}
+
 					char, _ := i.model.GetRuneAtPosition(x, y)
 					offset := runewidth.RuneWidth(char)
-					c[y] = slices.Delete(c[y], x+offset, x)
-					return 0
+					c[y] = slices.Delete(c[y], x, x+offset)
+					return 0, 0
 				},
 			)
 		}
@@ -297,11 +325,11 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (i *Input) handleCellsUpdate(ev tcell.Event, updateCells func() int) bool {
+func (i *Input) handleCellsUpdate(ev tcell.Event, updateCells func() (int, int)) bool {
 	// Warning: this is order dependent!
-	deltaX := updateCells()
+	deltaX, deltaY := updateCells()
 	i.SetContent(toString(i.model.cells))
-	i.model.MoveCursor(deltaX, 0)
+	i.model.MoveCursor(deltaX, deltaY)
 
 	if i.model.changeHandler != nil {
 		return i.model.changeHandler(ev)
@@ -333,18 +361,22 @@ func (i *Input) OnFocus(cb func() bool) func() {
 
 func (i *Input) Init() {
 	i.once.Do(func() {
-		m := &inputModel{}
-		i.model = m
+		i.model = newInputModel()
 		i.CellView.Init()
-		i.CellView.SetModel(m)
+		i.CellView.SetModel(i.model)
 	})
+}
+
+func newInputModel() *inputModel {
+	m := &inputModel{}
+	m.cells = [][]rune{{}}
+	return m
 }
 
 func NewInput(options *InputOptions) *Input {
 	i := &Input{}
 	i.Init()
 	i.model.inputType = options.Type
-
 	return i
 }
 
@@ -363,20 +395,4 @@ func toString(cells [][]rune) string {
 		}
 	}
 	return b.String()
-}
-
-// Clamps an integer between minVale and maxValue (both included)
-func clamp(n, minValue, maxValue int) int {
-	return max(min(n, maxValue), minValue)
-}
-
-// Breaks a text in lines in a platform independent way
-func getLines(text string) []string {
-	reader := strings.NewReader(text)
-	scanner := bufio.NewScanner(reader)
-	lines := []string{}
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return lines
 }
