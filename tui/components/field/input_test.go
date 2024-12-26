@@ -1,10 +1,11 @@
-package components
+package field
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/shikaan/keydex/tui/components/line"
 )
 
 func Test_inputModel_GetCell(t *testing.T) {
@@ -16,15 +17,15 @@ func Test_inputModel_GetCell(t *testing.T) {
 		wantRune      rune
 		wantRuneWidth int
 	}{
-		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'L', 'O', 'L'}}}, 2, 2, EMPTY_CELL, 1},
+		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'L', 'O', 'L'}}}, 2, 2, line.EMPTY_CELL, 1},
 		{"EMPTY_CELL when cursor out of password bounds (password)",
 			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, inputType: InputTypePassword},
 			PASSWORD_FIELD_LENGTH + 1, 0, // This is longer than a password, but shorter than field itself
-			EMPTY_CELL, 1},
+			line.EMPTY_CELL, 1},
 		{"EMPTY_CELL when cursor out of field bounds (password)",
 			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, inputType: InputTypePassword},
 			14, 0, // This is longer than the field
-			EMPTY_CELL, 1},
+			line.EMPTY_CELL, 1},
 		{"* when password", inputModel{cells: [][]rune{{'L', 'O', 'L'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
 		{"* when non-byte password", inputModel{cells: [][]rune{{'🤖', '✅', '😂'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
 		{"returns byte with size 1 (only byte)", inputModel{cells: [][]rune{{'L', 'O', 'L'}}}, 1, 0, 'O', 1},
@@ -32,7 +33,7 @@ func Test_inputModel_GetCell(t *testing.T) {
 		{"returns byte with size 1 (mixed)", inputModel{cells: [][]rune{{'I', '🤖'}}}, 0, 0, 'I', 1},
 		{"returns emoji with size 2 (mixed)", inputModel{cells: [][]rune{{'I', '🤖'}}}, 1, 0, '🤖', 2},
 		{"returns emoji with size 2 (mixed)", inputModel{cells: [][]rune{{'I', '🤖'}}}, 1, 0, '🤖', 2},
-		{"EMPTY_CELL with non-print characters", inputModel{cells: [][]rune{{'I', '\a'}}}, 1, 0, EMPTY_CELL, 1},
+		{"EMPTY_CELL with non-print characters", inputModel{cells: [][]rune{{'I', '\a'}}}, 1, 0, line.EMPTY_CELL, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -162,10 +163,10 @@ func Test_inputModel_GetRuneAtPosition(t *testing.T) {
 	}{
 		{"get * with password", inputModel{cells: [][]rune{{'T', 'e'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
 		{"get byte char", inputModel{cells: [][]rune{{'T', 'e', 's'}}}, 1, 0, 'e', 1},
-		{"get unicode char", inputModel{cells: [][]rune{{'T', '✅', PAD_BYTE, 's'}}}, 1, 0, '✅', 1},
-		{"get unicode char on PAD_BYTE", inputModel{cells: [][]rune{{'T', '✅', PAD_BYTE, 's'}}}, 2, 0, '✅', 1},
-		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'T', 's'}}}, 2, 0, EMPTY_CELL, -1},
-		{"EMPTY_CELL when out of bounds (password)", inputModel{inputType: InputTypePassword, cells: [][]rune{{'T', 's'}}}, PASSWORD_FIELD_LENGTH + 1, 0, EMPTY_CELL, -1},
+		{"get unicode char", inputModel{cells: [][]rune{{'T', '✅', line.PAD_BYTE, 's'}}}, 1, 0, '✅', 1},
+		{"get unicode char on PAD_BYTE", inputModel{cells: [][]rune{{'T', '✅', line.PAD_BYTE, 's'}}}, 2, 0, '✅', 1},
+		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'T', 's'}}}, 2, 0, line.EMPTY_CELL, -1},
+		{"EMPTY_CELL when out of bounds (password)", inputModel{inputType: InputTypePassword, cells: [][]rune{{'T', 's'}}}, PASSWORD_FIELD_LENGTH + 1, 0, line.EMPTY_CELL, -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -203,10 +204,10 @@ func TestInput_SetContent(t *testing.T) {
 	}{
 		{"empty string", "", [][]rune{{}}, ""},
 		{"bytes only", "test", [][]rune{{'t', 'e', 's', 't'}}, "test"},
-		{"non-ASCII only", "🤖ß", [][]rune{{'🤖', PAD_BYTE, 'ß'}}, "🤖ß"},
-		{"mixed input", "I💙ßs", [][]rune{{'I', '💙', PAD_BYTE, 'ß', 's'}}, "I💙ßs"},
-		{"line breaks UNIX", "I💙ßs\n&🥔", [][]rune{{'I', '💙', PAD_BYTE, 'ß', 's'}, {'&', '🥔', PAD_BYTE}}, "I💙ßs\n&🥔"},
-		{"line breaks Windows", "I💙ßs\r\n&🥔", [][]rune{{'I', '💙', PAD_BYTE, 'ß', 's'}, {'&', '🥔', PAD_BYTE}}, "I💙ßs\r\n&🥔"},
+		{"non-ASCII only", "🤖ß", [][]rune{{'🤖', line.PAD_BYTE, 'ß'}}, "🤖ß"},
+		{"mixed input", "I💙ßs", [][]rune{{'I', '💙', line.PAD_BYTE, 'ß', 's'}}, "I💙ßs"},
+		{"line breaks UNIX", "I💙ßs\n&🥔", [][]rune{{'I', '💙', line.PAD_BYTE, 'ß', 's'}, {'&', '🥔', line.PAD_BYTE}}, "I💙ßs\n&🥔"},
+		{"line breaks Windows", "I💙ßs\r\n&🥔", [][]rune{{'I', '💙', line.PAD_BYTE, 'ß', 's'}, {'&', '🥔', line.PAD_BYTE}}, "I💙ßs\r\n&🥔"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -304,24 +305,255 @@ func TestInput_handleCellsUpdate(t *testing.T) {
 		}
 	})
 }
-
 func TestInput_HandleEvent(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields Input
-		event  tcell.Event
-		want   bool
+		name        string
+		content     string
+		hasFocus    bool
+		x, y        int
+		event       tcell.Event
+		wantHandled bool
+		wantX       int
+		wantY       int
+		wantCells   [][]rune
 	}{
-		// TODO: Add test cases.
+		{
+			name:        "no focus",
+			content:     "hello",
+			hasFocus:    false,
+			event:       tcell.NewEventKey(tcell.KeyRune, 'a', 0),
+			wantHandled: false,
+		},
+		{
+			name:        "key left",
+			hasFocus:    true,
+			content:     "abc",
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyLeft, 0, 0),
+			wantHandled: true,
+			wantX:       0,
+			wantY:       0,
+		},
+		{
+			name:        "key left (non-ascii)",
+			content:     "a✅c",
+			hasFocus:    true,
+			x:           2,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyLeft, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+		},
+		{
+			name:        "key right",
+			content:     "abc",
+			x:           1,
+			y:           0,
+			hasFocus:    true,
+			event:       tcell.NewEventKey(tcell.KeyRight, 0, 0),
+			wantHandled: true,
+			wantX:       2,
+			wantY:       0,
+		},
+		{
+			name:        "key right (non-ascii)",
+			content:     "a✅c",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyRight, 0, 0),
+			wantHandled: true,
+			wantX:       3,
+			wantY:       0,
+		},
+		{
+			name:        "key down (within bounds)",
+			content:     "abc\ndef",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyDown, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       1,
+		},
+		{
+			name:        "key down (out of bounds)",
+			content:     "abc\ndef",
+			hasFocus:    true,
+			x:           1,
+			y:           1,
+			event:       tcell.NewEventKey(tcell.KeyDown, 0, 0),
+			wantHandled: false,
+			wantX:       1,
+			wantY:       1,
+		},
+		{
+			name:        "key up",
+			content:     "abc\ndef",
+			hasFocus:    true,
+			x:           1,
+			y:           1,
+			event:       tcell.NewEventKey(tcell.KeyUp, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+		},
+		{
+			name:        "key up (out of bounds)",
+			content:     "abc\ndef",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyUp, 0, 0),
+			wantHandled: false,
+			wantX:       1,
+			wantY:       0,
+		},
+		{
+			name:        "key enter (end of line)",
+			content:     "abc",
+			hasFocus:    true,
+			x:           3,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyEnter, 0, 0),
+			wantHandled: true,
+			wantX:       0,
+			wantY:       1,
+			wantCells:   [][]rune{{'a', 'b', 'c'}, {}},
+		},
+		{
+			name:        "key enter (mid-line)",
+			content:     "abc",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyEnter, 0, 0),
+			wantHandled: true,
+			wantX:       0,
+			wantY:       1,
+			wantCells:   [][]rune{{'a'}, {'b', 'c'}},
+		},
+		{
+			name:        "key rune (byte)",
+			content:     "abc",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyRune, 'd', 0),
+			wantHandled: true,
+			wantX:       2,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'd', 'b', 'c'}},
+		},
+		{
+			name:        "key rune (non-ascii)",
+			content:     "abc",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyRune, '✅', 0),
+			wantHandled: true,
+			wantX:       3,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', '✅', 0, 'b', 'c'}},
+		},
+		{
+			name:        "key backspace",
+			content:     "abc",
+			hasFocus:    true,
+			x:           2,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyBackspace, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'c'}},
+		},
+		{
+			name:        "key backspace (start of line)",
+			content:     "abc\nd",
+			hasFocus:    true,
+			x:           0,
+			y:           1,
+			event:       tcell.NewEventKey(tcell.KeyBackspace, 0, 0),
+			wantHandled: true,
+			wantX:       3,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c', 'd'}},
+		},
+		{
+			name:        "key backspace (start of block)",
+			content:     "abc\nd",
+			hasFocus:    true,
+			x:           0,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyBackspace, 0, 0),
+			wantHandled: true,
+			wantX:       0,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c'}, {'d'}},
+		},
+		{
+			name:        "key delete",
+			content:     "abc",
+			hasFocus:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyDelete, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'c'}},
+		},
+		{
+			name:        "key delete (end of line)",
+			content:     "abc\nd",
+			hasFocus:    true,
+			x:           3,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyDelete, 0, 0),
+			wantHandled: true,
+			wantX:       3,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c', 'd'}},
+		},
+		{
+			name:        "key delete (end of block)",
+			content:     "abc\nd",
+			hasFocus:    true,
+			x:           1,
+			y:           1,
+			event:       tcell.NewEventKey(tcell.KeyDelete, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       1,
+			wantCells:   [][]rune{{'a', 'b', 'c'}, {'d'}},
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := &Input{
-				model:     tt.fields.model,
-				Focusable: tt.fields.Focusable,
+			i := NewInput(&InputOptions{})
+			i.SetFocus(tt.hasFocus)
+			i.SetContent(tt.content)
+			i.SetCursor(tt.x, tt.y)
+			handled := i.HandleEvent(tt.event)
+			if handled != tt.wantHandled {
+				t.Errorf("Input.HandleEvent() handled = %v, want %v", handled, tt.wantHandled)
 			}
-			if got := i.HandleEvent(tt.event); got != tt.want {
-				t.Errorf("Input.HandleEvent() = %v, want %v", got, tt.want)
+			if tt.wantHandled {
+				if i.model.x != tt.wantX {
+					t.Errorf("Input.HandleEvent() x = %v, want %v", i.model.x, tt.wantX)
+				}
+				if i.model.y != tt.wantY {
+					t.Errorf("Input.HandleEvent() y = %v, want %v", i.model.y, tt.wantY)
+				}
+				if tt.wantCells != nil && !reflect.DeepEqual(i.model.cells, tt.wantCells) {
+					t.Errorf("Input.HandleEvent() cells = %v, want %v", i.model.cells, tt.wantCells)
+				}
 			}
 		})
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/mattn/go-runewidth"
 	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/line"
 	"golang.org/x/exp/slices"
 )
 
@@ -25,7 +26,7 @@ type Search struct {
 // in different ways.
 type searchModel struct {
 	content       string
-	cells         components.PaddedLine
+	runes         line.PaddedLine
 	width         int
 	x             int
 	style         tcell.Style
@@ -35,16 +36,15 @@ type searchModel struct {
 }
 
 func (m *searchModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	if y != 0 || x < 0 || x >= len(m.cells) {
-		return components.EMPTY_CELL, m.style, nil, 1
+	if y != 0 || x < 0 || x >= len(m.runes) {
+		return line.EMPTY_CELL, m.style, nil, 1
 	}
 
-	char := m.cells[x]
-	if unicode.IsPrint(char) {
+	if char := m.runes[x]; unicode.IsPrint(char) {
 		return char, m.style, nil, runewidth.RuneWidth(char)
 	}
 
-	return components.EMPTY_CELL, m.style, nil, 1
+	return line.EMPTY_CELL, m.style, nil, 1
 }
 
 func (m *searchModel) GetBounds() (int, int) {
@@ -52,11 +52,11 @@ func (m *searchModel) GetBounds() (int, int) {
 }
 
 func (m *searchModel) SetCursor(x, y int) {
-	m.x = max(min(x+m.x, len(m.cells)), 0)
+	m.x = max(min(x+m.x, len(m.runes)), 0)
 }
 
 func (m *searchModel) MoveCursor(x, y int) {
-	m.x = max(min(x+m.x, len(m.cells)), 0)
+	m.x = max(min(x+m.x, len(m.runes)), 0)
 }
 
 func (m *searchModel) GetCursor() (int, int, bool, bool) {
@@ -95,7 +95,7 @@ func (s *Search) SetContent(text string) {
 	m := s.model
 	m.width = runewidth.StringWidth(text)
 	m.content = text
-	m.cells = components.NewPaddedLine(text)
+	m.runes = line.NewPaddedLine(text)
 
 	s.CellView.SetModel(m)
 }
@@ -115,16 +115,16 @@ func (s *Search) HandleEvent(ev tcell.Event) bool {
 		case tcell.KeyRune:
 			return s.handleContentUpdate(ev, func() int {
 				char := ev.Rune()
-				s.model.cells = slices.Insert(s.model.cells, s.model.x, char)
+				s.model.runes = slices.Insert(s.model.runes, s.model.x, char)
 				return runewidth.RuneWidth(char)
 			})
 		case tcell.KeyBackspace2:
 			fallthrough
 		case tcell.KeyBackspace:
 			return s.handleContentUpdate(ev, func() int {
-				char, _ := components.GetRune(s.model.cells, s.model.x-1)
+				char, _ := line.GetRune(s.model.runes, s.model.x-1)
 				offset := runewidth.RuneWidth(char)
-				s.model.cells = slices.Delete(s.model.cells, s.model.x-offset, s.model.x)
+				s.model.runes = slices.Delete(s.model.runes, s.model.x-offset, s.model.x)
 				return -offset
 			})
 		}
@@ -135,7 +135,7 @@ func (s *Search) HandleEvent(ev tcell.Event) bool {
 
 func (s *Search) handleContentUpdate(ev tcell.Event, cb func() int) bool {
 	offset := cb()
-	s.SetContent(toString(s.model.cells))
+	s.SetContent(toString(s.model.runes))
 	s.model.MoveCursor(offset, 0)
 
 	if s.model.changeHandler != nil {
@@ -163,7 +163,7 @@ func NewSearch() *Search {
 func toString(cells []rune) string {
 	b := &strings.Builder{}
 	for _, cell := range cells {
-		if cell != components.PAD_BYTE {
+		if cell != line.PAD_BYTE {
 			b.WriteRune(cell)
 		}
 	}

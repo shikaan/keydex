@@ -1,15 +1,16 @@
-package components
+package field
 
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/keydex/tui/components"
 )
 
 type Field struct {
 	input *Input
 	label *views.SimpleStyledText
 
-	Focusable
+	components.Focusable
 	views.BoxLayout
 }
 

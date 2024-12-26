@@ -1,4 +1,4 @@
-package components
+package field
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/mattn/go-runewidth"
+	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/line"
 	"golang.org/x/exp/slices"
 )
 
@@ -16,7 +18,7 @@ type Input struct {
 	model *inputModel
 	once  sync.Once
 
-	Focusable
+	components.Focusable
 	views.CellView
 }
 
@@ -32,7 +34,6 @@ const (
 	InputTypePassword
 )
 
-const EMPTY_CELL = 0
 const PASSWORD_FIELD_LENGTH = 8
 
 type inputModel struct {
@@ -82,7 +83,7 @@ type inputModel struct {
 
 func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 	if m.isOutOfBounds(x, y) {
-		return EMPTY_CELL, m.style, nil, 1
+		return line.EMPTY_CELL, m.style, nil, 1
 	}
 
 	if m.inputType == InputTypePassword {
@@ -94,7 +95,7 @@ func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 		return char, m.style, nil, runewidth.RuneWidth(char)
 	}
 
-	return EMPTY_CELL, m.style, nil, 1
+	return line.EMPTY_CELL, m.style, nil, 1
 }
 
 func (m *inputModel) GetBounds() (int, int) {
@@ -130,14 +131,14 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 
 func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
 	if m.isOutOfBounds(x, y) {
-		return EMPTY_CELL, -1
+		return line.EMPTY_CELL, -1
 	}
 
 	if m.inputType == InputTypePassword {
 		return '*', x
 	}
 
-	return GetRune(m.cells[y], x)
+	return line.GetRune(m.cells[y], x)
 }
 
 func (m *inputModel) isOutOfBounds(x, y int) bool {
@@ -165,14 +166,14 @@ func (i *Input) SetContent(text string) {
 	i.Init()
 	m := i.model
 	m.content = text
-	lines := GetLines(text)
-	m.height = len(lines)
+	textLines := getTextLines(text)
+	m.height = len(textLines)
 	m.width = 0
 	m.cells = make([][]rune, m.height)
 
-	for lineIndex, line := range lines {
-		m.width = max(m.width, runewidth.StringWidth(line))
-		m.cells[lineIndex] = NewPaddedLine(line)
+	for lineIndex, textLine := range textLines {
+		m.width = max(m.width, runewidth.StringWidth(textLine))
+		m.cells[lineIndex] = line.NewPaddedLine(textLine)
 	}
 
 	i.CellView.SetModel(m)
@@ -303,13 +304,13 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 					currentLineLength := len(c[y])
 
 					if x >= currentLineLength-1 {
-						if y == 0 {
+						if y == len(c)-1 {
 							return 0, 0
 						}
 
 						// Merge lines when delete from line end
-						c[y] = append(c[y], c[y-1]...)
-						i.model.cells = slices.Delete(c, y, y+1)
+						c[y] = append(c[y], c[y+1]...)
+						i.model.cells = slices.Delete(c, y+1, y+2)
 						return currentLineLength - x, 0
 					}
 
@@ -395,4 +396,20 @@ func toString(cells [][]rune) string {
 		}
 	}
 	return b.String()
+}
+
+// Breaks a text in lines in a platform independent way
+func getTextLines(text string) []string {
+	lines := []string{}
+
+	for _, line := range strings.Split(text, "\n") {
+		lines = append(lines, strings.TrimSuffix(line, "\r"))
+	}
+
+	return lines
+}
+
+// Clamps an integer between minVale and maxValue (both included)
+func clamp(n, minValue, maxValue int) int {
+	return max(min(n, maxValue), minValue)
 }

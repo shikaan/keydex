@@ -4,10 +4,11 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/status"
 )
 
 type Layout struct {
-	Status *components.Status
+	Status *status.Status
 	Title  *components.Title
 
 	Screen tcell.Screen
@@ -57,14 +58,14 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
 	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName + "  ")
-	status := components.NewStatus()
+	s := status.NewStatus()
 
 	t := views.NewText()
 	t.SetText(" ")
 	l.SetMenu(t)
 
-	l.SetStatus(status)
-	l.Status = status
+	l.SetStatus(s)
+	l.Status = s
 
 	l.SetTitle(title)
 	l.Title = title

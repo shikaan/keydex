@@ -2,16 +2,16 @@ package autocomplete
 
 import (
 	"sync"
+	"unicode"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/mattn/go-runewidth"
 	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/line"
 )
 
-// Option
-
-type option struct {
+type Option struct {
 	model *optionModel
 	once  sync.Once
 
@@ -20,66 +20,56 @@ type option struct {
 }
 
 type optionModel struct {
-	// Content as it appears outside
-	content string
-	// 0-spaced rune sequence, to facilitate printing of Unicode chars
-	runes []rune
-
-	width    int
-	x        int
-	style    tcell.Style
-	hasFocus bool
-
+	content       string
+	runes         line.PaddedLine
+	width         int
+	style         tcell.Style
+	hasFocus      bool
 	selectHandler func() bool
 	focusHandler  func() bool
 }
 
 func (m *optionModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
-	if x >= len(m.runes) {
-		return 0, m.style, nil, 1
+	if y != 0 || x < 0 || x >= len(m.runes) {
+		return line.EMPTY_CELL, m.style, nil, 1
 	}
 
-	char := m.runes[x]
-
-	if char == 0 {
-		return 0, m.style, nil, 1
+	if char := m.runes[x]; unicode.IsPrint(char) {
+		return char, m.style, nil, runewidth.RuneWidth(char)
 	}
 
-	return char, m.style, nil, runewidth.RuneWidth(char)
+	return line.EMPTY_CELL, m.style, nil, 1
 }
 
 func (m *optionModel) GetBounds() (int, int) {
 	return m.width, 1
 }
 
-func (m *optionModel) SetCursor(x, y int) {
-	m.x = 0
-}
-
-func (m *optionModel) MoveCursor(x, y int) {
-	m.x = 0
-}
+func (m *optionModel) SetCursor(x, y int)  {}
+func (m *optionModel) MoveCursor(x, y int) {}
 
 func (m *optionModel) GetCursor() (int, int, bool, bool) {
-	return m.x, 0, true, false
+	return 0, 0, true, false
 }
 
-func (i *option) Size() (int, int) {
+func (i *Option) Size() (int, int) {
 	// Forces height 1, to fix problems on some terminals
 	x, _ := i.CellView.Size()
 	return x, 1
 }
 
-func (i *option) HasFocus() bool {
+func (i *Option) HasFocus() bool {
 	return i.model.hasFocus
 }
 
-func (i *option) SetFocus(on bool) {
+func (i *Option) SetFocus(on bool) {
 	i.Init()
 	if on {
 		i.SetContent("> " + i.model.content)
 	} else {
-		i.SetContent(i.model.content[2:])
+		if len(i.model.content) >= 2 {
+			i.SetContent(i.model.content[2:])
+		}
 	}
 
 	i.model.hasFocus = on
@@ -90,30 +80,19 @@ func (i *option) SetFocus(on bool) {
 	}
 }
 
-func (i *option) SetContent(text string) {
+func (i *Option) SetContent(text string) {
 	i.Init()
-	m := i.model
-	m.width = runewidth.StringWidth(text)
-	m.content = text
-	m.runes = []rune{}
-
-	for _, c := range text {
-		l := runewidth.RuneWidth(c)
-
-		m.runes = append(m.runes, c)
-		for i := 1; i < l; i++ {
-			m.runes = append(m.runes, 0)
-		}
-	}
-
-	i.CellView.SetModel(m)
+	i.model.width = runewidth.StringWidth(text)
+	i.model.content = text
+	i.model.runes = line.NewPaddedLine(text)
+	i.CellView.SetModel(i.model)
 }
 
-func (i *option) GetContent() string {
+func (i *Option) GetContent() string {
 	return i.model.content
 }
 
-func (i *option) HandleEvent(ev tcell.Event) bool {
+func (i *Option) HandleEvent(ev tcell.Event) bool {
 	if !i.HasFocus() {
 		return false
 	}
@@ -128,31 +107,30 @@ func (i *option) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (i *option) OnSelect(cb func() bool) func() {
+func (i *Option) OnSelect(cb func() bool) func() {
 	i.model.selectHandler = cb
 	return func() {
 		i.model.selectHandler = nil
 	}
 }
 
-func (i *option) OnFocus(cb func() bool) func() {
+func (i *Option) OnFocus(cb func() bool) func() {
 	i.model.focusHandler = cb
 	return func() {
 		i.model.focusHandler = nil
 	}
 }
 
-func (i *option) Init() {
+func (i *Option) Init() {
 	i.once.Do(func() {
-		m := &optionModel{}
-		i.model = m
+		i.model = &optionModel{}
 		i.CellView.Init()
-		i.CellView.SetModel(m)
+		i.CellView.SetModel(i.model)
 	})
 }
 
-func newOption() *option {
-	i := &option{}
+func newOption() *Option {
+	i := &Option{}
 	i.Init()
 	return i
 }
