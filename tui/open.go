@@ -10,10 +10,11 @@ import (
 	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/pkg/log"
 	"github.com/shikaan/keydex/tui/components"
+	"github.com/shikaan/keydex/tui/components/field"
 )
 
 type fieldKey = string
-type fieldMap = map[fieldKey]*components.Field
+type fieldMap = map[fieldKey]*field.Field
 
 type HomeView struct {
 	fieldByKey fieldMap
@@ -92,7 +93,7 @@ func NewHomeView(screen tcell.Screen) views.Widget {
 	return view
 }
 
-func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.Form, fieldMap) {
+func (view *HomeView) newForm(_ tcell.Screen, props State) (*components.Form, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
@@ -114,40 +115,40 @@ func (view *HomeView) newForm(screen tcell.Screen, props State) (*components.For
 	return form, fields
 }
 
-func (view *HomeView) newEntryField(label, initialValue string, isProtected bool) *components.Field {
+func (view *HomeView) newEntryField(label, initialValue string, isProtected bool) *field.Field {
 	// Do not print empty fields, unless they are the title
 	if initialValue == "" && label != kdbx.TITLE_KEY {
 		return nil
 	}
 
-	inputType := components.InputTypeText
+	inputType := field.InputTypeText
 	if isProtected {
-		inputType = components.InputTypePassword
+		inputType = field.InputTypePassword
 	}
 
-	fieldOptions := &components.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
-	field := components.NewField(fieldOptions)
+	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
+	f := field.NewField(fieldOptions)
 
-	field.OnFocus(func() bool {
-		App.LastFocused = field
+	f.OnFocus(func() bool {
+		App.LastFocused = f
 		return true
 	})
 
-	field.OnKeyPress(func(ev *tcell.EventKey) bool {
+	f.OnKeyPress(func(ev *tcell.EventKey) bool {
 		App.State.HasUnsavedChanges = true
 
 		if ev.Name() == "Ctrl+C" {
-			clipboard.Write(string(field.GetContent()))
+			clipboard.Write(string(f.GetContent()))
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard.", label))
 			return true
 		}
 
 		if ev.Name() == "Ctrl+R" {
 			if isProtected {
-				if field.GetInputType() == components.InputTypePassword {
-					field.SetInputType(components.InputTypeText)
+				if f.GetInputType() == field.InputTypePassword {
+					f.SetInputType(field.InputTypeText)
 				} else {
-					field.SetInputType(components.InputTypePassword)
+					f.SetInputType(field.InputTypePassword)
 				}
 			}
 
@@ -155,7 +156,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		}
 
 		if ev.Key() == tcell.KeyRune {
-			if isProtected && field.GetInputType() == components.InputTypePassword {
+			if isProtected && f.GetInputType() == field.InputTypePassword {
 				App.Notify("Reveal (^R) the field to edit.")
 			}
 		}
@@ -163,5 +164,5 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		return false
 	})
 
-	return field
+	return f
 }

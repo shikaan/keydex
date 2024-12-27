@@ -17,7 +17,7 @@ keydex can read the following environment variables:
   - KEYDEX_KEY
     Is the path to the optional *.key file used to unlock the database. Providing the '--key' flag inline overrides this value.
 
-All the entries are referenced with a path-like reference string shaped like /database/group1/../groupN/entry where 'database' is the database name, 'groupX' is the group name, and 'entry' is the entry title. 
+All the entries are referenced with a path-like reference string shaped like /database/group1/../groupN/entry where 'database' is the database name, 'groupN' is the group name, and 'entry' is the entry title. 
 
 Internally all the entries are referenced by a UUID, however keydex will read the first occurrence of a reference in cases of conflicts. Writes are always done via UUID and they are threfore conflict-safe.
     
@@ -36,7 +36,7 @@ keydex [flags]
 
 ### SEE ALSO
 
-* [keydex copy](keydex_copy.md)	 - Copies the password of a reference to the clipboard.
+* [keydex copy](keydex_copy.md)	 - Copies a field of a reference to the clipboard.
 * [keydex list](keydex_list.md)	 - Lists all the entries in the database
 * [keydex open](keydex_open.md)	 - Open the entry editor for a reference.
 

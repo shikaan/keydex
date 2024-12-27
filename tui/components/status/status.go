@@ -1,4 +1,4 @@
-package components
+package status
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ type Status struct {
 	notification *views.TextBar
 	helpLines    [2]views.Widget
 
-	prompt       *prompt
+	prompt       *Prompt
 	confirmLines [2]views.Widget
 
 	views.BoxLayout
@@ -138,40 +138,4 @@ func newLine(blocks ...string) views.Widget {
 	}
 
 	return l
-}
-
-type prompt struct {
-	text  *views.Text
-	input *Input
-
-	views.BoxLayout
-}
-
-func (p *prompt) SetText(s string) {
-	p.text.SetText(s)
-}
-
-func (p *prompt) SetFocus(on bool) {
-	p.input.SetFocus(on)
-}
-
-func (p *prompt) OnKeyPress(cb func(ev *tcell.EventKey) bool) func() {
-	return p.input.OnKeyPress(cb)
-}
-
-func newPrompt() *prompt {
-	p := &prompt{}
-	p.SetOrientation(views.Horizontal)
-	p.SetStyle(tcell.StyleDefault.Reverse(true))
-
-	p.text = views.NewText()
-	p.text.SetStyle(tcell.StyleDefault.Reverse(true))
-
-	p.input = NewInput(&InputOptions{})
-	p.input.SetStyle(tcell.StyleDefault.Reverse(true))
-
-	p.InsertWidget(0, p.text, 0)
-	p.InsertWidget(1, p.input, 1)
-
-	return p
 }

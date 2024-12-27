@@ -33,7 +33,7 @@ info:
 	@go run info.go -version=${VERSION}
 	@echo "  ($@) Done!"
 
-## doc: Generate documentation - run by go:generate
+## docs: Generate documentation - run by go:generate
 .PHONY: docs
 docs: info
 	@echo "> ($@) Generating documentation..."
