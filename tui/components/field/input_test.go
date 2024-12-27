@@ -558,3 +558,71 @@ func TestInput_HandleEvent(t *testing.T) {
 		})
 	}
 }
+
+func TestInput_SetInputType(t *testing.T) {
+	tests := []struct {
+		name           string
+		initialType    InputType
+		newType        InputType
+		initialContent string
+		wantWidth      int
+		wantHeight     int
+		wantX          int
+		wantY          int
+	}{
+		{
+			name:           "set to password type",
+			initialType:    InputTypeText,
+			newType:        InputTypePassword,
+			initialContent: "test",
+			wantWidth:      PASSWORD_FIELD_LENGTH,
+			wantHeight:     1,
+			wantX:          0,
+			wantY:          0,
+		},
+		{
+			name:           "set to text type",
+			initialType:    InputTypePassword,
+			newType:        InputTypeText,
+			initialContent: "test",
+			wantWidth:      4,
+			wantHeight:     1,
+			wantX:          0,
+			wantY:          0,
+		},
+		{
+			name:           "set to password type (multiline)",
+			initialType:    InputTypeText,
+			newType:        InputTypePassword,
+			initialContent: "test\nline",
+			wantWidth:      PASSWORD_FIELD_LENGTH,
+			wantHeight:     1,
+			wantX:          0,
+			wantY:          0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := NewInput(&InputOptions{Type: tt.initialType})
+			i.SetContent(tt.initialContent)
+			i.SetInputType(tt.newType)
+
+			if i.model.inputType != tt.newType {
+				t.Errorf("Input.SetInputType() inputType = %v, want %v", i.model.inputType, tt.newType)
+			}
+			if i.model.width != tt.wantWidth {
+				t.Errorf("Input.SetInputType() width = %v, want %v", i.model.width, tt.wantWidth)
+			}
+			if i.model.height != tt.wantHeight {
+				t.Errorf("Input.SetInputType() height = %v, want %v", i.model.height, tt.wantHeight)
+			}
+			if i.model.x != tt.wantX {
+				t.Errorf("Input.SetInputType() x = %v, want %v", i.model.x, tt.wantX)
+			}
+			if i.model.y != tt.wantY {
+				t.Errorf("Input.SetInputType() y = %v, want %v", i.model.y, tt.wantY)
+			}
+		})
+	}
+}

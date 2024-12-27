@@ -187,6 +187,12 @@ func (i *Input) SetInputType(t InputType) {
 	i.model.inputType = t
 	i.model.x = 0
 	i.model.y = 0
+	if i.model.inputType == InputTypePassword {
+		i.model.width = PASSWORD_FIELD_LENGTH
+		i.model.height = 1
+	} else {
+		i.SetContent(i.model.content)
+	}
 	i.Init()
 }
 
