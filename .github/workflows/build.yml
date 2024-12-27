@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - fix/19--hang-on-line-breaks
     paths-ignore:
       - '**.md'
       - '**.yaml'
@@ -36,7 +35,7 @@ jobs:
       - run: ls ${{ env.GITHUB_WORKSPACE }}/.build
       - uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}-alpha.1
+          tag_name: v${{ steps.version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: true
           prerelease: ${{ github.ref != 'refs/heads/main' }}
