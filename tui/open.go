@@ -22,13 +22,11 @@ type HomeView struct {
 	components.Container
 }
 
-var IsReadOnly = false
-
 func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
-			if IsReadOnly {
+			if App.State.IsReadOnly {
 				App.Notify("Could not save: archive in read-only mode.")
 				log.Info("Could not save: archive in read-only mode.")
 				return true
@@ -60,7 +58,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 
 					// Unlocking again to allow further modifications
 					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-						IsReadOnly = true
+						App.State.IsReadOnly = true
 						App.Notify("Could not save. Switching to read-only to not corrupt data.")
 						log.Error("Could not save. Switching to read-only to not corrupt data.", e)
 						return
@@ -80,7 +78,11 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewHomeView(screen tcell.Screen) views.Widget {
-	App.SetTitle("\"" + App.State.Entry.GetTitle() + "\"")
+	title := "\"" + App.State.Entry.GetTitle() + "\""
+	if App.State.IsReadOnly {
+		title += " [READ ONLY]"
+	}
+	App.SetTitle(title)
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
@@ -126,7 +128,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		inputType = field.InputTypePassword
 	}
 
-	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType}
+	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.State.IsReadOnly}
 	f := field.NewField(fieldOptions)
 
 	f.OnFocus(func() bool {

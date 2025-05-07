@@ -25,6 +25,7 @@ type Input struct {
 type InputOptions struct {
 	InitialValue string
 	Type         InputType
+	Disabled     bool
 }
 
 type InputType int
@@ -65,8 +66,10 @@ type inputModel struct {
 	y int
 	// Style. See tcell.Style for details
 	style tcell.Style
-	// Returns true if the field is focused
+	// True if the field is focused
 	hasFocus bool
+	// True if the field is disables
+	disabled bool
 	// Whether the field is a password field or a regular one
 	inputType InputType
 
@@ -245,6 +248,14 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 			return false
+		}
+
+		// Prevent all input-changing actions when the field is disabled
+		if i.model.disabled {
+			return true
+		}
+
+		switch ev.Key() {
 		case tcell.KeyEnter:
 			return i.handleCellsUpdate(
 				ev,
@@ -384,6 +395,7 @@ func NewInput(options *InputOptions) *Input {
 	i := &Input{}
 	i.Init()
 	i.model.inputType = options.Type
+	i.model.disabled = options.Disabled
 	return i
 }
 

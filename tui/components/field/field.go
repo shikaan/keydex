@@ -18,6 +18,7 @@ type FieldOptions struct {
 	Label        string
 	InitialValue string
 	InputType    InputType
+	Disabled     bool
 }
 
 func (f *Field) HasFocus() bool {
@@ -61,7 +62,7 @@ func NewField(options *FieldOptions) *Field {
 	field := &Field{}
 	field.SetOrientation(views.Horizontal)
 
-	opts := &InputOptions{InitialValue: options.InitialValue, Type: options.InputType}
+	opts := &InputOptions{InitialValue: options.InitialValue, Type: options.InputType, Disabled: options.Disabled}
 	input := NewInput(opts)
 	input.SetContent(options.InitialValue)
 	input.SetInputType(options.InputType)
