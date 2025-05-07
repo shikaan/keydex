@@ -68,7 +68,7 @@ type inputModel struct {
 	style tcell.Style
 	// True if the field is focused
 	hasFocus bool
-	// True if the field is disables
+	// True when the field is disabled. A disabled field is readable, but cannot be changed.
 	disabled bool
 	// Whether the field is a password field or a regular one
 	inputType InputType
