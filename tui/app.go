@@ -74,6 +74,7 @@ type State struct {
 	Database          *kdbx.Database
 	Reference         string
 	HasUnsavedChanges bool
+	IsReadOnly        bool
 }
 
 func Run(state State) error {

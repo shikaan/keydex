@@ -47,27 +47,31 @@ See "Examples" for more details.`,
 	),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
+		readOnly, err := cmd.Flags().GetBool("read-only")
+		if err != nil {
+			return err
+		}
 		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
-		return open(database, key, passphrase, reference)
+		return open(database, key, passphrase, reference, readOnly)
 	},
 	DisableAutoGenTag: true,
 }
 
-func open(databasePath, keyPath, passphrase, reference string) error {
-	db, err := kdbx.New(databasePath, passphrase, keyPath)
+func open(databasePath, keyPath, passphrase, reference string, readOnly bool) error {
+	database, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}
 
 	if reference == "" {
-		return tui.Run(tui.State{Entry: nil, Database: db, Reference: reference})
+		return tui.Run(tui.State{Entry: nil, Database: database, Reference: reference, IsReadOnly: readOnly})
 	}
 
-	if entry := db.GetFirstEntryByPath(reference); entry != nil {
-		return tui.Run(tui.State{Entry: entry, Database: db, Reference: reference})
+	if entry := database.GetFirstEntryByPath(reference); entry != nil {
+		return tui.Run(tui.State{Entry: entry, Database: database, Reference: reference, IsReadOnly: readOnly})
 	}
 
 	return errors.MakeError("Missing entry at "+reference, "open")

@@ -40,4 +40,5 @@ func init() {
 
 	Root.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
 	Copy.Flags().StringP("field", "f", DEFAULT_FIELD, "field whose value will be copied")
+	Open.Flags().Bool("read-only", false, "open "+info.NAME+" in read-only mode")
 }

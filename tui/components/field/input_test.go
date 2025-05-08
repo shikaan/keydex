@@ -310,6 +310,7 @@ func TestInput_HandleEvent(t *testing.T) {
 		name        string
 		content     string
 		hasFocus    bool
+		disabled    bool
 		x, y        int
 		event       tcell.Event
 		wantHandled bool
@@ -532,11 +533,63 @@ func TestInput_HandleEvent(t *testing.T) {
 			wantY:       1,
 			wantCells:   [][]rune{{'a', 'b', 'c'}, {'d'}},
 		},
+		{
+			name:        "disabled input (rune)",
+			content:     "abc",
+			hasFocus:    true,
+			disabled:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyRune, 'd', 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c'}},
+		},
+		{
+			name:        "disabled input (delete)",
+			content:     "abc",
+			hasFocus:    true,
+			disabled:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyDelete, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c'}},
+		},
+		{
+			name:        "disabled input (enter)",
+			content:     "abc",
+			hasFocus:    true,
+			disabled:    true,
+			x:           3,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyEnter, 0, 0),
+			wantHandled: true,
+			wantX:       3,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c'}},
+		},
+		{
+			name:        "disabled input (backspace)",
+			content:     "abc",
+			hasFocus:    true,
+			disabled:    true,
+			x:           1,
+			y:           0,
+			event:       tcell.NewEventKey(tcell.KeyBackspace, 0, 0),
+			wantHandled: true,
+			wantX:       1,
+			wantY:       0,
+			wantCells:   [][]rune{{'a', 'b', 'c'}},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := NewInput(&InputOptions{})
+			i := NewInput(&InputOptions{Disabled: tt.disabled})
 			i.SetFocus(tt.hasFocus)
 			i.SetContent(tt.content)
 			i.SetCursor(tt.x, tt.y)
