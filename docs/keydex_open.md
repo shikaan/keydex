@@ -42,7 +42,8 @@ keydex open [file] [reference] [flags]
 ### Options
 
 ```
-  -h, --help   help for open
+  -h, --help        help for open
+      --read-only   open keydex in read-only mode
 ```
 
 ### Options inherited from parent commands
