@@ -136,9 +136,12 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 		return true
 	})
 
-	f.OnKeyPress(func(ev *tcell.EventKey) bool {
+	f.OnChange(func(ev tcell.Event) bool {
 		App.State.HasUnsavedChanges = true
+		return false
+	})
 
+	f.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Name() == "Ctrl+C" {
 			clipboard.Write(string(f.GetContent()))
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard.", label))
