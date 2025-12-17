@@ -14,7 +14,7 @@ import (
 const welcomeBanner = `
     +--------------------------------------------------+
     | Welcome to ` + info.NAME + `!                               |
-    |                                                  |  
+    |                                                  |
     |   Press Ctrl+P to start browsing the database.   |
     +--------------------------------------------------+`
 
@@ -36,24 +36,26 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 
 ` + caser.String(info.NAME) + ` Help Text
 
-` + caser.String(info.NAME) + ` is designed to be a simple, easy-to-use, terminal-based password manager for the KeePass (https://keepass.info/) database format. The user interface is highly inspired to GNU Nano (https://www.nano-editor.org/).
+` + caser.String(info.NAME) + ` is designed to be a an easy-to-use, terminal-based password manager
+for the KeePass (https://keepass.info/) database format. The user interface
+is highly inspired to GNU Nano (https://www.nano-editor.org/).
 
-The top line displays the current version and contextual information about the current view. At the bottom there are three lines: the two at the bottom are a list of available commands, the third is a notification line - used to report informational messages.
+The top line displays the current version and contextual information about
+the current view. At the bottom there are three lines: the two at the
+bottom are a list of available commands, the third is a notification line
+for informational messages.
 
-All the commands - except for navigation - are issued by pressing a combination of Ctrl and another letter. We use the caret (^) symbol to indicate Ctrl. For example, ^C means Ctrl+C.
+All the commands - except for navigation - are issued by pressing a
+combination of Ctrl and another letter. We use the caret (^) symbol to
+indicate Ctrl. For example, ^C means Ctrl+C.
 
 The following functions are available in ` + info.NAME + `:
 
 ^X    Closes the application. Asks for confirmation with unsaved changes.
-
 ^P    Opens a fuzzy finder to open other entries in the database.
-
 ^O    Saves current state to the opened file.
-
 ^C    If a field is focused, copies the content to the clipboard.
-
-^R    Reveals hidden fields such as password.
-
+^R    Reveals hidden fields such as passwords.
 ^G    Opens this help.
 
 End of help.
