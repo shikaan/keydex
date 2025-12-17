@@ -1,8 +1,6 @@
 module github.com/shikaan/keydex
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.25.5
 
 require (
 	github.com/atotto/clipboard v0.1.4
@@ -12,7 +10,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/tobischo/gokeepasslib/v3 v3.6.1
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/term v0.27.0
+	golang.org/x/term v0.38.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -29,7 +27,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/text v0.32.0
 )
