@@ -46,6 +46,11 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
+			if App.State.HasUnsavedChanges {
+				App.Notify("Operation cancelled. Updates were not saved.")
+				App.State.HasUnsavedChanges = false
+			}
+
 			App.NavigateTo(NewHomeView)
 			return true
 		}
