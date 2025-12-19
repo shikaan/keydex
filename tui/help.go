@@ -51,10 +51,10 @@ indicate Ctrl. For example, ^C means Ctrl+C.
 
 The following functions are available in ` + info.NAME + `:
 
-^X    Closes the application. Asks for confirmation with unsaved changes.
-^P    Opens a fuzzy finder to open other entries in the database.
+^X    Closes the application.
+^P    Opens a fuzzy finder to search for entries in the database.
 ^O    Saves current state to the opened file.
-^C    If a field is focused, copies the content to the clipboard.
+^C    Copies current field's content to the clipboard.
 ^R    Reveals hidden fields such as passwords.
 ^G    Opens this help.
 
