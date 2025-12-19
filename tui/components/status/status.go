@@ -130,7 +130,7 @@ func newLine(blocks ...string) views.Widget {
 
 		spaceIndex := runewidth.StringWidth(strings.Split(block, " ")[0])
 
-		for i := 0; i < spaceIndex; i++ {
+		for i := range spaceIndex {
 			blockElement.SetStyleAt(i, tcell.StyleDefault.Reverse(true))
 		}
 

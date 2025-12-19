@@ -53,7 +53,7 @@ func (t *Text) SetContent(content string) {
 	t.Init(m.pad)
 
 	result := [][]rune{}
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		result = append(result, chunk(line, m.width, m.pad)...)
 	}
 
