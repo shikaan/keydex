@@ -36,7 +36,7 @@ func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 	return group
 }
 
-func makeDatabase(filename string, groups ...gokeepasslib.Group) *Database {
+func makeDatabase(_ string, groups ...gokeepasslib.Group) *Database {
 	gdb := gokeepasslib.NewDatabase()
 	db := &Database{os.File{}, *gdb}
 	gdb.Content.Root.Groups = groups
@@ -167,4 +167,136 @@ func TestDatabase_Save(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDatabase_NewEntry(t *testing.T) {
+	db := makeDatabase("test.kdbx")
+
+	entry := db.NewEntry()
+
+	if entry == nil {
+		t.Fatal("Database.NewEntry() returned nil")
+	}
+
+	// Check that title field exists and has expected value
+	title := entry.GetTitle()
+	if title != "New" {
+		t.Errorf("Database.NewEntry() title = %v, want %v", title, "New")
+	}
+
+	// Check that username field exists and has expected value
+	username := entry.Get(USERNAME_KEY)
+	if username == nil {
+		t.Fatal("Database.NewEntry() username field not found")
+	}
+	if username.Value.Content != "user" {
+		t.Errorf("Database.NewEntry() username = %v, want %v", username.Value.Content, "user")
+	}
+
+	// Check that password field exists
+	password := entry.Get(PASSWORD_KEY)
+	if password == nil {
+		t.Fatal("Database.NewEntry() password field not found")
+	}
+
+	// Check that password is protected
+	if !password.Value.Protected.Bool {
+		t.Error("Database.NewEntry() password is not protected")
+	}
+
+	// Check that password is not empty
+	if password.Value.Content == "" {
+		t.Error("Database.NewEntry() password is empty")
+	}
+
+	// Check that password is not the fallback value
+	if password.Value.Content == "change-me" {
+		t.Error("Database.NewEntry() password generation failed, got fallback value")
+	}
+}
+
+func TestDatabase_GetGroupForEntry(t *testing.T) {
+	entry1 := makeEntry("entry1")
+	entry2 := makeEntry("entry2")
+	entry3 := makeEntry("entry3")
+
+	group1 := makeGroup("Group1", entry1)
+	group2 := makeGroup("Group2", entry2)
+	nestedGroup := makeGroup("NestedGroup", entry3)
+	group1.Groups = append(group1.Groups, nestedGroup)
+
+	db := makeDatabase("test.kdbx", group1, group2)
+
+	tests := []struct {
+		name      string
+		entry     *Entry
+		wantGroup string
+	}{
+		{"finds group for entry in top level group", &entry1, "Group1"},
+		{"finds group for entry in different top level group", &entry2, "Group2"},
+		{"finds group for entry in nested group", &entry3, "NestedGroup"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotGroup := db.GetGroupForEntry(tt.entry)
+			if gotGroup == nil {
+				t.Fatalf("Database.GetGroupForEntry() returned nil")
+			}
+			if gotGroup.Name != tt.wantGroup {
+				t.Errorf("Database.GetGroupForEntry() group name = %v, want %v", gotGroup.Name, tt.wantGroup)
+			}
+		})
+	}
+
+	t.Run("returns nil for non-existent entry", func(t *testing.T) {
+		nonExistentEntry := makeEntry("nonexistent")
+		gotGroup := db.GetGroupForEntry(&nonExistentEntry)
+		if gotGroup != nil {
+			t.Errorf("Database.GetGroupForEntry() expected nil for non-existent entry, got %v", gotGroup)
+		}
+	})
+}
+
+func TestDatabase_GetEntryPath(t *testing.T) {
+	entry1 := makeEntry("Entry1")
+	entry2 := makeEntry("Entry2")
+	entry3 := makeEntry("Entry3")
+	entry4 := makeEntry("Entry4")
+
+	group1 := makeGroup("Group1", entry1)
+	group2 := makeGroup("Group2", entry2)
+	nestedGroup := makeGroup("NestedGroup", entry3)
+	group1.Groups = append(group1.Groups, nestedGroup)
+
+	db := makeDatabase("test.kdbx", group1, group2)
+
+	tests := []struct {
+		name     string
+		group    *Group
+		entry    *Entry
+		wantPath string
+	}{
+		{"gets path for entry in top level group", &group1, &entry1, "/Group1/Entry1"},
+		{"gets path for entry in different top level group", &group2, &entry2, "/Group2/Entry2"},
+		{"gets path for entry in nested group", &nestedGroup, &entry3, "/Group1/NestedGroup/Entry3"},
+		{"gets path for entry in no groups", &nestedGroup, &entry4, "/Group1/NestedGroup/Entry4"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPath := db.GetEntryPath(tt.group, tt.entry)
+			if gotPath != tt.wantPath {
+				t.Errorf("Database.GetEntryPath() = %v, want %v", gotPath, tt.wantPath)
+			}
+		})
+	}
+
+	t.Run("returns UNKNOWN for non-existent group", func(t *testing.T) {
+		nonExistentGroup := makeGroup("NonExistent")
+		gotPath := db.GetEntryPath(&nonExistentGroup, &entry1)
+		if gotPath != "(UNKNOWN)" {
+			t.Errorf("Database.GetEntryPath() expected (UNKNOWN) for non-existent group, got %v", gotPath)
+		}
+	})
 }

@@ -31,6 +31,15 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			App.NavigateTo(NewHelpView)
 			return true
 		}
+		if ev.Name() == "Ctrl+N" {
+			if App.State.IsReadOnly {
+				App.Notify("Could not create. Archive in read-only mode.")
+				return true
+			}
+			App.CreateEmptyEntry()
+			App.NavigateTo(NewHomeView)
+			return true
+		}
 		if ev.Name() == "Ctrl+C" {
 			handled := v.Panel.HandleEvent(ev)
 

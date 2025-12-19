@@ -1,11 +1,14 @@
 package kdbx
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"os"
 	"strings"
 
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
+	"github.com/tobischo/gokeepasslib/v3/wrappers"
 )
 
 type Database struct {
@@ -15,6 +18,7 @@ type Database struct {
 }
 
 type Entry = gokeepasslib.Entry
+type Group = gokeepasslib.Group
 type EntryField = gokeepasslib.ValueData
 type UUID = gokeepasslib.UUID
 
@@ -22,7 +26,10 @@ type UUID = gokeepasslib.UUID
 type EntryPath = string
 
 const PATH_SEPARATOR = "/"
+
 const TITLE_KEY = "Title"
+const PASSWORD_KEY = "Password"
+const USERNAME_KEY = "UserName"
 
 func New(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
@@ -89,6 +96,69 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 	return nil
 }
 
+func (d *Database) GetEntryPath(group *Group, entry *Entry) EntryPath {
+	for _, path := range d.getGroupPaths() {
+		if path.uuid.Compare(group.UUID) {
+			return path.path + entry.GetTitle()
+		}
+	}
+
+	return "(UNKNOWN)"
+}
+
+func newTextValue(key string, value string) gokeepasslib.ValueData {
+	return gokeepasslib.ValueData{
+		Key:   key,
+		Value: gokeepasslib.V{Content: value},
+	}
+}
+
+func newPasswordValue(password string) gokeepasslib.ValueData {
+	return gokeepasslib.ValueData{
+		Key:   PASSWORD_KEY,
+		Value: gokeepasslib.V{Content: password, Protected: wrappers.NewBoolWrapper(true)},
+	}
+}
+
+func (d *Database) NewEntry() *Entry {
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(entry.Values, newTextValue(TITLE_KEY, "New"))
+	entry.Values = append(entry.Values, newTextValue(USERNAME_KEY, "user"))
+	entry.Values = append(entry.Values, newPasswordValue(generateRandomString(16)))
+	return &entry
+}
+
+func (d *Database) findGroup(cmp func(*Group) bool) *Group {
+	groups := []Group{}
+	groups = append(groups, d.Content.Root.Groups...)
+
+	for len(groups) > 0 {
+		group := groups[len(groups)-1]
+		if cmp(&group) {
+			return &group
+		}
+		groups = groups[:len(groups)-1]
+		groups = append(groups, group.Groups...)
+	}
+
+	return nil
+}
+
+func (d *Database) GetGroupForEntry(entry *Entry) *Group {
+	return d.findGroup(func(group *Group) bool {
+		for _, e := range group.Entries {
+			if entry.UUID.Compare(e.UUID) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func (d *Database) GetRootGroup() *Group {
+	return &d.Content.Root.Groups[0]
+}
+
 func (d *Database) Save() error {
 	if err := d.Database.LockProtectedEntries(); err != nil {
 		return errors.MakeError(err.Error(), "kdbx")
@@ -127,6 +197,16 @@ func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
 	return result
 }
 
+func (d *Database) getGroupPaths() []uniqueEntryPath {
+	result := []uniqueEntryPath{}
+
+	for _, g := range d.Content.Root.Groups {
+		result = append(result, getGroupPathsFromGroup(g, PATH_SEPARATOR)...)
+	}
+
+	return result
+}
+
 // Decodes and unlocks a database whose credentials are known.
 // Use UnlockWith* methods to store credentials
 func (d *Database) unlock() error {
@@ -144,7 +224,7 @@ func (d *Database) unlock() error {
 	return nil
 }
 
-func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPath {
+func getEntryPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
 	groupPrefix := prefix + g.Name + PATH_SEPARATOR
 	entries := []uniqueEntryPath{}
 
@@ -167,7 +247,21 @@ func getEntryPathsFromGroup(g gokeepasslib.Group, prefix string) []uniqueEntryPa
 	return entries
 }
 
-func getEntryByUUID(g gokeepasslib.Group, uuid gokeepasslib.UUID) *Entry {
+func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
+	groupPrefix := prefix + g.Name + PATH_SEPARATOR
+	paths := []uniqueEntryPath{}
+
+	paths = append(paths, uniqueEntryPath{path: groupPrefix, uuid: g.UUID})
+
+	for _, subGroup := range g.Groups {
+		subPaths := getGroupPathsFromGroup(subGroup, groupPrefix)
+		paths = append(paths, subPaths...)
+	}
+
+	return paths
+}
+
+func getEntryByUUID(g Group, uuid gokeepasslib.UUID) *Entry {
 	for _, e := range g.Entries {
 		if e.UUID.Compare(uuid) {
 			return &e
@@ -185,4 +279,13 @@ func getEntryByUUID(g gokeepasslib.Group, uuid gokeepasslib.UUID) *Entry {
 
 func sanitizePathPortion(s string) string {
 	return strings.ReplaceAll(s, PATH_SEPARATOR, "")
+}
+
+func generateRandomString(length uint) string {
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "change-me"
+	}
+	return base64.RawStdEncoding.EncodeToString(b)
 }

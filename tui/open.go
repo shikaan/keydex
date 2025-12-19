@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -27,44 +28,78 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+O" {
 			if App.State.IsReadOnly {
-				App.Notify("Could not save: archive in read-only mode.")
-				log.Info("Could not save: archive in read-only mode.")
+				msg := "Could not save. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
 				return true
 			}
 
 			uuid := App.State.Entry.UUID
-			entry := App.State.Database.GetEntry(uuid)
+			existingEntry := App.State.Database.GetEntry(uuid)
 
-			if entry == nil {
-				App.Notify("Could not find entry at " + App.State.Reference + ".")
-				log.Info("Could not find entry at " + App.State.Reference + ".")
-				return true
-			}
-
-			App.Confirm(
-				"Are you sure?",
-				func() {
-					for i, vd := range entry.Values {
-						if field, ok := v.fieldByKey[vd.Key]; ok {
-							entry.Values[i].Value.Content = string(field.GetContent())
-						}
-					}
+			if existingEntry == nil {
+				App.Confirm("Do you want to create \""+App.State.Entry.GetTitle()+"\"?", func() {
+					group, entry := App.State.Group, App.State.Entry
+					group.Entries = append(group.Entries, *entry)
 
 					if e := App.State.Database.Save(); e != nil {
-						log.Error("Could not save. See logs for error.", e)
-						App.Notify("Could not save. See logs for error.")
+						msg := "Could not save. See logs for error."
+						log.Error(msg, e)
+						App.Notify(msg)
 						return
 					}
 
 					// Unlocking again to allow further modifications
 					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
 						App.State.IsReadOnly = true
-						App.Notify("Could not save. Switching to read-only to not corrupt data.")
-						log.Error("Could not save. Switching to read-only to not corrupt data.", e)
+						msg := "Could not save. Switching to read-only to not corrupt data."
+						App.Notify(msg)
+						log.Error(msg, e)
 						return
 					}
 
-					App.Notify(fmt.Sprintf("Entry \"%s\" saved succesfully.", entry.GetTitle()))
+					msg := fmt.Sprintf("Entry \"%s\" created succesfully.", entry.GetTitle())
+					App.Notify(msg)
+					log.Info(msg)
+					App.State.HasUnsavedChanges = false
+				}, func() {
+					msg := "Operation cancelled. Entry was not created."
+					App.Notify(msg)
+					log.Info(msg)
+				})
+				return true
+			}
+
+			App.Confirm(
+				"Are you sure?",
+				func() {
+					for i, vd := range existingEntry.Values {
+						if field, ok := v.fieldByKey[vd.Key]; ok {
+							existingEntry.Values[i].Value.Content = string(field.GetContent())
+						}
+					}
+
+					existingEntry.Times.LastModificationTime.Time = time.Now()
+
+					if e := App.State.Database.Save(); e != nil {
+						msg := "Could not save. See logs for error."
+						App.Notify(msg)
+						log.Error(msg, e)
+						return
+					}
+
+					// Unlocking again to allow further modifications
+					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
+						App.State.IsReadOnly = true
+						msg := "Could not save. Switching to read-only to not corrupt data."
+						App.Notify(msg)
+						log.Error(msg, e)
+						return
+					}
+
+					msg := fmt.Sprintf("Entry \"%s\" saved succesfully.", existingEntry.GetTitle())
+					App.Notify(msg)
+					log.Info(msg)
 					App.State.HasUnsavedChanges = false
 				}, func() {
 					App.Notify("Operation cancelled. Entry was not saved.")
@@ -86,7 +121,7 @@ func NewHomeView(screen tcell.Screen) views.Widget {
 	view := &HomeView{}
 	view.Container = *components.NewContainer(screen)
 
-	form, fieldMap := view.newForm(screen, App.State)
+	form, fieldMap := view.newForm(screen, App.State.Entry, App.State.Group)
 	view.fieldByKey = fieldMap
 
 	view.SetContent(form)
@@ -95,11 +130,11 @@ func NewHomeView(screen tcell.Screen) views.Widget {
 	return view
 }
 
-func (view *HomeView) newForm(_ tcell.Screen, props State) (*components.Form, fieldMap) {
+func (view *HomeView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Group) (*components.Form, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
-	for _, f := range props.Entry.Values {
+	for _, f := range entry.Values {
 		if field := view.newEntryField(f.Key, f.Value.Content, f.Value.Protected.Bool); field != nil {
 			form.AddWidget(field, 0)
 			// Using f.Value as binding key (for example, is we just used props.reference)
@@ -108,6 +143,20 @@ func (view *HomeView) newForm(_ tcell.Screen, props State) (*components.Form, fi
 			fields[f.Key] = field
 		}
 	}
+
+	spacer := &views.Spacer{}
+	form.AddWidget(spacer, 1)
+
+	groupField := view.newMetaField("Group", "  "+group.Name)
+	form.AddWidget(groupField, 0)
+
+	createdAt := entry.Times.CreationTime.Time.Format(time.DateTime)
+	created := view.newMetaField("Created", createdAt)
+	form.AddWidget(created, 0)
+
+	updatedAt := entry.Times.LastModificationTime.Time.Format(time.DateTime)
+	updated := view.newMetaField("Updated", updatedAt)
+	form.AddWidget(updated, 0)
 
 	fs := form.Focusables()
 	if len(fs) > 0 {
@@ -170,4 +219,11 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 	})
 
 	return f
+}
+
+func (view *HomeView) newMetaField(label, value string) *views.Text {
+	field := views.NewText()
+	field.SetStyle(tcell.StyleDefault.Normal().Dim(true))
+	field.SetText(label + ": " + value)
+	return field
 }
