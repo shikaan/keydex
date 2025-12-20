@@ -128,35 +128,36 @@ func (d *Database) NewEntry() *Entry {
 	return &entry
 }
 
-func (d *Database) findGroup(cmp func(*Group) bool) *Group {
-	groups := []Group{}
-	groups = append(groups, d.Content.Root.Groups...)
-
-	for len(groups) > 0 {
-		group := groups[len(groups)-1]
-		if cmp(&group) {
-			return &group
+func (d *Database) getGroupForEntry(entry *Entry, group *Group) *Group {
+	for _, e := range group.Entries {
+		if e.UUID.Compare(entry.UUID) {
+			return group
 		}
-		groups = groups[:len(groups)-1]
-		groups = append(groups, group.Groups...)
+	}
+
+	for _, g := range group.Groups {
+		if result := d.getGroupForEntry(entry, &g); result != nil {
+			return result
+		}
 	}
 
 	return nil
 }
 
 func (d *Database) GetGroupForEntry(entry *Entry) *Group {
-	return d.findGroup(func(group *Group) bool {
-		for _, e := range group.Entries {
-			if entry.UUID.Compare(e.UUID) {
-				return true
-			}
+	for _, g := range d.Content.Root.Groups {
+		if result := d.getGroupForEntry(entry, &g); result != nil {
+			return result
 		}
-		return false
-	})
+	}
+	return nil
 }
 
 func (d *Database) GetRootGroup() *Group {
-	return &d.Content.Root.Groups[0]
+	if len(d.Content.Root.Groups) > 0 {
+		return &d.Content.Root.Groups[0]
+	}
+	return nil
 }
 
 func (d *Database) Save() error {
