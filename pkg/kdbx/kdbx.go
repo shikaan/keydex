@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/shikaan/keydex/pkg/errors"
@@ -88,13 +89,26 @@ func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
 
 // Returns an entry by its UUID
 func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
-	for _, g := range d.Content.Root.Groups {
-		if e := getEntryByUUID(g, uuid); e != nil {
+	for i := range d.Content.Root.Groups {
+		if e, _ := getEntryByUUID(&d.Content.Root.Groups[i], uuid); e != nil {
 			return e
 		}
 	}
 
 	return nil
+}
+
+func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
+	for i := range d.Content.Root.Groups {
+		if entry, subGroup := getEntryByUUID(&d.Content.Root.Groups[i], uuid); subGroup != nil {
+			subGroup.Entries = slices.DeleteFunc(subGroup.Entries, func(e Entry) bool {
+				return e.UUID.Compare(entry.UUID)
+			})
+			return nil
+		}
+	}
+
+	return errors.MakeError("entry not found", "kdbx")
 }
 
 // Builds the full path for an entry within the specified group.
@@ -137,9 +151,9 @@ func (d *Database) getGroupForEntry(entry *Entry, group *Group) *Group {
 		}
 	}
 
-	for _, g := range group.Groups {
-		if result := d.getGroupForEntry(entry, &g); result != nil {
-			return result
+	for i := range group.Groups {
+		if g := d.getGroupForEntry(entry, &group.Groups[i]); g != nil {
+			return g
 		}
 	}
 
@@ -147,9 +161,9 @@ func (d *Database) getGroupForEntry(entry *Entry, group *Group) *Group {
 }
 
 func (d *Database) GetGroupForEntry(entry *Entry) *Group {
-	for _, g := range d.Content.Root.Groups {
-		if result := d.getGroupForEntry(entry, &g); result != nil {
-			return result
+	for i := range d.Content.Root.Groups {
+		if g := d.getGroupForEntry(entry, &d.Content.Root.Groups[i]); g != nil {
+			return g
 		}
 	}
 	return nil
@@ -264,20 +278,20 @@ func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
 	return paths
 }
 
-func getEntryByUUID(g Group, uuid gokeepasslib.UUID) *Entry {
-	for _, e := range g.Entries {
-		if e.UUID.Compare(uuid) {
-			return &e
+func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
+	for i := range g.Entries {
+		if g.Entries[i].UUID.Compare(uuid) {
+			return &g.Entries[i], g
 		}
 	}
 
-	for _, gs := range g.Groups {
-		if e := getEntryByUUID(gs, uuid); e != nil {
-			return e
+	for i := range g.Groups {
+		if e, foundGroup := getEntryByUUID(&g.Groups[i], uuid); e != nil {
+			return e, foundGroup
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func sanitizePathPortion(s string) string {

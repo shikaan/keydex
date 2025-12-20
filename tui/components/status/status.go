@@ -86,8 +86,8 @@ func NewStatus() *Status {
 	// Prevents jumps on the first render
 	status.notification.SetCenter(EMPTY_NOTIFICATION, tcell.StyleDefault)
 
-	status.helpLines[0] = newLine("^O Save     ", "^P  Browse  ", "^C Copy     ", "^N New Entry")
-	status.helpLines[1] = newLine("^X Exit     ", "ESC Cancel  ", "^R Reveal   ", "^G Help     ")
+	status.helpLines[0] = newLine("^O Save     ", "^P  Browse  ", "^C Copy     ", "^N New Entry", "            ")
+	status.helpLines[1] = newLine("^X Exit     ", "ESC Cancel  ", "^R Reveal   ", "^D Del Entry", "^G Help     ")
 
 	status.prompt = newPrompt()
 	status.prompt.OnKeyPress(func(ev *tcell.EventKey) bool {

@@ -23,6 +23,34 @@ type HomeView struct {
 	components.Container
 }
 
+func (v *HomeView) writeEntry(entry *kdbx.Entry) {
+	for i, vd := range entry.Values {
+		if field, ok := v.fieldByKey[vd.Key]; ok {
+			entry.Values[i].Value.Content = string(field.GetContent())
+		}
+	}
+
+	entry.Times.LastModificationTime.Time = time.Now()
+}
+
+func (v *HomeView) writeDatabase() {
+	if e := App.State.Database.Save(); e != nil {
+		msg := "Could not save. See logs for error."
+		App.Notify(msg)
+		log.Error(msg, e)
+		return
+	}
+
+	// Unlocking again to allow further modifications
+	if e := App.State.Database.UnlockProtectedEntries(); e != nil {
+		App.State.IsReadOnly = true
+		msg := "Could not save. Switching to read-only to not corrupt data."
+		App.Notify(msg)
+		log.Error(msg, e)
+		return
+	}
+}
+
 func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
@@ -38,72 +66,90 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 			existingEntry := App.State.Database.GetEntry(uuid)
 
 			if existingEntry == nil {
-				App.Confirm("Do you want to create \""+App.State.Entry.GetTitle()+"\"?", func() {
-					group, entry := App.State.Group, App.State.Entry
-					group.Entries = append(group.Entries, *entry)
+				App.Confirm(
+					"Do you want to create \""+App.State.Entry.GetTitle()+"\"?",
+					func() {
+						group, entry := App.State.Group, App.State.Entry
 
-					if e := App.State.Database.Save(); e != nil {
-						msg := "Could not save. See logs for error."
-						log.Error(msg, e)
+						v.writeEntry(entry)
+
+						group.Entries = append(group.Entries, *entry)
+
+						v.writeDatabase()
+
+						msg := fmt.Sprintf("Entry \"%s\" created successfully.", entry.GetTitle())
 						App.Notify(msg)
-						return
-					}
-
-					// Unlocking again to allow further modifications
-					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
+						log.Info(msg)
+						App.State.HasUnsavedChanges = false
+					}, func() {
+						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
-						log.Error(msg, e)
-						return
-					}
-
-					msg := fmt.Sprintf("Entry \"%s\" created successfully.", entry.GetTitle())
-					App.Notify(msg)
-					log.Info(msg)
-					App.State.HasUnsavedChanges = false
-				}, func() {
-					msg := "Operation cancelled. Entry was not created."
-					App.Notify(msg)
-					log.Info(msg)
-				})
+						log.Info(msg)
+					})
 				return true
 			}
 
 			App.Confirm(
 				"Are you sure?",
 				func() {
-					for i, vd := range existingEntry.Values {
-						if field, ok := v.fieldByKey[vd.Key]; ok {
-							existingEntry.Values[i].Value.Content = string(field.GetContent())
-						}
-					}
-
-					existingEntry.Times.LastModificationTime.Time = time.Now()
-
-					if e := App.State.Database.Save(); e != nil {
-						msg := "Could not save. See logs for error."
-						App.Notify(msg)
-						log.Error(msg, e)
-						return
-					}
-
-					// Unlocking again to allow further modifications
-					if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
-						return
-					}
+					v.writeEntry(existingEntry)
+					v.writeDatabase()
 
 					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", existingEntry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
 				}, func() {
-					App.Notify("Operation cancelled. Entry was not saved.")
-					log.Info("Operation cancelled. Entry was not saved.")
+					msg := "Operation cancelled. Entry was not saved."
+					App.Notify(msg)
+					log.Info(msg)
+				},
+			)
+		}
+
+		if ev.Name() == "Ctrl+D" {
+			if App.State.IsReadOnly {
+				msg := "Could not delete. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			uuid := App.State.Entry.UUID
+			existingEntry := App.State.Database.GetEntry(uuid)
+
+			if existingEntry == nil {
+				msg := "Could not find entry at " + App.State.Reference + "."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			App.Confirm(
+				"Are you sure you want to delete \""+App.State.Entry.GetTitle()+"\"?",
+				func() {
+					title := App.State.Entry.GetTitle()
+
+					err := App.State.Database.RemoveEntry(App.State.Entry.UUID)
+					if err != nil {
+						msg := "Could not delete. Entry cannot be found."
+						App.Notify(msg)
+						log.Error(msg, err)
+						return
+					}
+
+					v.writeDatabase()
+
+					msg := fmt.Sprintf("Entry \"%s\" deleted successfully.", title)
+					App.Notify(msg)
+					log.Info(msg)
+					App.State.HasUnsavedChanges = false
+
+					App.NavigateTo(NewListView)
+				}, func() {
+					msg := "Operation cancelled. Entry was not deleted."
+					App.Notify(msg)
+					log.Info(msg)
 				},
 			)
 		}

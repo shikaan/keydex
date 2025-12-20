@@ -300,3 +300,69 @@ func TestDatabase_GetEntryPath(t *testing.T) {
 		}
 	})
 }
+
+func TestDatabase_RemoveEntry(t *testing.T) {
+	t.Run("removes entry from top level group", func(t *testing.T) {
+		entry1 := makeEntry("entry1")
+		entry2 := makeEntry("entry2")
+		group := makeGroup("Group1", entry1, entry2)
+		db := makeDatabase("test.kdbx", group)
+
+		// Verify entry exists before removal
+		if len(db.Content.Root.Groups[0].Entries) != 2 {
+			t.Fatalf("Expected 2 entries before removal, got %d", len(db.Content.Root.Groups[0].Entries))
+		}
+
+		// Remove entry1
+		err := db.RemoveEntry(entry1.UUID)
+		if err != nil {
+			t.Fatalf("RemoveEntry() error = %v", err)
+		}
+
+		// Verify entry was actually removed
+		if len(db.Content.Root.Groups[0].Entries) != 1 {
+			t.Errorf("Expected 1 entry after removal, got %d", len(db.Content.Root.Groups[0].Entries))
+		}
+
+		// Verify the correct entry was removed
+		if db.Content.Root.Groups[0].Entries[0].UUID.Compare(entry1.UUID) {
+			t.Error("Removed wrong entry - entry1 still exists")
+		}
+		if !db.Content.Root.Groups[0].Entries[0].UUID.Compare(entry2.UUID) {
+			t.Error("entry2 should still exist")
+		}
+	})
+
+	t.Run("removes entry from nested group", func(t *testing.T) {
+		entry1 := makeEntry("entry1")
+		entry2 := makeEntry("entry2")
+		nestedGroup := makeGroup("NestedGroup", entry1, entry2)
+		topGroup := makeGroup("TopGroup")
+		topGroup.Groups = append(topGroup.Groups, nestedGroup)
+		db := makeDatabase("test.kdbx", topGroup)
+
+		// Remove entry from nested group
+		err := db.RemoveEntry(entry1.UUID)
+		if err != nil {
+			t.Fatalf("RemoveEntry() error = %v", err)
+		}
+
+		// Verify entry was removed from nested group
+		if len(db.Content.Root.Groups[0].Groups[0].Entries) != 1 {
+			t.Errorf("Expected 1 entry in nested group after removal, got %d", len(db.Content.Root.Groups[0].Groups[0].Entries))
+		}
+	})
+
+	t.Run("returns error for non-existent entry", func(t *testing.T) {
+		entry := makeEntry("entry1")
+		group := makeGroup("Group1", entry)
+		db := makeDatabase("test.kdbx", group)
+
+		// Try to remove non-existent entry
+		nonExistentUUID := gokeepasslib.NewUUID()
+		err := db.RemoveEntry(nonExistentUUID)
+		if err == nil {
+			t.Error("Expected error when removing non-existent entry, got nil")
+		}
+	})
+}
