@@ -36,7 +36,7 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 
 ` + caser.String(info.NAME) + ` Help Text
 
-` + caser.String(info.NAME) + ` is designed to be a an easy-to-use, terminal-based password manager
+` + caser.String(info.NAME) + ` is designed to be an easy-to-use, terminal-based password manager
 for the KeePass (https://keepass.info/) database format. The user interface
 is highly inspired to GNU Nano (https://www.nano-editor.org/).
 

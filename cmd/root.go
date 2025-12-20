@@ -32,7 +32,7 @@ All the entries are referenced with a path-like reference string shaped like
 
 Internally all the entries are referenced by a UUID, however ` + info.NAME + ` will read
 the first occurrence of a reference in cases of conflicts. Writes are always
-done via UUID and they are threfore conflict-safe.
+done via UUID and they are therefore conflict-safe.
 
 Some commands use the system clipboard, in absence of which ` + info.NAME + ` will fail.`,
 	Run: func(cmd *cobra.Command, args []string) {

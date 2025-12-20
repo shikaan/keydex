@@ -58,7 +58,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 						return
 					}
 
-					msg := fmt.Sprintf("Entry \"%s\" created succesfully.", entry.GetTitle())
+					msg := fmt.Sprintf("Entry \"%s\" created successfully.", entry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
@@ -97,7 +97,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 						return
 					}
 
-					msg := fmt.Sprintf("Entry \"%s\" saved succesfully.", existingEntry.GetTitle())
+					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", existingEntry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
