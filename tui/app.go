@@ -68,7 +68,7 @@ func (a *Application) Quit() {
 	a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
 }
 
-func (a *Application) CreateEmptyEntry() {
+func (a *Application) CreateEmptyEntry() error {
 	entry := a.State.Database.NewEntry()
 	a.State.Entry = entry
 
@@ -76,7 +76,13 @@ func (a *Application) CreateEmptyEntry() {
 		a.State.Group = a.State.Database.GetRootGroup()
 	}
 
-	a.State.Reference = a.State.Database.GetEntryPath(a.State.Group, entry)
+	path, err := a.State.Database.MakeEntryPath(entry, a.State.Group)
+	if err != nil {
+		return err
+	}
+
+	a.State.Reference = path
+	return nil
 }
 
 var App = &Application{}

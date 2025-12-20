@@ -36,7 +36,13 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				App.Notify("Could not create. Archive in read-only mode.")
 				return true
 			}
-			App.CreateEmptyEntry()
+			err := App.CreateEmptyEntry()
+
+			if err != nil {
+				App.Notify("Could not create. Check logs for details.")
+				return true
+			}
+
 			App.NavigateTo(NewHomeView)
 			return true
 		}

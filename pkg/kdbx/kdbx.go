@@ -86,6 +86,7 @@ func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
 	return nil
 }
 
+// Returns an entry by its UUID
 func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 	for _, g := range d.Content.Root.Groups {
 		if e := getEntryByUUID(g, uuid); e != nil {
@@ -96,35 +97,36 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 	return nil
 }
 
-func (d *Database) GetEntryPath(group *Group, entry *Entry) EntryPath {
+// Builds the full path for an entry within the specified group.
+// Returns an error if the group is not found in the database.
+func (d *Database) MakeEntryPath(entry *Entry, group *Group) (EntryPath, error) {
 	for _, path := range d.getGroupPaths() {
 		if path.uuid.Compare(group.UUID) {
-			return path.path + entry.GetTitle()
+			return path.path + entry.GetTitle(), nil
 		}
 	}
 
-	return "(UNKNOWN)"
+	return "", errors.MakeError("cannot find group "+group.Name, "kdbx")
 }
 
-func newTextValue(key string, value string) gokeepasslib.ValueData {
-	return gokeepasslib.ValueData{
-		Key:   key,
-		Value: gokeepasslib.V{Content: value},
-	}
-}
-
-func newPasswordValue(password string) gokeepasslib.ValueData {
-	return gokeepasslib.ValueData{
-		Key:   PASSWORD_KEY,
-		Value: gokeepasslib.V{Content: password, Protected: wrappers.NewBoolWrapper(true)},
-	}
-}
-
+// Return a new Entry with default title, user, and a random password set
 func (d *Database) NewEntry() *Entry {
 	entry := gokeepasslib.NewEntry()
-	entry.Values = append(entry.Values, newTextValue(TITLE_KEY, "New"))
-	entry.Values = append(entry.Values, newTextValue(USERNAME_KEY, "user"))
-	entry.Values = append(entry.Values, newPasswordValue(generateRandomString(16)))
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   TITLE_KEY,
+		Value: gokeepasslib.V{Content: "New"},
+	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   USERNAME_KEY,
+		Value: gokeepasslib.V{Content: "user"},
+	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key: PASSWORD_KEY,
+		Value: gokeepasslib.V{
+			Content:   generateRandomString(16),
+			Protected: wrappers.NewBoolWrapper(true),
+		},
+	})
 	return &entry
 }
 
