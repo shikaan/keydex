@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -18,7 +19,7 @@ type Database struct {
 	gokeepasslib.Database
 }
 
-type Entry = gokeepasslib.Entry
+type Entry struct{ gokeepasslib.Entry }
 type Group = gokeepasslib.Group
 type EntryField = gokeepasslib.ValueData
 type UUID = gokeepasslib.UUID
@@ -74,6 +75,16 @@ func (d *Database) GetEntryPaths() []EntryPath {
 	return result
 }
 
+func (d *Database) GetGroupPaths() []EntryPath {
+	result := []EntryPath{}
+
+	for _, uEP := range d.getGroupPathsAndUUIDs() {
+		result = append(result, uEP.path)
+	}
+
+	return result
+}
+
 // Returns the first entry matching the entry path provided.
 // Note that the path might not be unique. Use the UUID method
 // when identifying a precise entry is necessary
@@ -81,6 +92,29 @@ func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
 	for _, uEP := range d.getEntryPathsAndUUIDs() {
 		if uEP.path == p {
 			return d.GetEntry(uEP.uuid)
+		}
+	}
+
+	return nil
+}
+
+// Returns the first group matching the entry path provided.
+// Note that the path might not be unique. Use the UUID method
+// when identifying a precise group is necessary
+func (d *Database) GetFirstGroupByPath(p EntryPath) *Group {
+	for _, uEP := range d.getGroupPathsAndUUIDs() {
+		if uEP.path == p {
+			return d.GetGroup(uEP.uuid)
+		}
+	}
+
+	return nil
+}
+
+func (d *Database) GetGroup(uuid gokeepasslib.UUID) *Group {
+	for i := range d.Content.Root.Groups {
+		if g := getGroupByUUID(&d.Content.Root.Groups[i], uuid); g != nil {
+			return g
 		}
 	}
 
@@ -101,7 +135,7 @@ func (d *Database) GetEntry(uuid gokeepasslib.UUID) *Entry {
 func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 	for i := range d.Content.Root.Groups {
 		if entry, subGroup := getEntryByUUID(&d.Content.Root.Groups[i], uuid); subGroup != nil {
-			subGroup.Entries = slices.DeleteFunc(subGroup.Entries, func(e Entry) bool {
+			subGroup.Entries = slices.DeleteFunc(subGroup.Entries, func(e gokeepasslib.Entry) bool {
 				return e.UUID.Compare(entry.UUID)
 			})
 			return nil
@@ -111,10 +145,30 @@ func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 	return errors.MakeError("entry not found", "kdbx")
 }
 
+func (d *Database) AddEntryToGroup(entry *Entry, group *Group) {
+	entryGroup := d.GetGroupForEntry(entry)
+
+	// Group is nil when this is a new entry, no need to move
+	if entryGroup == nil {
+		group.Entries = append(group.Entries, entry.Entry)
+		return
+	}
+
+	// If source and destination are the same, do nothing
+	if entryGroup.UUID.Compare(group.UUID) {
+		return
+	}
+
+	group.Entries = append(group.Entries, entry.Entry)
+	entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
+		return e.UUID.Compare(entry.UUID)
+	})
+}
+
 // Builds the full path for an entry within the specified group.
 // Returns an error if the group is not found in the database.
 func (d *Database) MakeEntryPath(entry *Entry, group *Group) (EntryPath, error) {
-	for _, path := range d.getGroupPaths() {
+	for _, path := range d.getGroupPathsAndUUIDs() {
 		if path.uuid.Compare(group.UUID) {
 			return path.path + entry.GetTitle(), nil
 		}
@@ -141,7 +195,7 @@ func (d *Database) NewEntry() *Entry {
 			Protected: wrappers.NewBoolWrapper(true),
 		},
 	})
-	return &entry
+	return &Entry{entry}
 }
 
 func (d *Database) getGroupForEntry(entry *Entry, group *Group) *Group {
@@ -214,7 +268,7 @@ func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
 	return result
 }
 
-func (d *Database) getGroupPaths() []uniqueEntryPath {
+func (d *Database) getGroupPathsAndUUIDs() []uniqueEntryPath {
 	result := []uniqueEntryPath{}
 
 	for _, g := range d.Content.Root.Groups {
@@ -281,7 +335,7 @@ func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
 func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
 	for i := range g.Entries {
 		if g.Entries[i].UUID.Compare(uuid) {
-			return &g.Entries[i], g
+			return &Entry{g.Entries[i]}, g
 		}
 	}
 
@@ -292,6 +346,20 @@ func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
 	}
 
 	return nil, nil
+}
+
+func getGroupByUUID(g *Group, uuid gokeepasslib.UUID) *Group {
+	if g.UUID.Compare(uuid) {
+		return g
+	}
+
+	for i := range g.Groups {
+		if group := getGroupByUUID(&g.Groups[i], uuid); group != nil {
+			return group
+		}
+	}
+
+	return nil
 }
 
 func sanitizePathPortion(s string) string {
@@ -305,4 +373,13 @@ func generateRandomString(length uint) string {
 		return "change-me"
 	}
 	return base64.RawStdEncoding.EncodeToString(b)
+}
+
+func (e *Entry) SetValue(key string, value string) {
+	v := e.Get(key)
+	v.Value.Content = value
+}
+
+func (e *Entry) SetLastUpdated() {
+	e.Times.LastModificationTime = &wrappers.TimeWrapper{Time: time.Now()}
 }

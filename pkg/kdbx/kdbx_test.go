@@ -4,6 +4,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/tobischo/gokeepasslib/v3"
 	"github.com/tobischo/gokeepasslib/v3/wrappers"
@@ -24,14 +25,18 @@ func makeEntry(title string) Entry {
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: title, Protected: wrappers.NewBoolWrapper(false)}})
 
-	return entry
+	return Entry{entry}
 }
 
 func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 	group := gokeepasslib.NewGroup()
 	group.Name = name
 
-	group.Entries = append(group.Entries, entries...)
+	var gkEntries []gokeepasslib.Entry
+	for _, e := range entries {
+		gkEntries = append(gkEntries, e.Entry)
+	}
+	group.Entries = append(group.Entries, gkEntries...)
 
 	return group
 }
@@ -365,4 +370,218 @@ func TestDatabase_RemoveEntry(t *testing.T) {
 			t.Error("Expected error when removing non-existent entry, got nil")
 		}
 	})
+}
+
+func TestDatabase_GetGroupPaths(t *testing.T) {
+	topLevelGroup := makeGroup("TopLevelGroup")
+	nestedGroup := makeGroup("NestedGroup")
+	deepNestedGroup := makeGroup("DeepNestedGroup")
+	nestedGroup.Groups = append(nestedGroup.Groups, deepNestedGroup)
+	topLevelGroup.Groups = append(topLevelGroup.Groups, nestedGroup)
+
+	db := makeDatabase("test.kdbx", topLevelGroup)
+	groupPaths := db.GetGroupPaths()
+
+	tests := []struct {
+		name      string
+		path      string
+		wantCount int
+	}{
+		{"top level group", "/TopLevelGroup/", 1},
+		{"nested group", "/TopLevelGroup/NestedGroup/", 1},
+		{"deep nested group", "/TopLevelGroup/NestedGroup/DeepNestedGroup/", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotCount := count(tt.path, groupPaths)
+			if gotCount != tt.wantCount {
+				t.Errorf("Database.GetGroupPaths(). Unexpected '%v', wantedCount %v got %v.", tt.path, tt.wantCount, gotCount)
+			}
+		})
+	}
+}
+
+func TestDatabase_GetFirstGroupByPath(t *testing.T) {
+	group1 := makeGroup("g")
+	group2 := makeGroup("g")
+
+	tests := []struct {
+		name      string
+		path      string
+		wantGroup *Group
+		db        *Database
+	}{
+		{"finds the first group", "/g/", &group1, makeDatabase("d", group1)},
+		{"finds the second group", "/g/", &group2, makeDatabase("d", group2)},
+		{"does not find the group", "/no/", nil, makeDatabase("d", group1)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotGroup := tt.db.GetFirstGroupByPath(tt.path)
+			if tt.wantGroup == nil && gotGroup != nil {
+				t.Errorf("Database.GetFirstGroupByPath() gotGroup = %v, want nil", gotGroup)
+			} else if tt.wantGroup != nil && gotGroup == nil {
+				t.Errorf("Database.GetFirstGroupByPath() gotGroup = nil, want non-nil")
+			} else if tt.wantGroup != nil && gotGroup != nil && gotGroup.Name != tt.wantGroup.Name {
+				t.Errorf("Database.GetFirstGroupByPath() gotGroup.Name = %v, want %v", gotGroup.Name, tt.wantGroup.Name)
+			}
+		})
+	}
+}
+
+func TestDatabase_GetGroup(t *testing.T) {
+	group1 := makeGroup("g1")
+	group2 := makeGroup("g2")
+	nestedGroup := makeGroup("nested")
+	group1.Groups = append(group1.Groups, nestedGroup)
+
+	db := makeDatabase("test.kdbx", group1, group2)
+
+	tests := []struct {
+		name      string
+		uuid      gokeepasslib.UUID
+		wantGroup string
+	}{
+		{"finds the first group", group1.UUID, "g1"},
+		{"finds the second group", group2.UUID, "g2"},
+		{"finds nested group", nestedGroup.UUID, "nested"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotGroup := db.GetGroup(tt.uuid)
+			if gotGroup == nil {
+				t.Fatal("Database.GetGroup() returned nil")
+			}
+			if gotGroup.Name != tt.wantGroup {
+				t.Errorf("Database.GetGroup() group name = %v, want %v", gotGroup.Name, tt.wantGroup)
+			}
+		})
+	}
+
+	t.Run("returns nil for non-existent group", func(t *testing.T) {
+		nonExistentUUID := gokeepasslib.NewUUID()
+		gotGroup := db.GetGroup(nonExistentUUID)
+		if gotGroup != nil {
+			t.Errorf("Database.GetGroup() expected nil for non-existent group, got %v", gotGroup)
+		}
+	})
+}
+
+func TestDatabase_AddEntryToGroup(t *testing.T) {
+	t.Run("adds new entry to group", func(t *testing.T) {
+		group := makeGroup("Group1")
+		db := makeDatabase("test.kdbx", group)
+		newEntry := makeEntry("NewEntry")
+
+		initialCount := len(db.Content.Root.Groups[0].Entries)
+		db.AddEntryToGroup(&newEntry, &db.Content.Root.Groups[0])
+
+		if len(db.Content.Root.Groups[0].Entries) != initialCount+1 {
+			t.Errorf("Expected %d entries after add, got %d", initialCount+1, len(db.Content.Root.Groups[0].Entries))
+		}
+	})
+
+	t.Run("moves entry from one group to another", func(t *testing.T) {
+		entry := makeEntry("entry1")
+		group1 := makeGroup("Group1", entry)
+		group2 := makeGroup("Group2")
+		db := makeDatabase("test.kdbx", group1, group2)
+
+		// Move entry from group1 to group2
+		db.AddEntryToGroup(&entry, &db.Content.Root.Groups[1])
+
+		// Verify entry was removed from group1
+		if len(db.Content.Root.Groups[0].Entries) != 0 {
+			t.Errorf("Expected 0 entries in group1 after move, got %d", len(db.Content.Root.Groups[0].Entries))
+		}
+
+		// Verify entry was added to group2
+		if len(db.Content.Root.Groups[1].Entries) != 1 {
+			t.Errorf("Expected 1 entry in group2 after move, got %d", len(db.Content.Root.Groups[1].Entries))
+		}
+	})
+
+	t.Run("does nothing when source and destination are same", func(t *testing.T) {
+		entry := makeEntry("entry1")
+		group := makeGroup("Group1", entry)
+		db := makeDatabase("test.kdbx", group)
+
+		initialCount := len(db.Content.Root.Groups[0].Entries)
+		db.AddEntryToGroup(&entry, &db.Content.Root.Groups[0])
+
+		if len(db.Content.Root.Groups[0].Entries) != initialCount {
+			t.Errorf("Expected %d entries (no change), got %d", initialCount, len(db.Content.Root.Groups[0].Entries))
+		}
+	})
+}
+
+func TestDatabase_GetRootGroup(t *testing.T) {
+	t.Run("returns first root group", func(t *testing.T) {
+		group1 := makeGroup("RootGroup1")
+		group2 := makeGroup("RootGroup2")
+		db := makeDatabase("test.kdbx", group1, group2)
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup == nil {
+			t.Fatal("GetRootGroup() returned nil")
+		}
+		if rootGroup.Name != "RootGroup1" {
+			t.Errorf("GetRootGroup() name = %v, want RootGroup1", rootGroup.Name)
+		}
+	})
+
+	t.Run("returns nil for database with no groups", func(t *testing.T) {
+		db := makeDatabase("test.kdbx")
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup != nil {
+			t.Errorf("GetRootGroup() expected nil for empty database, got %v", rootGroup)
+		}
+	})
+}
+
+func TestEntry_SetValue(t *testing.T) {
+	entry := makeEntry("TestEntry")
+
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   "CustomField",
+		Value: gokeepasslib.V{Content: "OldValue"},
+	})
+
+	t.Run("sets value for existing field", func(t *testing.T) {
+		entry.SetValue("CustomField", "NewValue")
+
+		field := entry.Get("CustomField")
+		if field == nil {
+			t.Fatal("Field not found after SetValue")
+		}
+		if field.Value.Content != "NewValue" {
+			t.Errorf("SetValue() value = %v, want NewValue", field.Value.Content)
+		}
+	})
+
+	t.Run("sets title value", func(t *testing.T) {
+		entry.SetValue(TITLE_KEY, "UpdatedTitle")
+
+		if entry.GetTitle() != "UpdatedTitle" {
+			t.Errorf("SetValue() title = %v, want UpdatedTitle", entry.GetTitle())
+		}
+	})
+}
+
+func TestEntry_SetLastUpdated(t *testing.T) {
+	entry := makeEntry("TestEntry")
+
+	// Set an initial time in the past
+	pastTime := time.Now().Add(-1 * time.Hour)
+	entry.Times.LastModificationTime = &wrappers.TimeWrapper{Time: pastTime}
+
+	entry.SetLastUpdated()
+
+	if !entry.Times.LastModificationTime.Time.After(pastTime) {
+		t.Error("SetLastUpdated() did not update the time to a more recent time")
+	}
 }

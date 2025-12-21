@@ -65,7 +65,11 @@ func (a *Application) Quit() {
 		return
 	}
 
-	a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
+	a.Confirm(
+		"Are you sure you want to quit and lose unsaved changes?",
+		func() { a.Application.Quit() },
+		nil,
+	)
 }
 
 func (a *Application) CreateEmptyEntry() error {

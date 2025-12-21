@@ -18,19 +18,19 @@ type fieldKey = string
 type fieldMap = map[fieldKey]*field.Field
 
 type HomeView struct {
-	fieldByKey fieldMap
-	form       *components.Form
+	fieldByKey   fieldMap
+	initialGroup *kdbx.Group
+	form         *components.Form
 	components.Container
 }
 
-func (v *HomeView) writeEntry(entry *kdbx.Entry) {
-	for i, vd := range entry.Values {
-		if field, ok := v.fieldByKey[vd.Key]; ok {
-			entry.Values[i].Value.Content = string(field.GetContent())
-		}
+func (v *HomeView) updateEntry(entry *kdbx.Entry) {
+	for key, field := range v.fieldByKey {
+		entry.SetValue(key, field.GetContent())
 	}
 
-	entry.Times.LastModificationTime.Time = time.Now()
+	entry.SetLastUpdated()
+	App.State.Database.AddEntryToGroup(entry, App.State.Group)
 }
 
 func (v *HomeView) writeDatabase() {
@@ -54,6 +54,11 @@ func (v *HomeView) writeDatabase() {
 func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
+		if ev.Name() == "Ctrl+K" {
+			App.NavigateTo(NewGroupsView)
+			return true
+		}
+
 		if ev.Name() == "Ctrl+O" {
 			if App.State.IsReadOnly {
 				msg := "Could not save. Archive in read-only mode."
@@ -69,15 +74,9 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 				App.Confirm(
 					"Do you want to create \""+App.State.Entry.GetTitle()+"\"?",
 					func() {
-						group, entry := App.State.Group, App.State.Entry
-
-						v.writeEntry(entry)
-
-						group.Entries = append(group.Entries, *entry)
-
+						v.updateEntry(App.State.Entry)
 						v.writeDatabase()
-
-						msg := fmt.Sprintf("Entry \"%s\" created successfully.", entry.GetTitle())
+						msg := fmt.Sprintf("Entry \"%s\" created successfully.", App.State.Entry.GetTitle())
 						App.Notify(msg)
 						log.Info(msg)
 						App.State.HasUnsavedChanges = false
@@ -92,10 +91,9 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 			App.Confirm(
 				"Are you sure?",
 				func() {
-					v.writeEntry(existingEntry)
+					v.updateEntry(existingEntry)
 					v.writeDatabase()
-
-					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", existingEntry.GetTitle())
+					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", App.State.Entry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
@@ -193,6 +191,7 @@ func (view *HomeView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gro
 	spacer := &views.Spacer{}
 	form.AddWidget(spacer, 1)
 
+	// The space is just for alignment
 	groupField := view.newMetaField("Group", "  "+group.Name)
 	form.AddWidget(groupField, 0)
 
