@@ -287,6 +287,7 @@ For reference, most of them are documented here.
 
 <details>
 <summary>copy</summary>
+
 **Requirements:**
 - Can copy password field
 - Can copy other fields
