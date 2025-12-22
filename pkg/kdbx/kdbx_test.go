@@ -585,3 +585,56 @@ func TestEntry_SetLastUpdated(t *testing.T) {
 		t.Error("SetLastUpdated() did not update the time to a more recent time")
 	}
 }
+
+func TestDatabase_NewGroup(t *testing.T) {
+	db := makeDatabase("test.kdbx")
+
+	tests := []struct {
+		name      string
+		groupName string
+	}{
+		{
+			name:      "creates group with simple name",
+			groupName: "TestGroup",
+		},
+		{
+			name:      "creates group with empty name",
+			groupName: "",
+		},
+		{
+			name:      "creates group with special characters",
+			groupName: "Test/Group-With_Special.Chars",
+		},
+		{
+			name:      "creates group with spaces",
+			groupName: "Test Group With Spaces",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			group := db.NewGroup(tt.groupName)
+
+			if group == nil {
+				t.Fatal("Database.NewGroup() returned nil")
+			}
+
+			// Check that the group has the correct name
+			if group.Name != tt.groupName {
+				t.Errorf("Database.NewGroup() name = %v, want %v", group.Name, tt.groupName)
+			}
+
+			if group.Times.CreationTime == nil {
+				t.Error("Database.NewGroup() group CreationTime is nil")
+			}
+
+			if group.Entries == nil {
+				t.Error("Database.NewGroup() group Entries slice is nil")
+			}
+
+			if group.Groups == nil {
+				t.Error("Database.NewGroup() group Groups slice is nil")
+			}
+		})
+	}
+}

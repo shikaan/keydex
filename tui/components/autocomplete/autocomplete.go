@@ -31,6 +31,9 @@ type AutoCompleteOptions struct {
 
 	OnSelect func(entry string) bool
 	OnFocus  func() bool
+
+	OnEmpty            func(input string) bool
+	FormatEmptyMessage func(input string) string
 }
 
 func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
@@ -88,9 +91,25 @@ func (ac *AutoComplete) drawList(entries []string) {
 	maxLineLength := ac.options.MaxX - 2
 
 	if len(entries) == 0 {
-		line := views.NewSimpleStyledText()
-		line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
-		container.AddWidget(line, 0)
+		if ac.options.OnEmpty == nil {
+			line := views.NewSimpleStyledText()
+			line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
+			container.AddWidget(line, 0)
+		} else {
+			input := ac.search.GetContent()
+			line := newOption()
+			line.SetContent(
+				runewidth.FillRight(
+					ac.options.FormatEmptyMessage(input),
+					ac.options.MaxX,
+				),
+			)
+			line.OnSelect(func() bool {
+				return ac.options.OnEmpty(input)
+			})
+			line.SetFocus(true)
+			container.AddWidget(line, 0)
+		}
 	}
 
 	for i, entry := range entries {

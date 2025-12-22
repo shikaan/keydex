@@ -198,6 +198,15 @@ func (d *Database) NewEntry() *Entry {
 	return &Entry{entry}
 }
 
+func (d *Database) NewGroup(name string) *Group {
+	group := gokeepasslib.NewGroup()
+	group.Name = name
+	group.Entries = make([]gokeepasslib.Entry, 0)
+	group.Groups = make([]gokeepasslib.Group, 0)
+
+	return &group
+}
+
 func (d *Database) getGroupForEntry(entry *Entry, group *Group) *Group {
 	for _, e := range group.Entries {
 		if e.UUID.Compare(entry.UUID) {
