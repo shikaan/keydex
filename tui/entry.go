@@ -31,6 +31,7 @@ func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 
 	entry.SetLastUpdated()
 	App.State.Database.MoveEntryToGroup(entry, App.State.Group)
+	App.State.Entry = entry
 }
 
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
@@ -69,6 +70,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						App.Notify(msg)
 						log.Info(msg)
 						App.State.HasUnsavedChanges = false
+						App.NavigateTo(NewEntryView)
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
@@ -94,6 +96,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
+					App.NavigateTo(NewEntryView)
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
