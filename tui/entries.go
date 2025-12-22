@@ -14,7 +14,7 @@ type ListView struct {
 	components.Container
 }
 
-func NewListView(screen tcell.Screen) views.Widget {
+func NewEntryListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Search")
 	view := &ListView{}
 	view.Container = *components.NewContainer(screen)
@@ -32,7 +32,7 @@ func NewListView(screen tcell.Screen) views.Widget {
 			App.State.Reference = ref
 			App.State.Entry = App.State.Database.GetFirstEntryByPath(ref)
 			App.State.Group = App.State.Database.GetGroupForEntry(App.State.Entry)
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 			return true
 		},
 	}

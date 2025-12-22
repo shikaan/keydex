@@ -15,7 +15,7 @@ type GroupsView struct {
 	components.Container
 }
 
-func NewGroupsView(screen tcell.Screen) views.Widget {
+func NewGroupListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Select group for \"" + App.State.Entry.GetTitle() + "\"")
 	view := &GroupsView{}
 	view.Container = *components.NewContainer(screen)
@@ -32,7 +32,7 @@ func NewGroupsView(screen tcell.Screen) views.Widget {
 		OnSelect: func(groupRef string) bool {
 			App.State.Group = App.State.Database.GetFirstGroupByPath(groupRef)
 			App.State.HasUnsavedChanges = true
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 			return true
 		},
 		OnEmpty: func(input string) bool {
@@ -58,7 +58,7 @@ func NewGroupsView(screen tcell.Screen) views.Widget {
 
 			App.State.Group = group
 			App.State.HasUnsavedChanges = true
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 
 			App.Notify(fmt.Sprintf("Group \"%s\" created successfully.", input))
 			return true

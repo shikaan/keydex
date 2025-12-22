@@ -17,14 +17,14 @@ import (
 type fieldKey = string
 type fieldMap = map[fieldKey]*field.Field
 
-type HomeView struct {
+type EntryView struct {
 	fieldByKey   fieldMap
 	initialGroup *kdbx.Group
 	form         *components.Form
 	components.Container
 }
 
-func (v *HomeView) updateEntry(entry *kdbx.Entry) {
+func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	for key, field := range v.fieldByKey {
 		entry.SetValue(key, field.GetContent())
 	}
@@ -33,7 +33,7 @@ func (v *HomeView) updateEntry(entry *kdbx.Entry) {
 	App.State.Database.AddEntryToGroup(entry, App.State.Group)
 }
 
-func (v *HomeView) writeDatabase() {
+func (v *EntryView) writeDatabase() {
 	if e := App.State.Database.Save(); e != nil {
 		msg := "Could not save. See logs for error."
 		App.Notify(msg)
@@ -51,11 +51,11 @@ func (v *HomeView) writeDatabase() {
 	}
 }
 
-func (v *HomeView) HandleEvent(ev tcell.Event) bool {
+func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+K" {
-			App.NavigateTo(NewGroupsView)
+			App.NavigateTo(NewGroupListView)
 			return true
 		}
 
@@ -143,7 +143,7 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
 
-					App.NavigateTo(NewListView)
+					App.NavigateTo(NewEntryListView)
 				}, func() {
 					msg := "Operation cancelled. Entry was not deleted."
 					App.Notify(msg)
@@ -156,13 +156,13 @@ func (v *HomeView) HandleEvent(ev tcell.Event) bool {
 	return v.Container.HandleEvent(ev)
 }
 
-func NewHomeView(screen tcell.Screen) views.Widget {
+func NewEntryView(screen tcell.Screen) views.Widget {
 	title := "\"" + App.State.Entry.GetTitle() + "\""
 	if App.State.IsReadOnly {
 		title += " [READ ONLY]"
 	}
 	App.SetTitle(title)
-	view := &HomeView{}
+	view := &EntryView{}
 	view.Container = *components.NewContainer(screen)
 
 	form, fieldMap := view.newForm(screen, App.State.Entry, App.State.Group)
@@ -174,7 +174,7 @@ func NewHomeView(screen tcell.Screen) views.Widget {
 	return view
 }
 
-func (view *HomeView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Group) (*components.Form, fieldMap) {
+func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Group) (*components.Form, fieldMap) {
 	form := components.NewForm()
 	fields := fieldMap{}
 
@@ -211,7 +211,7 @@ func (view *HomeView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gro
 	return form, fields
 }
 
-func (view *HomeView) newEntryField(label, initialValue string, isProtected bool) *field.Field {
+func (view *EntryView) newEntryField(label, initialValue string, isProtected bool) *field.Field {
 	// Do not print empty fields, unless they are the title
 	if initialValue == "" && label != kdbx.TITLE_KEY {
 		return nil
@@ -266,7 +266,7 @@ func (view *HomeView) newEntryField(label, initialValue string, isProtected bool
 	return f
 }
 
-func (view *HomeView) newMetaField(label, value string) *views.Text {
+func (view *EntryView) newMetaField(label, value string) *views.Text {
 	field := views.NewText()
 	field.SetStyle(tcell.StyleDefault.Normal().Dim(true))
 	field.SetText(label + ": " + value)

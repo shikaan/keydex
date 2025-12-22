@@ -111,7 +111,7 @@ func Run(state State) error {
 		if state.Reference == "" {
 			App.NavigateTo(NewHelpView)
 		} else {
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 		}
 
 		return App.Run()

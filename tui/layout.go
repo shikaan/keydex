@@ -24,7 +24,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Name() == "Ctrl+P" {
-			App.NavigateTo(NewListView)
+			App.NavigateTo(NewEntryListView)
 			return true
 		}
 		if ev.Name() == "Ctrl+G" {
@@ -43,7 +43,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 			return true
 		}
 		if ev.Name() == "Ctrl+C" {
@@ -66,7 +66,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				App.State.HasUnsavedChanges = false
 			}
 
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 			return true
 		}
 	}
