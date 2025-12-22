@@ -35,11 +35,11 @@ If you need to share a testing build, maybe because you are working on a complic
 bug, you can simply add your branch name to the [configuration](./.github/workflows/build.yml)
 file.
 
-It will create a new Github Release tagged with the branch name. 
+It will create a new Github Release tagged with the branch name.
 
 ## Manual testing
 
-Before rolling out a big change, it's good measure to test out the 
+Before rolling out a big change, it's good measure to test out the
 most important flows of keydex.
 
 For reference, most of them are documented here.
@@ -64,9 +64,10 @@ For reference, most of them are documented here.
 
 **Test 3: Create and cancel new entry**
 1. Create Entry in Welcome Screen (^N)
-2. Cancel (ESC)
-   - **Expected:** Returns to entry list
-3. Open Entry List (^P)
+2. Change one of the fields
+3. Cancel (ESC)
+   - **Expected:** Updates are cancelled (returns to initial)
+4. Open Entry List (^P)
    - **Expected:** Entry does NOT appear in list
 
 **Test 4: View and copy entry password**
@@ -139,6 +140,13 @@ For reference, most of them are documented here.
 5. Open Entry List (^P)
    - **Expected:** Entry still appears in list of entries
 
+**Test 10.b: Dismiss entry deletion**
+1. Open Entry List (^P)
+3. Delete (^D)
+4. Say No (N)
+5. Open Entry List (^P)
+   - **Expected:** Entry still appears in list of entries
+
 **Test 11: Confirm entry deletion**
 1. Open Entry List (^P)
 2. Select an Entry
@@ -147,6 +155,20 @@ For reference, most of them are documented here.
    - **Expected:** Navigates back to list
 5. Check Entry List (^P)
    - **Expected:** Entry does NOT appear in list of entries
+
+**Test 11.b: Confirm entry deletion**
+1. Open Entry List (^P)
+3. Delete (^D)
+4. Say Yes (Y)
+   - **Expected:** Entry list updates
+   - **Expected:** Entry does NOT appear in list of entries
+
+**Test 12: Update group cancels other updates**
+1. Open Entry List (^P)
+2. Select an Entry
+3. Update Fields
+4. Update Group
+   - **Expected:** Are you sure?
 
 </details>
 
@@ -304,7 +326,7 @@ For reference, most of them are documented here.
 **Test 3: Copy from non-existing archive**
 1. Run copy command with non-existing archive path
    - **Expected:** Error message displayed (same as non-existing archive error)
-  
+
 **Test 4: Copy from non-existing field**
 - Steps:
   1. Run copy command with non-existing field
