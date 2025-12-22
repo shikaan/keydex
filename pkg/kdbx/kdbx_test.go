@@ -447,8 +447,8 @@ func TestDatabase_RemoveGroup(t *testing.T) {
 			t.Fatalf("expected exactly 1 group after removal, got %d", len(db.Content.Root.Groups[0].Groups))
 		}
 
-		if len(db.Content.Root.Groups[0].Groups[0].Groups) != 1 {
-			t.Fatalf("expected exactly 1 group after removal, got %d", len(db.Content.Root.Groups[0].Groups))
+		if len(db.Content.Root.Groups[0].Groups[0].Groups) != 0 {
+			t.Fatalf("expected exactly 0 groups after removal, got %d", len(db.Content.Root.Groups[0].Groups[0].Groups))
 		}
 	})
 
@@ -538,7 +538,7 @@ func TestDatabase_AddEntryToGroup(t *testing.T) {
 		newEntry := makeEntry("NewEntry")
 
 		initialCount := len(db.Content.Root.Groups[0].Entries)
-		db.AddEntryToGroup(&newEntry, &db.Content.Root.Groups[0])
+		db.MoveEntryToGroup(&newEntry, &db.Content.Root.Groups[0])
 
 		if len(db.Content.Root.Groups[0].Entries) != initialCount+1 {
 			t.Errorf("Expected %d entries after add, got %d", initialCount+1, len(db.Content.Root.Groups[0].Entries))
@@ -552,7 +552,7 @@ func TestDatabase_AddEntryToGroup(t *testing.T) {
 		db := makeDatabase("test.kdbx", group1, group2)
 
 		// Move entry from group1 to group2
-		db.AddEntryToGroup(&entry, &db.Content.Root.Groups[1])
+		db.MoveEntryToGroup(&entry, &db.Content.Root.Groups[1])
 
 		// Verify entry was removed from group1
 		if len(db.Content.Root.Groups[0].Entries) != 0 {
@@ -571,7 +571,7 @@ func TestDatabase_AddEntryToGroup(t *testing.T) {
 		db := makeDatabase("test.kdbx", group)
 
 		initialCount := len(db.Content.Root.Groups[0].Entries)
-		db.AddEntryToGroup(&entry, &db.Content.Root.Groups[0])
+		db.MoveEntryToGroup(&entry, &db.Content.Root.Groups[0])
 
 		if len(db.Content.Root.Groups[0].Entries) != initialCount {
 			t.Errorf("Expected %d entries (no change), got %d", initialCount, len(db.Content.Root.Groups[0].Entries))

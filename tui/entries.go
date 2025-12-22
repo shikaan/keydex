@@ -30,7 +30,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 
 			entry := App.State.Database.GetFirstEntryByPath(lv.autoComplete.CurrentEntry)
 			if entry == nil {
-				msg := "Could not delete. Group cannot be found."
+				msg := "Could not delete. Entry cannot be found."
 				App.Notify(msg)
 				log.Error(msg, nil)
 			}

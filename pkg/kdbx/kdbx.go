@@ -113,7 +113,11 @@ func (d *Database) GetFirstGroupByPath(p EntityPath) *Group {
 
 func (d *Database) GetGroup(uuid gokeepasslib.UUID) *Group {
 	for i := range d.Content.Root.Groups {
-		if g := getGroupByUUID(&d.Content.Root.Groups[i], uuid); g != nil {
+		if d.Content.Root.Groups[i].UUID.Compare(uuid) {
+			return &d.Content.Root.Groups[i]
+		}
+
+		if g, _ := getNestedGroupByUUID(&d.Content.Root.Groups[i], uuid); g != nil {
 			return g
 		}
 	}
@@ -147,8 +151,8 @@ func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 
 func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 	for i := range d.Content.Root.Groups {
-		if group := getGroupByUUID(&d.Content.Root.Groups[i], uuid); group != nil {
-			d.Content.Root.Groups[i].Groups = slices.DeleteFunc(d.Content.Root.Groups[i].Groups,
+		if group, parent := getNestedGroupByUUID(&d.Content.Root.Groups[i], uuid); group != nil && parent != nil {
+			parent.Groups = slices.DeleteFunc(parent.Groups,
 				func(g gokeepasslib.Group) bool {
 					return g.UUID.Compare(group.UUID)
 				})
@@ -159,7 +163,7 @@ func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 	return errors.MakeError("group not found", "kdbx")
 }
 
-func (d *Database) AddEntryToGroup(entry *Entry, group *Group) {
+func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
 	entryGroup := d.GetGroupForEntry(entry)
 
 	// Group is nil when this is a new entry, no need to move
@@ -385,18 +389,18 @@ func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
 	return nil, nil
 }
 
-func getGroupByUUID(g *Group, uuid gokeepasslib.UUID) *Group {
-	if g.UUID.Compare(uuid) {
-		return g
-	}
+func getNestedGroupByUUID(root *Group, uuid gokeepasslib.UUID) (*Group, *Group) {
+	for i := range root.Groups {
+		if root.Groups[i].UUID.Compare(uuid) {
+			return &root.Groups[i], root
+		}
 
-	for i := range g.Groups {
-		if group := getGroupByUUID(&g.Groups[i], uuid); group != nil {
-			return group
+		if group, parent := getNestedGroupByUUID(&root.Groups[i], uuid); group != nil {
+			return group, parent
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func sanitizePathPortion(s string) string {

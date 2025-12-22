@@ -61,7 +61,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 
 					App.NavigateTo(NewGroupListView)
 				}, func() {
-					msg := "Operation cancelled. Entry was not deleted."
+					msg := "Operation cancelled. Group was not deleted."
 					App.Notify(msg)
 					log.Info(msg)
 				},
