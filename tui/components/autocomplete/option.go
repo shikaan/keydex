@@ -63,6 +63,10 @@ func (i *Option) HasFocus() bool {
 }
 
 func (i *Option) SetFocus(on bool) {
+	if i.model.hasFocus == on {
+		return
+	}
+
 	i.Init()
 	if on {
 		i.SetContent("> " + i.model.content)
@@ -89,6 +93,9 @@ func (i *Option) SetContent(text string) {
 }
 
 func (i *Option) GetContent() string {
+	if i.model.hasFocus {
+		return i.model.content[2:] // skip caret
+	}
 	return i.model.content
 }
 

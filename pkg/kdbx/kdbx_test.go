@@ -402,6 +402,67 @@ func TestDatabase_GetGroupPaths(t *testing.T) {
 	}
 }
 
+func TestDatabase_RemoveGroup(t *testing.T) {
+	t.Run("removes group", func(t *testing.T) {
+		parent := makeGroup("Parent")
+		child := makeGroup("Child")
+		otherChild := makeGroup("OtherChild")
+		parent.Groups = append(parent.Groups, child, otherChild)
+
+		db := makeDatabase("test.kdbx", parent)
+
+		if len(db.Content.Root.Groups[0].Groups) != 2 {
+			t.Fatalf("expected 2 child groups before removal, got %d", len(db.Content.Root.Groups[0].Groups))
+		}
+
+		err := db.RemoveGroup(child.UUID)
+		if err != nil {
+			t.Fatalf("RemoveGroup() error = %v", err)
+		}
+
+		if len(db.Content.Root.Groups[0].Groups) != 1 {
+			t.Fatalf("expected exactly 1 child group after removal, got %d", len(db.Content.Root.Groups[0].Groups))
+		}
+
+		if !db.Content.Root.Groups[0].Groups[0].UUID.Compare(otherChild.UUID) {
+			t.Errorf("expected remaining child group to be OtherChild")
+		}
+	})
+
+	t.Run("removes nested group", func(t *testing.T) {
+		parent := makeGroup("Parent")
+		child := makeGroup("Child")
+		grandChild := makeGroup("OtherChild")
+		child.Groups = append(child.Groups, grandChild)
+		parent.Groups = append(parent.Groups, child)
+
+		db := makeDatabase("test.kdbx", parent)
+
+		err := db.RemoveGroup(grandChild.UUID)
+		if err != nil {
+			t.Fatalf("RemoveGroup() error = %v", err)
+		}
+
+		if len(db.Content.Root.Groups[0].Groups) != 1 {
+			t.Fatalf("expected exactly 1 group after removal, got %d", len(db.Content.Root.Groups[0].Groups))
+		}
+
+		if len(db.Content.Root.Groups[0].Groups[0].Groups) != 1 {
+			t.Fatalf("expected exactly 1 group after removal, got %d", len(db.Content.Root.Groups[0].Groups))
+		}
+	})
+
+	t.Run("returns error for non-existent group", func(t *testing.T) {
+		group := makeGroup("Parent")
+		db := makeDatabase("test.kdbx", group)
+
+		err := db.RemoveGroup(gokeepasslib.NewUUID())
+		if err == nil {
+			t.Error("expected error when removing non-existent group, got nil")
+		}
+	})
+}
+
 func TestDatabase_GetFirstGroupByPath(t *testing.T) {
 	group1 := makeGroup("g")
 	group2 := makeGroup("g")

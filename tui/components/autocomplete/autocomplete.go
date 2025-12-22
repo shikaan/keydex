@@ -3,6 +3,7 @@ package autocomplete
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -12,6 +13,8 @@ import (
 )
 
 type AutoComplete struct {
+	CurrentEntry string
+
 	options AutoCompleteOptions
 
 	list    *components.WithFocusables
@@ -122,8 +125,14 @@ func (ac *AutoComplete) drawList(entries []string) {
 
 		// For memoization
 		e := entry
+
 		line.OnSelect(func() bool {
 			return ac.options.OnSelect(e)
+		})
+
+		line.OnFocus(func() bool {
+			ac.CurrentEntry = strings.TrimSpace(line.GetContent())
+			return true
 		})
 
 		container.AddWidget(line, 0)

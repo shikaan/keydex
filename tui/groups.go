@@ -12,7 +12,64 @@ import (
 )
 
 type GroupsView struct {
+	autoComplete *autocomplete.AutoComplete
 	components.Container
+}
+
+func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
+	switch ev := ev.(type) {
+	case *tcell.EventKey:
+		if ev.Name() == "Ctrl+D" {
+			if App.State.IsReadOnly {
+				msg := "Could not delete. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			group := App.State.Database.GetFirstGroupByPath(gv.autoComplete.CurrentEntry)
+			if group == nil {
+				msg := "Could not delete. Group cannot be found."
+				App.Notify(msg)
+				log.Error(msg, nil)
+			}
+
+			name := group.Name
+
+			App.Confirm(
+				"Are you sure you want to delete \""+name+"\"?",
+				func() {
+					err := App.State.Database.RemoveGroup(group.UUID)
+					if err != nil {
+						msg := "Could not delete. Group cannot be found."
+						App.Notify(msg)
+						log.Error(msg, err)
+						return
+					}
+
+					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
+						App.State.IsReadOnly = true
+						msg := "Could not save. Switching to read-only to not corrupt data."
+						App.Notify(msg)
+						log.Error(msg, e)
+						return
+					}
+
+					msg := fmt.Sprintf("Group \"%s\" deleted successfully.", name)
+					App.Notify(msg)
+					log.Info(msg)
+
+					App.NavigateTo(NewGroupListView)
+				}, func() {
+					msg := "Operation cancelled. Entry was not deleted."
+					App.Notify(msg)
+					log.Info(msg)
+				},
+			)
+		}
+	}
+
+	return gv.autoComplete.HandleEvent(ev)
 }
 
 func NewGroupListView(screen tcell.Screen) views.Widget {
@@ -40,15 +97,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 			root := App.State.Database.GetRootGroup()
 			root.Groups = append(root.Groups, *group)
 
-			if e := App.State.Database.Save(); e != nil {
-				msg := "Could not save. See logs for error."
-				App.Notify(msg)
-				log.Error(msg, e)
-				return true
-			}
-
-			// Unlocking again to allow further modifications
-			if e := App.State.Database.UnlockProtectedEntries(); e != nil {
+			if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 				App.State.IsReadOnly = true
 				msg := "Could not save. Switching to read-only to not corrupt data."
 				App.Notify(msg)
@@ -75,6 +124,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 	})
 	autoComplete.SetFocus(true)
 	view.SetContent(autoComplete)
+	view.autoComplete = autoComplete
 
 	return view
 }

@@ -33,24 +33,6 @@ func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	App.State.Database.AddEntryToGroup(entry, App.State.Group)
 }
 
-func (v *EntryView) writeDatabase() {
-	if e := App.State.Database.Save(); e != nil {
-		msg := "Could not save. See logs for error."
-		App.Notify(msg)
-		log.Error(msg, e)
-		return
-	}
-
-	// Unlocking again to allow further modifications
-	if e := App.State.Database.UnlockProtectedEntries(); e != nil {
-		App.State.IsReadOnly = true
-		msg := "Could not save. Switching to read-only to not corrupt data."
-		App.Notify(msg)
-		log.Error(msg, e)
-		return
-	}
-}
-
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
@@ -75,7 +57,14 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					"Do you want to create \""+App.State.Entry.GetTitle()+"\"?",
 					func() {
 						v.updateEntry(App.State.Entry)
-						v.writeDatabase()
+						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
+							App.State.IsReadOnly = true
+							msg := "Could not save. Switching to read-only to not corrupt data."
+							App.Notify(msg)
+							log.Error(msg, e)
+							return
+						}
+
 						msg := fmt.Sprintf("Entry \"%s\" created successfully.", App.State.Entry.GetTitle())
 						App.Notify(msg)
 						log.Info(msg)
@@ -92,7 +81,15 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 				"Are you sure?",
 				func() {
 					v.updateEntry(existingEntry)
-					v.writeDatabase()
+
+					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
+						App.State.IsReadOnly = true
+						msg := "Could not save. Switching to read-only to not corrupt data."
+						App.Notify(msg)
+						log.Error(msg, e)
+						return
+					}
+
 					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", App.State.Entry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
@@ -136,7 +133,13 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						return
 					}
 
-					v.writeDatabase()
+					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
+						App.State.IsReadOnly = true
+						msg := "Could not save. Switching to read-only to not corrupt data."
+						App.Notify(msg)
+						log.Error(msg, e)
+						return
+					}
 
 					msg := fmt.Sprintf("Entry \"%s\" deleted successfully.", title)
 					App.Notify(msg)

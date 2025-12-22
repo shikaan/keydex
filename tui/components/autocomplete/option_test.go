@@ -32,9 +32,10 @@ func TestOption_SetFocus(t *testing.T) {
 		wantCalls    int
 	}{
 		{"prefixes with a >", "test", true, "> test", nil, 0},
-		{"removes >", "> test", false, "test", nil, 0},
+		{"removes >", "test", false, "test", nil, 0},
 		{"triggers handler", "test", true, "> test", NewHandlerSpy(true), 1},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := newOption()
@@ -43,8 +44,8 @@ func TestOption_SetFocus(t *testing.T) {
 				i.OnFocus(tt.focusHandler.handler)
 			}
 			i.SetFocus(tt.on)
-			if i.GetContent() != tt.want {
-				t.Errorf("Option.SetFocus() = %v, want %v", i.GetContent(), tt.want)
+			if i.model.content != tt.want {
+				t.Errorf("Option.SetFocus() = %v, want %v", i.model.content, tt.want)
 			}
 			if i.model.hasFocus != tt.on {
 				t.Errorf("Option.SetFocus() got hasFocus = %v, want hasFocus %v", i.model.hasFocus, tt.on)
@@ -54,6 +55,32 @@ func TestOption_SetFocus(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOption_GetContent(t *testing.T) {
+	t.Run("retrieve content without caret", func(t *testing.T) {
+		o := newOption()
+		o.SetContent("hello world")
+		o.SetFocus(true)
+
+		got := o.GetContent()
+		want := "hello world"
+		if got != want {
+			t.Errorf("Option.GetContent() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("retrieve content", func(t *testing.T) {
+		o := newOption()
+		o.SetContent("hello world")
+		o.SetFocus(false)
+
+		got := o.GetContent()
+		want := "hello world"
+		if got != want {
+			t.Errorf("Option.GetContent() = %q, want %q", got, want)
+		}
+	})
 }
 
 func TestOption_HandleEvent(t *testing.T) {

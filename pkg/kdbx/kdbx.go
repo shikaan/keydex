@@ -145,6 +145,20 @@ func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 	return errors.MakeError("entry not found", "kdbx")
 }
 
+func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
+	for i := range d.Content.Root.Groups {
+		if group := getGroupByUUID(&d.Content.Root.Groups[i], uuid); group != nil {
+			d.Content.Root.Groups[i].Groups = slices.DeleteFunc(d.Content.Root.Groups[i].Groups,
+				func(g gokeepasslib.Group) bool {
+					return g.UUID.Compare(group.UUID)
+				})
+			return nil
+		}
+	}
+
+	return errors.MakeError("group not found", "kdbx")
+}
+
 func (d *Database) AddEntryToGroup(entry *Entry, group *Group) {
 	entryGroup := d.GetGroupForEntry(entry)
 
@@ -258,6 +272,20 @@ func (d *Database) Save() error {
 	}
 
 	d.file = *file
+
+	return nil
+}
+
+func (d *Database) SaveAndUnlockEntries() error {
+	err := d.Save()
+	if err != nil {
+		return err
+	}
+
+	err = d.UnlockProtectedEntries()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
