@@ -28,7 +28,7 @@ jobs:
       - uses: crazy-max/ghaction-xgo@v2
         with:
           dest: ${{ env.GITHUB_WORKSPACE }}/.build
-          go_version: 1.25.5
+          go_version: 1.25.0
           prefix: keydex
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/arm64,darwin/amd64
           v: true
