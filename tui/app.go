@@ -80,7 +80,7 @@ func (a *Application) CreateEmptyEntry() error {
 		a.State.Group = a.State.Database.GetRootGroup()
 	}
 
-	path, err := a.State.Database.MakeEntryPath(entry, a.State.Group)
+	path, err := a.State.Database.MakeEntryEntityPath(entry, a.State.Group)
 	if err != nil {
 		return err
 	}

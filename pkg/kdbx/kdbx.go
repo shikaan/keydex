@@ -25,7 +25,7 @@ type EntryField = gokeepasslib.ValueData
 type UUID = gokeepasslib.UUID
 
 // A string like "/Database/Group/EntryName"
-type EntryPath = string
+type EntityPath = string
 
 const PATH_SEPARATOR = "/"
 
@@ -65,8 +65,8 @@ func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
 	return d.unlock()
 }
 
-func (d *Database) GetEntryPaths() []EntryPath {
-	result := []EntryPath{}
+func (d *Database) GetEntryPaths() []EntityPath {
+	result := []EntityPath{}
 
 	for _, uEP := range d.getEntryPathsAndUUIDs() {
 		result = append(result, uEP.path)
@@ -75,8 +75,8 @@ func (d *Database) GetEntryPaths() []EntryPath {
 	return result
 }
 
-func (d *Database) GetGroupPaths() []EntryPath {
-	result := []EntryPath{}
+func (d *Database) GetGroupPaths() []EntityPath {
+	result := []EntityPath{}
 
 	for _, uEP := range d.getGroupPathsAndUUIDs() {
 		result = append(result, uEP.path)
@@ -88,7 +88,7 @@ func (d *Database) GetGroupPaths() []EntryPath {
 // Returns the first entry matching the entry path provided.
 // Note that the path might not be unique. Use the UUID method
 // when identifying a precise entry is necessary
-func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
+func (d *Database) GetFirstEntryByPath(p EntityPath) *Entry {
 	for _, uEP := range d.getEntryPathsAndUUIDs() {
 		if uEP.path == p {
 			return d.GetEntry(uEP.uuid)
@@ -101,7 +101,7 @@ func (d *Database) GetFirstEntryByPath(p EntryPath) *Entry {
 // Returns the first group matching the entry path provided.
 // Note that the path might not be unique. Use the UUID method
 // when identifying a precise group is necessary
-func (d *Database) GetFirstGroupByPath(p EntryPath) *Group {
+func (d *Database) GetFirstGroupByPath(p EntityPath) *Group {
 	for _, uEP := range d.getGroupPathsAndUUIDs() {
 		if uEP.path == p {
 			return d.GetGroup(uEP.uuid)
@@ -167,7 +167,7 @@ func (d *Database) AddEntryToGroup(entry *Entry, group *Group) {
 
 // Builds the full path for an entry within the specified group.
 // Returns an error if the group is not found in the database.
-func (d *Database) MakeEntryPath(entry *Entry, group *Group) (EntryPath, error) {
+func (d *Database) MakeEntryEntityPath(entry *Entry, group *Group) (EntityPath, error) {
 	for _, path := range d.getGroupPathsAndUUIDs() {
 		if path.uuid.Compare(group.UUID) {
 			return path.path + entry.GetTitle(), nil
@@ -262,23 +262,23 @@ func (d *Database) Save() error {
 	return nil
 }
 
-type uniqueEntryPath struct {
-	path EntryPath
+type uniqueEntityPath struct {
+	path EntityPath
 	uuid UUID
 }
 
-func (d *Database) getEntryPathsAndUUIDs() []uniqueEntryPath {
-	result := []uniqueEntryPath{}
+func (d *Database) getEntryPathsAndUUIDs() []uniqueEntityPath {
+	result := []uniqueEntityPath{}
 
 	for _, g := range d.Content.Root.Groups {
-		result = append(result, getEntryPathsFromGroup(g, PATH_SEPARATOR)...)
+		result = append(result, getEntityPathsFromGroup(g, PATH_SEPARATOR)...)
 	}
 
 	return result
 }
 
-func (d *Database) getGroupPathsAndUUIDs() []uniqueEntryPath {
-	result := []uniqueEntryPath{}
+func (d *Database) getGroupPathsAndUUIDs() []uniqueEntityPath {
+	result := []uniqueEntityPath{}
 
 	for _, g := range d.Content.Root.Groups {
 		result = append(result, getGroupPathsFromGroup(g, PATH_SEPARATOR)...)
@@ -304,12 +304,12 @@ func (d *Database) unlock() error {
 	return nil
 }
 
-func getEntryPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
+func getEntityPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 	groupPrefix := prefix + g.Name + PATH_SEPARATOR
-	entries := []uniqueEntryPath{}
+	entries := []uniqueEntityPath{}
 
 	for _, subGroup := range g.Groups {
-		subEntries := getEntryPathsFromGroup(subGroup, groupPrefix)
+		subEntries := getEntityPathsFromGroup(subGroup, groupPrefix)
 		entries = append(entries, subEntries...)
 	}
 
@@ -321,17 +321,17 @@ func getEntryPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
 		}
 
 		key := groupPrefix + sanitizePathPortion(title)
-		entries = append(entries, uniqueEntryPath{path: key, uuid: entry.UUID})
+		entries = append(entries, uniqueEntityPath{path: key, uuid: entry.UUID})
 	}
 
 	return entries
 }
 
-func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntryPath {
+func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 	groupPrefix := prefix + g.Name + PATH_SEPARATOR
-	paths := []uniqueEntryPath{}
+	paths := []uniqueEntityPath{}
 
-	paths = append(paths, uniqueEntryPath{path: groupPrefix, uuid: g.UUID})
+	paths = append(paths, uniqueEntityPath{path: groupPrefix, uuid: g.UUID})
 
 	for _, subGroup := range g.Groups {
 		subPaths := getGroupPathsFromGroup(subGroup, groupPrefix)

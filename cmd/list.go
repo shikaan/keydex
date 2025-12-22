@@ -15,7 +15,7 @@ import (
 
 var List = &cobra.Command{
 	Short: "Lists all the entries in the database",
-	Long: `Lists all the entries in the database. 
+	Long: `Lists all the entries in the database.
 
 The list of references - in the form of - /database/group/.../entry will be printed on stadout, allowing for piping.
 The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the ` + ENV_DATABASE + ` environment variable.
@@ -38,7 +38,7 @@ See "Examples" for more details.`,
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, _, key := ReadDatabaseArguments(cmd, args)
-    log.Debugf("Using: database %s, key %s", database, key)
+		log.Debugf("Using: database %s, key %s", database, key)
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
@@ -61,7 +61,7 @@ func list(database, key, passphrase string) error {
 	return nil
 }
 
-func getSortedKeys(entries []kdbx.EntryPath) []kdbx.EntryPath {
+func getSortedKeys(entries []kdbx.EntityPath) []kdbx.EntityPath {
 	less := func(i, j int) bool {
 		numberOfSlashesI := len(strings.Split(entries[i], kdbx.PATH_SEPARATOR))
 		numberOfSlashesJ := len(strings.Split(entries[j], kdbx.PATH_SEPARATOR))

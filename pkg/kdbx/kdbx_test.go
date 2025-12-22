@@ -290,7 +290,7 @@ func TestDatabase_GetEntryPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPath, _ := db.MakeEntryPath(tt.entry, tt.group)
+			gotPath, _ := db.MakeEntryEntityPath(tt.entry, tt.group)
 			if gotPath != tt.wantPath {
 				t.Errorf("Database.GetEntryPath() = %v, want %v", gotPath, tt.wantPath)
 			}
@@ -299,7 +299,7 @@ func TestDatabase_GetEntryPath(t *testing.T) {
 
 	t.Run("returns UNKNOWN for non-existent group", func(t *testing.T) {
 		nonExistentGroup := makeGroup("NonExistent")
-		gotPath, err := db.MakeEntryPath(&entry1, &nonExistentGroup)
+		gotPath, err := db.MakeEntryEntityPath(&entry1, &nonExistentGroup)
 		if err == nil {
 			t.Errorf("Database.GetEntryPath() expected err for non-existent group, got %v", gotPath)
 		}
