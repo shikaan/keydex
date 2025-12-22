@@ -27,7 +27,7 @@ Use the 'list' command to get a list of all the references in the database.
 See "Examples" for more details.`,
 	Example: `  # Opens the "github" entry in the "coding" group in the "test" database at test.kdbx
   ` + info.NAME + ` open test.kdbx /test/coding/github
-  
+
   # Open fuzzy search within the test.kdbx database
   ` + info.NAME + ` open test.kdbx
 
@@ -67,11 +67,25 @@ func open(databasePath, keyPath, passphrase, reference string, readOnly bool) er
 	}
 
 	if reference == "" {
-		return tui.Run(tui.State{Entry: nil, Database: database, Reference: reference, IsReadOnly: readOnly})
+		return tui.Run(tui.State{
+			Entry:      nil,
+			Group:      nil,
+			Database:   database,
+			Reference:  reference,
+			IsReadOnly: readOnly,
+		})
 	}
 
 	if entry := database.GetFirstEntryByPath(reference); entry != nil {
-		return tui.Run(tui.State{Entry: entry, Database: database, Reference: reference, IsReadOnly: readOnly})
+		if group := database.GetGroupForEntry(entry); group != nil {
+			return tui.Run(tui.State{
+				Entry:      entry,
+				Group:      group,
+				Database:   database,
+				Reference:  reference,
+				IsReadOnly: readOnly,
+			})
+		}
 	}
 
 	return errors.MakeError("Missing entry at "+reference, "open")
