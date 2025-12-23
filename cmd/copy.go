@@ -27,7 +27,7 @@ Use the 'list' command to get a list of all the references in the database.
 See "Examples" for more details.`,
 	Example: `  # Copy the password of the "github" entry in the "coding" group in the "test" database at test.kdbx
   ` + info.NAME + ` copy test.kdbx /test/coding/github
-  
+
   # Or copy the username instead
   ` + info.NAME + ` copy -f username test.kdbx /test/coding/github
 
@@ -56,7 +56,7 @@ See "Examples" for more details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
 		field := cmd.Flag("field").Value.String()
-		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
+		log.Debugf("Using: database %s, reference \"%s\", key \"%s\"", database, reference, key)
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
@@ -86,11 +86,11 @@ func copy(databasePath, keyPath, passphrase, reference, field string) error {
 		}
 
 		if value == "" {
-			return errors.MakeError(`Missing field "`+field+`" in entry `+reference, "copy")
+			return errors.MakeError(`Missing field "`+field+`" in entry "`+reference+`"`, "copy")
 		}
 
 		return clipboard.Write(value)
 	}
 
-	return errors.MakeError("Missing entry at "+reference, "copy")
+	return errors.MakeError(`Missing entry at "`+reference+`"`, "copy")
 }

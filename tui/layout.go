@@ -24,11 +24,26 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Name() == "Ctrl+P" {
-			App.NavigateTo(NewListView)
+			App.NavigateTo(NewEntryListView)
 			return true
 		}
 		if ev.Name() == "Ctrl+G" {
 			App.NavigateTo(NewHelpView)
+			return true
+		}
+		if ev.Name() == "Ctrl+N" {
+			if App.State.IsReadOnly {
+				App.Notify("Could not create. Archive in read-only mode.")
+				return true
+			}
+			err := App.CreateEmptyEntry()
+
+			if err != nil {
+				App.Notify("Could not create. Check logs for details.")
+				return true
+			}
+
+			App.NavigateTo(NewEntryView)
 			return true
 		}
 		if ev.Name() == "Ctrl+C" {
@@ -46,7 +61,14 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			App.NavigateTo(NewHomeView)
+			if App.State.HasUnsavedChanges {
+				App.Notify("Operation cancelled. Updates were not saved.")
+				App.State.HasUnsavedChanges = false
+			}
+
+			// Needed to reset group selection on cancelled operations
+			App.State.Group = App.State.Database.GetGroupForEntry(App.State.Entry)
+			App.NavigateTo(NewEntryView)
 			return true
 		}
 	}

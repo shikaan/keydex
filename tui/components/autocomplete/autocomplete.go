@@ -3,6 +3,7 @@ package autocomplete
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -12,6 +13,8 @@ import (
 )
 
 type AutoComplete struct {
+	CurrentEntry string
+
 	options AutoCompleteOptions
 
 	list    *components.WithFocusables
@@ -31,6 +34,9 @@ type AutoCompleteOptions struct {
 
 	OnSelect func(entry string) bool
 	OnFocus  func() bool
+
+	OnEmpty            func(input string) bool
+	FormatEmptyMessage func(input string) string
 }
 
 func NewAutoComplete(options AutoCompleteOptions) *AutoComplete {
@@ -88,9 +94,25 @@ func (ac *AutoComplete) drawList(entries []string) {
 	maxLineLength := ac.options.MaxX - 2
 
 	if len(entries) == 0 {
-		line := views.NewSimpleStyledText()
-		line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
-		container.AddWidget(line, 0)
+		if ac.options.OnEmpty == nil {
+			line := views.NewSimpleStyledText()
+			line.SetText(runewidth.FillRight("--- No Results ---", ac.options.MaxX))
+			container.AddWidget(line, 0)
+		} else {
+			input := ac.search.GetContent()
+			line := newOption()
+			line.SetContent(
+				runewidth.FillRight(
+					ac.options.FormatEmptyMessage(input),
+					ac.options.MaxX,
+				),
+			)
+			line.OnSelect(func() bool {
+				return ac.options.OnEmpty(input)
+			})
+			line.SetFocus(true)
+			container.AddWidget(line, 0)
+		}
 	}
 
 	for i, entry := range entries {
@@ -103,8 +125,14 @@ func (ac *AutoComplete) drawList(entries []string) {
 
 		// For memoization
 		e := entry
+
 		line.OnSelect(func() bool {
 			return ac.options.OnSelect(e)
+		})
+
+		line.OnFocus(func() bool {
+			ac.CurrentEntry = strings.TrimSpace(line.GetContent())
+			return true
 		})
 
 		container.AddWidget(line, 0)

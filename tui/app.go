@@ -13,6 +13,7 @@ type Application struct {
 	screen tcell.Screen
 
 	LastFocused components.Focusable
+	LastWidget  views.Widget
 	State       State
 
 	views.Application
@@ -64,13 +65,35 @@ func (a *Application) Quit() {
 		return
 	}
 
-	a.Confirm("Are you sure you want to quit and lose unsaved changes?", func() { a.Application.Quit() }, nil)
+	a.Confirm(
+		"Are you sure you want to quit and lose unsaved changes?",
+		func() { a.Application.Quit() },
+		nil,
+	)
+}
+
+func (a *Application) CreateEmptyEntry() error {
+	entry := a.State.Database.NewEntry()
+	a.State.Entry = entry
+
+	if App.State.Group == nil {
+		a.State.Group = a.State.Database.GetRootGroup()
+	}
+
+	path, err := a.State.Database.MakeEntryEntityPath(entry, a.State.Group)
+	if err != nil {
+		return err
+	}
+
+	a.State.Reference = path
+	return nil
 }
 
 var App = &Application{}
 
 type State struct {
 	Entry             *kdbx.Entry
+	Group             *kdbx.Group
 	Database          *kdbx.Database
 	Reference         string
 	HasUnsavedChanges bool
@@ -88,7 +111,7 @@ func Run(state State) error {
 		if state.Reference == "" {
 			App.NavigateTo(NewHelpView)
 		} else {
-			App.NavigateTo(NewHomeView)
+			App.NavigateTo(NewEntryView)
 		}
 
 		return App.Run()
