@@ -34,6 +34,10 @@ func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	App.State.Entry = entry
 }
 
+func (v *EntryView) refresh() {
+	App.NavigateTo(NewEntryView)
+}
+
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
@@ -63,7 +67,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 
 			if existingEntry == nil {
 				App.Confirm(
-					"Do you want to create \""+App.State.Entry.GetTitle()+"\"?",
+					"Create \""+App.State.Entry.GetTitle()+"\"? This will overwrite the existing file.",
 					func() {
 						v.updateEntry(App.State.Entry)
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
@@ -78,17 +82,18 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						App.Notify(msg)
 						log.Info(msg)
 						App.State.HasUnsavedChanges = false
-						App.NavigateTo(NewEntryView)
+						v.refresh()
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
 						log.Info(msg)
+						v.refresh()
 					})
 				return true
 			}
 
 			App.Confirm(
-				"Are you sure?",
+				"Save changes? This will overwrite the existing file.",
 				func() {
 					v.updateEntry(existingEntry)
 
@@ -104,7 +109,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 					App.State.HasUnsavedChanges = false
-					App.NavigateTo(NewEntryView)
+					v.refresh()
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
@@ -133,7 +138,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 			}
 
 			App.Confirm(
-				"Are you sure you want to delete \""+App.State.Entry.GetTitle()+"\"?",
+				"Delete \""+App.State.Entry.GetTitle()+"\"? This cannot be undone.",
 				func() {
 					title := App.State.Entry.GetTitle()
 
@@ -163,6 +168,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not deleted."
 					App.Notify(msg)
 					log.Info(msg)
+					v.refresh()
 				},
 			)
 		}

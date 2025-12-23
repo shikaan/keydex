@@ -38,7 +38,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 			title := entry.GetTitle()
 
 			App.Confirm(
-				"Are you sure you want to delete \""+title+"\"?",
+				"Delete \""+title+"\"? This cannot be undone.",
 				func() {
 					err := App.State.Database.RemoveEntry(entry.UUID)
 					if err != nil {

@@ -37,7 +37,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 			name := group.Name
 
 			App.Confirm(
-				"Are you sure you want to delete \""+name+"\"?",
+				"Delete \""+name+"\"? This cannot be undone.",
 				func() {
 					err := App.State.Database.RemoveGroup(group.UUID)
 					if err != nil {
