@@ -38,8 +38,16 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+K" {
-			App.NavigateTo(NewGroupListView)
-			return true
+			if !App.State.HasUnsavedChanges {
+				App.NavigateTo(NewGroupListView)
+				return true
+			}
+
+			App.Confirm(
+				"Navigate away? Unsaved changes will be lost.",
+				func() {
+					App.NavigateTo(NewGroupListView)
+				}, nil)
 		}
 
 		if ev.Name() == "Ctrl+O" {
@@ -101,6 +109,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
 					log.Info(msg)
+					v.refresh()
 				},
 			)
 		}
