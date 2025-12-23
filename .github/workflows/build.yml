@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - 12-new-entry
     paths-ignore:
       - "**.md"
       - "**.yaml"
