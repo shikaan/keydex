@@ -222,6 +222,7 @@ For reference, most of them are documented here.
 3. Save (^O)
    - **Expected:** Notification displayed
    - **Expected:** UI updates (title, meta, and reference in fuzzy finder)
+   - **Expected:** Entry can be opened by new ref
 
 **Test 4: Update entry non-title field by reference**
 1. Open Entry by Ref
@@ -239,6 +240,7 @@ For reference, most of them are documented here.
    - **Expected:** UI updates (meta changes)
 4. Open Entry List (^P)
    - **Expected:** Updated entry appears in list of entries
+   - **Expected:** Entry can be opened by new ref 
 
 **Test 6: Update entry group and cancel by reference**
 1. Open Entry by Ref
@@ -247,6 +249,7 @@ For reference, most of them are documented here.
    - **Expected:** Entry returns to previous state
 4. Open Entry List (^P)
    - **Expected:** Updated entry does NOT appear in new location
+   - **Expected:** Entry can be opened by old ref 
 
 **Test 7: Dismiss entry deletion by reference**
 1. Open Entry by Ref
