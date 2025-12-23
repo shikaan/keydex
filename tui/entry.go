@@ -42,6 +42,13 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+K" {
+			if App.State.IsReadOnly {
+				msg := "Cannot select group. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
 			if !App.State.HasUnsavedChanges {
 				App.NavigateTo(NewGroupListView)
 				return true
