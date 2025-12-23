@@ -66,6 +66,8 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				App.State.HasUnsavedChanges = false
 			}
 
+			// Needed to reset group selection on cancelled operations
+			App.State.Group = App.State.Database.GetGroupForEntry(App.State.Entry)
 			App.NavigateTo(NewEntryView)
 			return true
 		}
