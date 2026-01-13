@@ -22,9 +22,11 @@ const welcomeBanner = `
 +--------------------------------------------------------------------------+`
 
 var caser cases.Caser
+var nameTitle string
 
 func init() {
 	caser = cases.Title(language.English)
+	nameTitle = caser.String(info.NAME)
 }
 
 type HelpView struct {
@@ -69,9 +71,9 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 
 	text.SetContent(firstAccessLine + `
 
-` + caser.String(info.NAME) + ` Help Text
+` + nameTitle + ` Help Text
 
-` + caser.String(info.NAME) + ` is designed to be an easy-to-use, terminal-based password manager
+` + nameTitle + ` is designed to be an easy-to-use, terminal-based password manager
 for the KeePass (https://keepass.info/) database format. The user interface
 is highly inspired to GNU Nano (https://www.nano-editor.org/).
 
