@@ -47,6 +47,11 @@ func (m *textModel) GetCursor() (x, y int, hidden, active bool) {
 func (m *textModel) MoveCursor(x, y int) {}
 func (m *textModel) SetCursor(x, y int)  {}
 
+func (t *Text) SetPad(pad int) {
+	t.model.pad = pad
+	t.Init(pad)
+}
+
 func (t *Text) SetContent(content string) {
 	m := t.model
 	m.content = content

@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"math"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/info"
@@ -10,18 +12,51 @@ import (
 )
 
 // Line breaking the border is to accommodate for the space introduced
-// with the useage of the constant. Do not align it!
+// with the usage of the constant. Do not align it!
 const welcomeBanner = `
-    +--------------------------------------------------+
-    | Welcome to ` + info.NAME + `!                               |
-    |                                                  |
-    |   Press Ctrl+P to start browsing the database.   |
-    +--------------------------------------------------+`
++--------------------------------------------------------------------------+
+|                              Welcome to ` + info.NAME + `!                          |
+|                                                                          |
+|                Press Ctrl+P to start browsing the database.              |
+|                       Use ▴ ▾ to scroll the help text.                   |
++--------------------------------------------------------------------------+`
+
+var caser cases.Caser
+
+func init() {
+	caser = cases.Title(language.English)
+}
+
+type HelpView struct {
+	text   *components.Text
+	screen tcell.Screen
+
+	views.BoxLayout
+}
+
+func (v *HelpView) HandleEvent(ev tcell.Event) bool {
+	switch ev.(type) {
+	case *views.EventWidgetResize:
+		width, _ := v.screen.Size()
+		pad := int(math.Max(float64((width-80)/2), 2))
+		v.text.SetPad(pad)
+		return v.BoxLayout.HandleEvent(ev)
+	}
+
+	return v.BoxLayout.HandleEvent(ev)
+}
 
 func NewHelpView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Help")
-	caser := cases.Title(language.English)
-	t := components.NewText(screen, 10)
+	view := &HelpView{}
+	view.screen = screen
+
+	width, _ := screen.Size()
+	pad := int(math.Max(float64((width-80)/2), 2))
+
+	text := components.NewText(screen, pad)
+	view.AddWidget(text, 1)
+	view.text = text
 
 	// This line is showed only when reference is missing
 	// as that signifies this is the first time in this
@@ -32,7 +67,7 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 		firstAccessLine = welcomeBanner
 	}
 
-	t.SetContent(firstAccessLine + `
+	text.SetContent(firstAccessLine + `
 
 ` + caser.String(info.NAME) + ` Help Text
 
@@ -64,5 +99,5 @@ The following functions are available in ` + info.NAME + `:
 End of help.
 `)
 
-	return t
+	return view
 }
