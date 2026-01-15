@@ -11,8 +11,7 @@ import (
 
 // Line breaking the border is to accommodate for the space introduced
 // with the usage of the constant. Do not align it!
-const welcomeBanner = `
-+--------------------------------------------------------------------------+
+const welcomeBanner = `+--------------------------------------------------------------------------+
 |                              Welcome to ` + info.NAME + `!                          |
 |                                                                          |
 |                Press Ctrl+P to start browsing the database.              |
