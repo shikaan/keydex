@@ -83,7 +83,7 @@ func NewLayout(screen tcell.Screen) *Layout {
 	s := status.NewStatus()
 
 	t := views.NewText()
-	t.SetText(" ")
+	t.SetText("")
 	l.SetMenu(t)
 
 	l.SetStatus(s)

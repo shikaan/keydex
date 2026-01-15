@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"math"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/info"
@@ -30,8 +28,8 @@ func init() {
 }
 
 type HelpView struct {
-	text   *components.Text
 	screen tcell.Screen
+	text   *components.Scrollable
 
 	views.BoxLayout
 }
@@ -39,9 +37,8 @@ type HelpView struct {
 func (v *HelpView) HandleEvent(ev tcell.Event) bool {
 	switch ev.(type) {
 	case *views.EventWidgetResize:
-		width, _ := v.screen.Size()
-		pad := int(math.Max(float64((width-80)/2), 2))
-		v.text.SetPad(pad)
+		_, height := v.screen.Size()
+		(*v.text).SetSize(80, height-5)
 		return v.BoxLayout.HandleEvent(ev)
 	}
 
@@ -53,12 +50,12 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 	view := &HelpView{}
 	view.screen = screen
 
-	width, _ := screen.Size()
-	pad := int(math.Max(float64((width-80)/2), 2))
+	_, height := screen.Size()
 
-	text := components.NewText(screen, pad)
-	view.AddWidget(text, 1)
-	view.text = text
+	view.text = components.NewScrollable(80, height-5)
+	view.InsertWidget(0, views.NewSpacer(), 1)
+	view.InsertWidget(1, view.text, 0.33)
+	view.InsertWidget(2, views.NewSpacer(), 1)
 
 	// This line is showed only when reference is missing
 	// as that signifies this is the first time in this
@@ -69,22 +66,22 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 		firstAccessLine = welcomeBanner
 	}
 
-	text.SetContent(firstAccessLine + `
+	view.text.SetContent(firstAccessLine + `
 
 ` + nameTitle + ` Help Text
 
-` + nameTitle + ` is designed to be an easy-to-use, terminal-based password manager
-for the KeePass (https://keepass.info/) database format. The user interface
-is highly inspired to GNU Nano (https://www.nano-editor.org/).
+` + nameTitle + ` is an easy-to-use, terminal-based password manager for KeePass
+(https://keepass.info/) databases. The user interface is highly inspired to
+GNU Nano (https://www.nano-editor.org/).
 
 The top line displays the current version and contextual information about
 the current view. At the bottom there are three lines: the two at the
 bottom are a list of available commands, the third is a notification line
 for informational messages.
 
-All the commands - except for navigation - are issued by pressing a
-combination of Ctrl and another letter. We use the caret (^) symbol to
-indicate Ctrl. For example, ^C means Ctrl+C.
+Commands - except for navigation - are issued by pressing a combination of
+Ctrl and another letter. We use the caret (^) symbol to indicate Ctrl. For
+example, ^C means Ctrl+C.
 
 The following functions are available in ` + info.NAME + `:
 
