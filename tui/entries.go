@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
@@ -76,7 +75,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 func NewEntryListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Search")
 	view := &EntriesView{}
-	view.Container = *components.NewContainer(screen)
+	view.Container = components.Container{}
 	paths := App.State.Database.GetEntryPaths()
 	count := len(paths)
 	maxX, maxY := getBoundaries(screen)
@@ -114,5 +113,5 @@ func getBoundaries(screen tcell.Screen) (int, int) {
 	// one third of the screen width
 	// all the height - title, status, search, counter, notification,
 	// and 4 more lines of buffer just in case
-	return int(math.Max(float64(x/3), components.MIN_WIDTH)), y - 10
+	return max(x/3, components.MIN_WIDTH), y - 10
 }

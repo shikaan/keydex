@@ -195,7 +195,7 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 	}
 	App.SetTitle(title)
 	view := &EntryView{}
-	view.Container = *components.NewContainer(screen)
+	view.Container = components.Container{}
 
 	form, fieldMap := view.newForm(screen, App.State.Entry, App.State.Group)
 	view.fieldByKey = fieldMap

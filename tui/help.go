@@ -30,18 +30,18 @@ type HelpView struct {
 	screen tcell.Screen
 	text   *components.Scrollable
 
-	views.BoxLayout
+	components.Container
 }
 
 func (v *HelpView) HandleEvent(ev tcell.Event) bool {
 	switch ev.(type) {
 	case *views.EventWidgetResize:
 		_, height := v.screen.Size()
-		(*v.text).SetSize(80, height-5)
-		return v.BoxLayout.HandleEvent(ev)
+		v.text.SetSize(80, height-5)
+		return v.Container.HandleEvent(ev)
 	}
 
-	return v.BoxLayout.HandleEvent(ev)
+	return v.Container.HandleEvent(ev)
 }
 
 func NewHelpView(screen tcell.Screen) views.Widget {
@@ -49,12 +49,8 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 	view := &HelpView{}
 	view.screen = screen
 
-	_, height := screen.Size()
-
-	view.text = components.NewScrollable(80, height-5)
-	view.InsertWidget(0, views.NewSpacer(), 1)
-	view.InsertWidget(1, view.text, 0.33)
-	view.InsertWidget(2, views.NewSpacer(), 1)
+	view.text = components.NewScrollable(80, 1)
+	view.SetContent(view.text)
 
 	// This line is showed only when reference is missing
 	// as that signifies this is the first time in this
