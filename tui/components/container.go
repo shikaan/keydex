@@ -37,13 +37,7 @@ func (c *Container) Draw() {
 	c.initialize(c.widget)
 	c.layout()
 
-	w, h := c.view.Size()
-	for y := range h {
-		for x := range w {
-			c.view.SetContent(x, y, ' ', nil, tcell.StyleDefault)
-		}
-	}
-
+	c.view.Clear()
 	c.widget.Draw()
 }
 
