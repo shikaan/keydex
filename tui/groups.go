@@ -75,7 +75,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 func NewGroupListView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Select group for \"" + App.State.Entry.GetTitle() + "\"")
 	view := &GroupsView{}
-	view.Container = *components.NewContainer(screen)
+	view.Container = components.Container{}
 	paths := App.State.Database.GetGroupPaths()
 	count := len(paths)
 	maxX, maxY := getBoundaries(screen)

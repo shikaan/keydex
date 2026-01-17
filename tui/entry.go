@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -185,8 +186,12 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewEntryView(screen tcell.Screen) views.Widget {
-	if App.State.Entry == nil || App.State.Group == nil {
-		panic("missing entry or group")
+	if App.State.Entry == nil {
+		panic("missing entry")
+	}
+
+	if App.State.Group == nil {
+		panic("missing group")
 	}
 
 	title := "\"" + App.State.Entry.GetTitle() + "\""
@@ -195,7 +200,7 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 	}
 	App.SetTitle(title)
 	view := &EntryView{}
-	view.Container = *components.NewContainer(screen)
+	view.Container = components.Container{}
 
 	form, fieldMap := view.newForm(screen, App.State.Entry, App.State.Group)
 	view.fieldByKey = fieldMap
@@ -220,8 +225,7 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 		}
 	}
 
-	spacer := &views.Spacer{}
-	form.AddWidget(spacer, 1)
+	form.AddWidget(view.newSeparator(), 1)
 
 	// The space is just for alignment
 	groupField := view.newMetaField("Group", "  "+group.Name)
@@ -300,7 +304,15 @@ func (view *EntryView) newEntryField(label, initialValue string, isProtected boo
 
 func (view *EntryView) newMetaField(label, value string) *views.Text {
 	field := views.NewText()
-	field.SetStyle(tcell.StyleDefault.Normal().Dim(true))
+	field.SetStyle(tcell.StyleDefault.Dim(true))
 	field.SetText(label + ": " + value)
 	return field
+}
+
+func (view *EntryView) newSeparator() *views.Text {
+	separator := views.NewText()
+	line := strings.Repeat("-", components.CONTENT_WIDTH)
+	line = fmt.Sprintf("%s\n\n", line)
+	separator.SetText(line)
+	return separator
 }

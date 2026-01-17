@@ -3,6 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/tui/components"
 	"github.com/shikaan/keydex/tui/components/status"
 )
@@ -14,6 +15,13 @@ type Layout struct {
 	Screen tcell.Screen
 
 	views.Panel
+}
+
+func (l *Layout) SetContent(w views.Widget) {
+	l.Panel.SetContent(w)
+	// Make sure the bottom panel is _always_ shown writing it last
+	l.Panel.SetStatus(l.Status)
+	l.Panel.SetTitle(l.Title)
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
@@ -66,8 +74,15 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				App.State.HasUnsavedChanges = false
 			}
 
+			// Group for entry is nil when the entry to be edited has just been created.
+			// In that case, we will use the root group.
+			var group *kdbx.Group
+			if group = App.State.Database.GetGroupForEntry(App.State.Entry); group == nil {
+				group = App.State.Database.GetRootGroup()
+			}
+			App.State.Group = group
+
 			// Needed to reset group selection on cancelled operations
-			App.State.Group = App.State.Database.GetGroupForEntry(App.State.Entry)
 			App.NavigateTo(NewEntryView)
 			return true
 		}

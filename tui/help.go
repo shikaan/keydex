@@ -10,18 +10,47 @@ import (
 )
 
 // Line breaking the border is to accommodate for the space introduced
-// with the useage of the constant. Do not align it!
-const welcomeBanner = `
-    +--------------------------------------------------+
-    | Welcome to ` + info.NAME + `!                               |
-    |                                                  |
-    |   Press Ctrl+P to start browsing the database.   |
-    +--------------------------------------------------+`
+// with the usage of the constant. Do not align it!
+const welcomeBanner = `+--------------------------------------------------------------------------+
+|                              Welcome to ` + info.NAME + `!                          |
+|                                                                          |
+|                Press Ctrl+P to start browsing the database.              |
+|                       Use ▴ ▾ to scroll the help text.                   |
++--------------------------------------------------------------------------+`
+
+var caser cases.Caser
+var nameTitle string
+
+func init() {
+	caser = cases.Title(language.English)
+	nameTitle = caser.String(info.NAME)
+}
+
+type HelpView struct {
+	screen tcell.Screen
+	text   *components.Scrollable
+
+	components.Container
+}
+
+func (v *HelpView) HandleEvent(ev tcell.Event) bool {
+	switch ev.(type) {
+	case *views.EventWidgetResize:
+		_, height := v.screen.Size()
+		v.text.SetSize(80, height-5)
+		return v.Container.HandleEvent(ev)
+	}
+
+	return v.Container.HandleEvent(ev)
+}
 
 func NewHelpView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Help")
-	caser := cases.Title(language.English)
-	t := components.NewText(screen, 10)
+	view := &HelpView{}
+	view.screen = screen
+
+	view.text = components.NewScrollable(80, 1)
+	view.SetContent(view.text)
 
 	// This line is showed only when reference is missing
 	// as that signifies this is the first time in this
@@ -32,22 +61,22 @@ func NewHelpView(screen tcell.Screen) views.Widget {
 		firstAccessLine = welcomeBanner
 	}
 
-	t.SetContent(firstAccessLine + `
+	view.text.SetContent(firstAccessLine + `
 
-` + caser.String(info.NAME) + ` Help Text
+` + nameTitle + ` Help Text
 
-` + caser.String(info.NAME) + ` is designed to be an easy-to-use, terminal-based password manager
-for the KeePass (https://keepass.info/) database format. The user interface
-is highly inspired to GNU Nano (https://www.nano-editor.org/).
+` + nameTitle + ` is an easy-to-use, terminal-based password manager for KeePass
+(https://keepass.info/) databases. The user interface is highly inspired to
+GNU Nano (https://www.nano-editor.org/).
 
 The top line displays the current version and contextual information about
 the current view. At the bottom there are three lines: the two at the
 bottom are a list of available commands, the third is a notification line
 for informational messages.
 
-All the commands - except for navigation - are issued by pressing a
-combination of Ctrl and another letter. We use the caret (^) symbol to
-indicate Ctrl. For example, ^C means Ctrl+C.
+Commands - except for navigation - are issued by pressing a combination of
+Ctrl and another letter. We use the caret (^) symbol to indicate Ctrl. For
+example, ^C means Ctrl+C.
 
 The following functions are available in ` + info.NAME + `:
 
@@ -64,5 +93,5 @@ The following functions are available in ` + info.NAME + `:
 End of help.
 `)
 
-	return t
+	return view
 }

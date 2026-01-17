@@ -1,49 +1,81 @@
 package components
 
 import (
+	"sync"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )
 
-const MIN_WIDTH = 80
-
-var spacer = &views.Spacer{}
+const CONTENT_WIDTH = 76
 
 type Container struct {
-	Orientation views.Orientation
+	view views.View
 
-	screen tcell.Screen
-	views.BoxLayout
+	wview  views.ViewPort
+	widget views.Widget
+
+	once sync.Once
+
+	views.WidgetWatchers
+}
+
+func (c *Container) Resize() {
+	c.initialize(c.widget)
+	c.layout()
+	c.widget.Resize()
+	c.PostEventWidgetResize(c)
+}
+
+func (c *Container) SetView(view views.View) {
+	c.initialize(c.widget)
+	c.view = view
+	c.wview.SetView(view)
 }
 
 func (c *Container) Draw() {
-	w, _ := c.screen.Size()
+	c.initialize(c.widget)
+	c.layout()
 
-	c.BoxLayout.RemoveWidget(spacer)
-	c.BoxLayout.RemoveWidget(spacer)
+	c.view.Clear()
+	c.widget.Draw()
+}
 
-	if w > MIN_WIDTH {
-		c.BoxLayout.InsertWidget(0, spacer, 1)
-		c.BoxLayout.InsertWidget(2, spacer, 1)
-	}
-
-	c.Resize()
-	c.BoxLayout.Draw()
+func (c *Container) Size() (int, int) {
+	return c.widget.Size()
 }
 
 func (c *Container) SetContent(w views.Widget) {
-	c.BoxLayout.InsertWidget(1, w, 1)
+	c.initialize(w)
+	c.PostEventWidgetContent(c)
 }
 
-func (c *Container) InsertWidget() {}
-func (c *Container) AddWidget()    {}
-func (c *Container) RemoveWidget() {}
+func (c *Container) HandleEvent(ev tcell.Event) bool {
+	switch ev.(type) {
+	case *views.EventWidgetContent:
+		c.PostEventWidgetContent(c)
+		return true
+	}
 
-func NewContainer(screen tcell.Screen) *Container {
-	container := &Container{}
+	if c.widget.HandleEvent(ev) {
+		return true
+	}
 
-	container.SetOrientation(views.Horizontal)
-	container.screen = screen
+	return false
+}
 
-	return container
+func (c *Container) initialize(w views.Widget) {
+	c.widget = w
+	c.once.Do(func() {
+		c.widget.SetView(&c.wview)
+		c.widget.Watch(c)
+	})
+}
+
+func (c *Container) layout() {
+	w, _ := c.view.Size()
+
+	_, wh := c.widget.Size()
+	c.wview.Resize((w-CONTENT_WIDTH)/2, 0, CONTENT_WIDTH, wh)
+	c.widget.Resize()
 }
