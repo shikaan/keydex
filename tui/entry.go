@@ -186,8 +186,12 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 }
 
 func NewEntryView(screen tcell.Screen) views.Widget {
-	if App.State.Entry == nil || App.State.Group == nil {
-		panic("missing entry or group")
+	if App.State.Entry == nil {
+		panic("missing entry")
+	}
+
+	if App.State.Group == nil {
+		panic("missing group")
 	}
 
 	title := "\"" + App.State.Entry.GetTitle() + "\""
