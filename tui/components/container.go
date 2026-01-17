@@ -5,7 +5,6 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/keydex/pkg/log"
 )
 
 const MIN_WIDTH = 76
@@ -22,7 +21,6 @@ type Container struct {
 }
 
 func (c *Container) Resize() {
-	log.Debug("Resize")
 	c.initialize(c.widget)
 	c.layout()
 	c.widget.Resize()
@@ -30,7 +28,6 @@ func (c *Container) Resize() {
 }
 
 func (c *Container) SetView(view views.View) {
-	log.Debug("SetView")
 	c.initialize(c.widget)
 	c.view = view
 	c.wview.SetView(view)
@@ -57,20 +54,16 @@ func (c *Container) Size() (int, int) {
 func (c *Container) SetContent(w views.Widget) {
 	c.initialize(w)
 	c.PostEventWidgetContent(c)
-
-	log.Debug("SetContent")
 }
 
 func (c *Container) HandleEvent(ev tcell.Event) bool {
 	switch ev.(type) {
 	case *views.EventWidgetContent:
-		log.Debug("EventWidgetContent")
 		c.PostEventWidgetContent(c)
 		return true
 	}
 
 	if c.widget.HandleEvent(ev) {
-		log.Debug("widget.HandleEvent")
 		return true
 	}
 
@@ -88,8 +81,6 @@ func (c *Container) initialize(w views.Widget) {
 func (c *Container) layout() {
 	w, _ := c.view.Size()
 
-	// TODO: make autocoplete to be of fixed size 80
-	// TODO: make the form to be of fixed size smaller
 	_, wh := c.widget.Size()
 	c.wview.Resize((w-MIN_WIDTH)/2, 0, MIN_WIDTH, wh)
 	c.widget.Resize()
