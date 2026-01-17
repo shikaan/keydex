@@ -307,7 +307,7 @@ func (view *EntryView) newMetaField(label, value string) *views.Text {
 
 func (view *EntryView) newSeparator() *views.Text {
 	separator := views.NewText()
-	line := strings.Repeat("-", components.MIN_WIDTH)
+	line := strings.Repeat("-", components.CONTENT_WIDTH)
 	line = fmt.Sprintf("%s\n\n", line)
 	separator.SetText(line)
 	return separator

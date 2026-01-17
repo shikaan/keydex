@@ -7,7 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 )
 
-const MIN_WIDTH = 76
+const CONTENT_WIDTH = 76
 
 type Container struct {
 	view views.View
@@ -76,6 +76,6 @@ func (c *Container) layout() {
 	w, _ := c.view.Size()
 
 	_, wh := c.widget.Size()
-	c.wview.Resize((w-MIN_WIDTH)/2, 0, MIN_WIDTH, wh)
+	c.wview.Resize((w-CONTENT_WIDTH)/2, 0, CONTENT_WIDTH, wh)
 	c.widget.Resize()
 }

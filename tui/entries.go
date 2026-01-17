@@ -113,5 +113,5 @@ func getBoundaries(screen tcell.Screen) (int, int) {
 	// one third of the screen width
 	// all the height - title, status, search, counter, notification,
 	// and 4 more lines of buffer just in case
-	return max(x/3, components.MIN_WIDTH), y - 10
+	return max(x/3, components.CONTENT_WIDTH), y - 10
 }
