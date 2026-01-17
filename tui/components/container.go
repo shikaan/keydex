@@ -91,6 +91,6 @@ func (c *Container) layout() {
 	// TODO: make autocoplete to be of fixed size 80
 	// TODO: make the form to be of fixed size smaller
 	_, wh := c.widget.Size()
-	c.wview.Resize((w-80)/2, 0, 80, max(wh, 24))
+	c.wview.Resize((w-MIN_WIDTH)/2, 0, MIN_WIDTH, wh)
 	c.widget.Resize()
 }

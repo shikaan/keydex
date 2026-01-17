@@ -16,6 +16,13 @@ type Layout struct {
 	views.Panel
 }
 
+func (l *Layout) SetContent(w views.Widget) {
+	l.Panel.SetContent(w)
+	// Make sure the bottom panel is _always_ shown writing it last
+	l.Panel.SetStatus(l.Status)
+	l.Panel.SetTitle(l.Title)
+}
+
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
