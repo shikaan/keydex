@@ -9,7 +9,7 @@ Terminal based password manager for KeePass databases.
 </p>
 
 <p align="center">
-  <img width="540" alt="screenshot" src="https://github.com/user-attachments/assets/cbd9e45f-dcf5-4abf-8c7b-5c5f6d005681" />
+  <img width="540" alt="screenshot" src="https://github.com/user-attachments/assets/a58cfe6d-8f3a-462c-a20f-b894bc79b14f" />
 </p>
 
 ## ⚡️ Quick start
