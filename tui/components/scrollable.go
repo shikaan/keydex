@@ -79,7 +79,7 @@ func (s *Scrollable) SetContent(text string) {
 }
 
 // Init initializes the Scrollable.
-func (s *Scrollable) Init(width, height int) {
+func (s *Scrollable) Init(height, width int) {
 	s.once.Do(func() {
 		m := &scrollableModel{
 			runes:   [][]rune{},
@@ -96,7 +96,7 @@ func (s *Scrollable) Init(width, height int) {
 // NewScrollable creates a new Scrollable with fixed width and height.
 func NewScrollable(width, height int) *Scrollable {
 	s := &Scrollable{}
-	s.Init(width, height)
+	s.Init(height, width)
 	return s
 }
 
