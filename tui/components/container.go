@@ -8,7 +8,7 @@ import (
 	"github.com/shikaan/keydex/pkg/log"
 )
 
-const MIN_WIDTH = 80
+const MIN_WIDTH = 76
 
 type Container struct {
 	view views.View
