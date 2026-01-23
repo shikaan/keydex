@@ -162,10 +162,7 @@ func TestLayout_HandleEvent_Esc_RequiresExistingEntry(t *testing.T) {
 }
 
 func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
-	// Setup test database
 	db := createTestDatabase()
-
-	// Create an entry
 	entry := db.NewEntry()
 
 	App.State = State{
@@ -176,7 +173,6 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 
 	App.isDirty = true
 
-	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")
 	screen.Init()
 	defer screen.Fini()
@@ -185,25 +181,20 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 	App.layout = layout
 	App.screen = screen
 
-	// Create ESC key event
 	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
 
-	// Handle the event
 	layout.HandleEvent(escEvent)
 
-	// Verify HasUnsavedChanges is set to false
 	if App.IsDirty() {
 		t.Error("Should not be dirty after handling ESC event")
 	}
 
-	// Verify App.State.Group is set to root group (since entry has no group)
 	if App.State.Group == nil {
 		t.Error("App.State.Group should not be nil after handling ESC event")
 	}
 }
 
 func TestLayout_HandleEvent_DelegatesWhenConfirming(t *testing.T) {
-	// Setup test database
 	db := createTestDatabase()
 	entry := db.NewEntry()
 
@@ -213,7 +204,6 @@ func TestLayout_HandleEvent_DelegatesWhenConfirming(t *testing.T) {
 		Group:    nil,
 	}
 
-	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")
 	screen.Init()
 	defer screen.Fini()
@@ -222,38 +212,31 @@ func TestLayout_HandleEvent_DelegatesWhenConfirming(t *testing.T) {
 	App.layout = layout
 	App.screen = screen
 
-	// Trigger a confirmation dialog
 	confirmRejectCalled := false
 	layout.Status.Confirm("Test confirmation?",
 		func() { /* accept handler */ },
 		func() { confirmRejectCalled = true },
 	)
 
-	// Verify confirmation is active
 	if !layout.Status.IsConfirming() {
 		t.Fatal("Expected confirmation to be active")
 	}
 
-	// Create ESC key event - this should be delegated to Panel, not handled by Layout's ESC logic
 	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
 	handled := layout.HandleEvent(escEvent)
 
-	// Verify the event was handled
 	if !handled {
 		t.Error("Expected event to be handled")
 	}
 
-	// Verify that the reject callback was called (ESC triggers rejection in confirmation)
 	if !confirmRejectCalled {
 		t.Error("Expected confirmation reject callback to be called when ESC is pressed during confirmation")
 	}
 
-	// Verify that confirmation is no longer active after rejection
 	if layout.Status.IsConfirming() {
 		t.Error("Expected confirmation to be dismissed after ESC")
 	}
 
-	// Verify App.State.Group was NOT set (since event was delegated, not handled by Layout's ESC logic)
 	if App.State.Group != nil {
 		t.Error("App.State.Group should remain nil when ESC is handled during confirmation")
 	}
