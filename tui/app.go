@@ -59,8 +59,17 @@ func (a *Application) SetTitle(title string) {
 	a.layout.Title.SetTitle(title)
 }
 
+func (a *Application) SetDirty(value bool) {
+	App.State.isDirty = value
+	a.layout.Title.SetDirty(value)
+}
+
+func (a *Application) IsDirty() bool {
+	return a.State.isDirty
+}
+
 func (a *Application) Quit() {
-	if !a.State.HasUnsavedChanges {
+	if !a.IsDirty() {
 		a.Application.Quit()
 		return
 	}
@@ -92,12 +101,13 @@ func (a *Application) CreateEmptyEntry() error {
 var App = &Application{}
 
 type State struct {
-	Entry             *kdbx.Entry
-	Group             *kdbx.Group
-	Database          *kdbx.Database
-	Reference         string
-	HasUnsavedChanges bool
-	IsReadOnly        bool
+	Entry      *kdbx.Entry
+	Group      *kdbx.Group
+	Database   *kdbx.Database
+	Reference  string
+	IsReadOnly bool
+
+	isDirty bool
 }
 
 func Run(state State) error {

@@ -50,7 +50,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			if !App.State.HasUnsavedChanges {
+			if !App.IsDirty() {
 				App.NavigateTo(NewGroupListView)
 				return true
 			}
@@ -89,7 +89,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						msg := fmt.Sprintf("Entry \"%s\" created successfully.", App.State.Entry.GetTitle())
 						App.Notify(msg)
 						log.Info(msg)
-						App.State.HasUnsavedChanges = false
+						App.SetDirty(false)
 						v.refresh()
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
@@ -116,7 +116,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", App.State.Entry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
-					App.State.HasUnsavedChanges = false
+					App.SetDirty(false)
 					v.refresh()
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
@@ -169,7 +169,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := fmt.Sprintf("Entry \"%s\" deleted successfully.", title)
 					App.Notify(msg)
 					log.Info(msg)
-					App.State.HasUnsavedChanges = false
+					App.SetDirty(false)
 
 					App.NavigateTo(NewEntryListView)
 				}, func() {
@@ -194,7 +194,7 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 		panic("missing group")
 	}
 
-	title := "\"" + App.State.Entry.GetTitle() + "\""
+	title := App.State.Entry.GetTitle()
 	if App.State.IsReadOnly {
 		title += " [READ ONLY]"
 	}
@@ -267,7 +267,7 @@ func (view *EntryView) newEntryField(label, initialValue string, isProtected boo
 	})
 
 	f.OnChange(func(ev tcell.Event) bool {
-		App.State.HasUnsavedChanges = true
+		App.SetDirty(true)
 		return false
 	})
 

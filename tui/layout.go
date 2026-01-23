@@ -69,9 +69,9 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			if App.State.HasUnsavedChanges {
+			if App.IsDirty() {
 				App.Notify("Operation cancelled. Updates were not saved.")
-				App.State.HasUnsavedChanges = false
+				App.SetDirty(false)
 			}
 
 			// Group for entry is nil when the entry to be edited has just been created.
@@ -94,7 +94,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 // and of the routing in between pages
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
-	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName + "  ")
+	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName)
 	s := status.NewStatus()
 
 	t := views.NewText()

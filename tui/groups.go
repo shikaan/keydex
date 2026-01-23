@@ -88,7 +88,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 		MaxY:       maxY,
 		OnSelect: func(groupRef string) bool {
 			App.State.Group = App.State.Database.GetFirstGroupByPath(groupRef)
-			App.State.HasUnsavedChanges = true
+			App.SetDirty(true)
 			App.NavigateTo(NewEntryView)
 			return true
 		},
@@ -106,7 +106,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 			}
 
 			App.State.Group = group
-			App.State.HasUnsavedChanges = true
+			App.SetDirty(true)
 			App.NavigateTo(NewEntryView)
 
 			App.Notify(fmt.Sprintf("Group \"%s\" created successfully.", input))

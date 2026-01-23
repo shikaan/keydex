@@ -81,10 +81,10 @@ func TestLayout_HandleEvent_Esc_AlwaysSetsGroup(t *testing.T) {
 			entry := tt.setupEntry(db)
 
 			App.State = State{
-				Database:          db,
-				Entry:             entry,
-				Group:             nil, // Start with nil group
-				HasUnsavedChanges: false,
+				Database: db,
+				Entry:    entry,
+				Group:    nil, // Start with nil group
+				isDirty:  false,
 			}
 
 			// Create layout and set up App
@@ -170,10 +170,10 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 	entry := db.NewEntry()
 
 	App.State = State{
-		Database:          db,
-		Entry:             entry,
-		Group:             nil,
-		HasUnsavedChanges: true,
+		Database: db,
+		Entry:    entry,
+		Group:    nil,
+		isDirty:  true,
 	}
 
 	// Create layout and set up App
@@ -192,8 +192,8 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 	layout.HandleEvent(escEvent)
 
 	// Verify HasUnsavedChanges is set to false
-	if App.State.HasUnsavedChanges {
-		t.Error("App.State.HasUnsavedChanges should be false after handling ESC event")
+	if App.IsDirty() {
+		t.Error("Should not be dirty after handling ESC event")
 	}
 
 	// Verify App.State.Group is set to root group (since entry has no group)
