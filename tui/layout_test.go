@@ -84,7 +84,6 @@ func TestLayout_HandleEvent_Esc_AlwaysSetsGroup(t *testing.T) {
 				Database: db,
 				Entry:    entry,
 				Group:    nil, // Start with nil group
-				isDirty:  false,
 			}
 
 			// Create layout and set up App
@@ -173,8 +172,9 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 		Database: db,
 		Entry:    entry,
 		Group:    nil,
-		isDirty:  true,
 	}
+
+	App.isDirty = true
 
 	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")

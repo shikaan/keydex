@@ -16,6 +16,8 @@ type Application struct {
 	LastWidget  views.Widget
 	State       State
 
+	isDirty bool
+
 	views.Application
 }
 
@@ -60,12 +62,12 @@ func (a *Application) SetTitle(title string) {
 }
 
 func (a *Application) SetDirty(value bool) {
-	a.State.isDirty = value
+	a.isDirty = value
 	a.layout.Title.SetDirty(value)
 }
 
 func (a *Application) IsDirty() bool {
-	return a.State.isDirty
+	return a.isDirty
 }
 
 func (a *Application) Quit() {
@@ -106,8 +108,6 @@ type State struct {
 	Database   *kdbx.Database
 	Reference  string
 	IsReadOnly bool
-
-	isDirty bool
 }
 
 func Run(state State) error {
