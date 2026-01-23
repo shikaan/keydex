@@ -5,6 +5,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/shikaan/keydex/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/log"
 	"github.com/shikaan/keydex/tui/components"
 )
 
@@ -16,7 +17,8 @@ type Application struct {
 	LastWidget  views.Widget
 	State       State
 
-	isDirty bool
+	isDirty    bool
+	isReadOnly bool
 
 	views.Application
 }
@@ -70,6 +72,17 @@ func (a *Application) IsDirty() bool {
 	return a.isDirty
 }
 
+func (a *Application) LockDatabase(e error) {
+	App.isReadOnly = true
+	msg := "Could not save. Switching to read-only to preserve database integrity."
+	App.Notify(msg)
+	log.Error(msg, e)
+}
+
+func (a *Application) IsReadOnly() bool {
+	return a.isReadOnly
+}
+
 func (a *Application) Quit() {
 	if !a.IsDirty() {
 		a.Application.Quit()
@@ -103,20 +116,20 @@ func (a *Application) CreateEmptyEntry() error {
 var App = &Application{}
 
 type State struct {
-	Entry      *kdbx.Entry
-	Group      *kdbx.Group
-	Database   *kdbx.Database
-	Reference  string
-	IsReadOnly bool
+	Entry     *kdbx.Entry
+	Group     *kdbx.Group
+	Database  *kdbx.Database
+	Reference string
 }
 
-func Run(state State) error {
+func Run(state State, readOnly bool) error {
 	if screen, err := tcell.NewScreen(); err == nil {
 		App.SetScreen(screen)
 		App.screen = screen
 		App.State = state
 		App.layout = NewLayout(screen)
 		App.SetRootWidget(App.layout)
+		App.isReadOnly = readOnly
 
 		if state.Reference == "" {
 			App.NavigateTo(NewHelpView)

@@ -43,7 +43,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+K" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Cannot select group. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -63,7 +63,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 		}
 
 		if ev.Name() == "Ctrl+O" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not save. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -79,10 +79,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					func() {
 						v.updateEntry(App.State.Entry)
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-							App.State.IsReadOnly = true
-							msg := "Could not save. Switching to read-only to not corrupt data."
-							App.Notify(msg)
-							log.Error(msg, e)
+							App.LockDatabase(e)
 							return
 						}
 
@@ -106,10 +103,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					v.updateEntry(existingEntry)
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockDatabase(e)
 						return
 					}
 
@@ -128,7 +122,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 		}
 
 		if ev.Name() == "Ctrl+D" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -159,10 +153,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockDatabase(e)
 						return
 					}
 
@@ -195,7 +186,7 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 	}
 
 	title := App.State.Entry.GetTitle()
-	if App.State.IsReadOnly {
+	if App.IsReadOnly() {
 		title += " [READ ONLY]"
 	}
 	App.SetTitle(title)
@@ -258,7 +249,7 @@ func (view *EntryView) newEntryField(label, initialValue string, isProtected boo
 		inputType = field.InputTypePassword
 	}
 
-	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.State.IsReadOnly}
+	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.IsReadOnly()}
 	f := field.NewField(fieldOptions)
 
 	f.OnFocus(func() bool {

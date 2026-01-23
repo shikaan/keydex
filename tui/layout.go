@@ -45,7 +45,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Name() == "Ctrl+N" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				App.Notify("Could not create. Archive in read-only mode.")
 				return true
 			}

@@ -68,23 +68,21 @@ func open(databasePath, keyPath, passphrase, reference string, readOnly bool) er
 
 	if reference == "" {
 		return tui.Run(tui.State{
-			Entry:      nil,
-			Group:      nil,
-			Database:   database,
-			Reference:  reference,
-			IsReadOnly: readOnly,
-		})
+			Entry:     nil,
+			Group:     nil,
+			Database:  database,
+			Reference: reference,
+		}, readOnly)
 	}
 
 	if entry := database.GetFirstEntryByPath(reference); entry != nil {
 		if group := database.GetGroupForEntry(entry); group != nil {
 			return tui.Run(tui.State{
-				Entry:      entry,
-				Group:      group,
-				Database:   database,
-				Reference:  reference,
-				IsReadOnly: readOnly,
-			})
+				Entry:     entry,
+				Group:     group,
+				Database:  database,
+				Reference: reference,
+			}, readOnly)
 		}
 	}
 
