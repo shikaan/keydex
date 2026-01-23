@@ -25,6 +25,11 @@ func (l *Layout) SetContent(w views.Widget) {
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
+	// If there is a pending confirmation, delegate to panel to handle Y/N/Cancel
+	if v.Status.IsConfirming() {
+		return v.Panel.HandleEvent(ev)
+	}
+
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+X" {

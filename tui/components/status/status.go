@@ -78,6 +78,10 @@ func (s *Status) reset() {
 	s.Resize()
 }
 
+func (s *Status) IsConfirming() bool {
+	return s.model.isConfirming
+}
+
 func NewStatus() *Status {
 	status := &Status{}
 	status.SetOrientation(views.Vertical)
