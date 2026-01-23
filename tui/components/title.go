@@ -20,11 +20,11 @@ func (t *Title) SetTitle(title string) {
 }
 
 func (t *Title) SetDirty(dirty bool) {
-	if dirty {
-		t.SetCenter(t.content+" [MODIFIED]", tcell.StyleDefault.Reverse(true))
-	} else {
-		t.SetCenter(t.content, tcell.StyleDefault.Reverse(true))
+	text := t.content
+	if dirty && text != "" {
+		text = text + " [MODIFIED]"
 	}
+	t.SetCenter(text, tcell.StyleDefault.Reverse(true))
 }
 
 func NewTitle(database string) *Title {
