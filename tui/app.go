@@ -60,7 +60,7 @@ func (a *Application) SetTitle(title string) {
 }
 
 func (a *Application) SetDirty(value bool) {
-	App.State.isDirty = value
+	a.State.isDirty = value
 	a.layout.Title.SetDirty(value)
 }
 
