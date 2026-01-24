@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func orDefault(s string) string {
+	if s == "" {
+		return "n/a"
+	}
+	return s
+}
+
 var Open = &cobra.Command{
 	Use:     "open [file] [reference]",
 	Short:   "Open the entry editor for a reference.",
@@ -51,7 +58,13 @@ See "Examples" for more details.`,
 		if err != nil {
 			return err
 		}
-		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
+
+		log.Infof(
+			"Using: database: %s, reference: %s, key: %s, read only: %t",
+			database,
+			orDefault(reference),
+			orDefault(key),
+			readOnly)
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
