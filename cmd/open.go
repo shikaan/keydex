@@ -61,6 +61,11 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string, readOnly bool) error {
+	reference, err := ReadReferenceFromStdin(reference)
+	if err != nil {
+		return err
+	}
+
 	database, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
