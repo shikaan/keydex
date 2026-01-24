@@ -110,6 +110,7 @@ func (a *Application) CreateEmptyEntry() error {
 	}
 
 	a.State.Reference = path
+	a.SetDirty(true)
 	return nil
 }
 
