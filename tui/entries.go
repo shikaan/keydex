@@ -48,7 +48,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.LockDatabase(e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 

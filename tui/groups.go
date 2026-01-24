@@ -48,7 +48,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.LockDatabase(e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
@@ -95,7 +95,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 			root.Groups = append(root.Groups, *group)
 
 			if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-				App.LockDatabase(e)
+				App.LockCurrentDatabase(e)
 				return true
 			}
 

@@ -14,9 +14,9 @@ type Application struct {
 	screen tcell.Screen
 
 	LastFocused components.Focusable
-	LastWidget  views.Widget
 	State       State
 
+	lastWidget views.Widget
 	isDirty    bool
 	isReadOnly bool
 
@@ -72,10 +72,10 @@ func (a *Application) IsDirty() bool {
 	return a.isDirty
 }
 
-func (a *Application) LockDatabase(e error) {
-	App.isReadOnly = true
+func (a *Application) LockCurrentDatabase(e error) {
+	a.isReadOnly = true
 	msg := "Could not save. Switching to read-only to preserve database integrity."
-	App.Notify(msg)
+	a.Notify(msg)
 	log.Error(msg, e)
 }
 
@@ -100,7 +100,7 @@ func (a *Application) CreateEmptyEntry() error {
 	entry := a.State.Database.NewEntry()
 	a.State.Entry = entry
 
-	if App.State.Group == nil {
+	if a.State.Group == nil {
 		a.State.Group = a.State.Database.GetRootGroup()
 	}
 

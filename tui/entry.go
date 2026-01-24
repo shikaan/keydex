@@ -79,7 +79,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					func() {
 						v.updateEntry(App.State.Entry)
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-							App.LockDatabase(e)
+							App.LockCurrentDatabase(e)
 							return
 						}
 
@@ -103,7 +103,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					v.updateEntry(existingEntry)
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.LockDatabase(e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
@@ -153,7 +153,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.LockDatabase(e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
