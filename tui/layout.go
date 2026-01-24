@@ -3,7 +3,6 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/tui/components"
 	"github.com/shikaan/keydex/tui/components/status"
 )
@@ -81,9 +80,15 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 
 			// Group for entry is nil when the entry to be edited has just been created.
 			// In that case, we will use the root group.
-			var group *kdbx.Group
-			if group = App.State.Database.GetGroupForEntry(App.State.Entry); group == nil {
+			group := App.State.Database.GetGroupForEntry(App.State.Entry)
+			isNewEntry := group == nil
+
+			if isNewEntry {
 				group = App.State.Database.GetRootGroup()
+
+				// If the entry is new, saving the database will incur a write on disk
+				// This means the state is dirty, and we make sure it's reflected here.
+				App.SetDirty(true)
 			}
 			App.State.Group = group
 

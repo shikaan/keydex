@@ -241,3 +241,66 @@ func TestLayout_HandleEvent_DelegatesWhenConfirming(t *testing.T) {
 		t.Error("App.State.Group should remain nil when ESC is handled during confirmation")
 	}
 }
+
+func TestLayout_HandleEvent_Esc_ModifiedBadgeBehavior(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupEntry         func(db *kdbx.Database) *kdbx.Entry
+		initialDirty       bool
+		expectedDirtyAfter bool
+		description        string
+	}{
+		{
+			name: "keeps [MODIFIED] badge for new entries",
+			setupEntry: func(db *kdbx.Database) *kdbx.Entry {
+				// Create entry but don't add it to any group (simulates new entry)
+				return db.NewEntry()
+			},
+			initialDirty:       true,
+			expectedDirtyAfter: true,
+			description:        "New entries should keep dirty state after ESC",
+		},
+		{
+			name: "clears [MODIFIED] badge for updated entries",
+			setupEntry: func(db *kdbx.Database) *kdbx.Entry {
+				// Create entry and add it to root group (simulates existing entry)
+				entry := db.NewEntry()
+				db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, entry.Entry)
+				return entry
+			},
+			initialDirty:       true,
+			expectedDirtyAfter: false,
+			description:        "Updated entries should clear dirty state after ESC",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := createTestDatabase()
+			entry := tt.setupEntry(db)
+
+			App.State = State{
+				Database: db,
+				Entry:    entry,
+				Group:    nil,
+			}
+			App.isDirty = tt.initialDirty
+
+			screen := tcell.NewSimulationScreen("UTF-8")
+			screen.Init()
+			defer screen.Fini()
+
+			layout := NewLayout(screen)
+			App.layout = layout
+			App.screen = screen
+
+			escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
+			layout.HandleEvent(escEvent)
+
+			if App.IsDirty() != tt.expectedDirtyAfter {
+				t.Errorf("%s: expected IsDirty() = %v, got %v",
+					tt.description, tt.expectedDirtyAfter, App.IsDirty())
+			}
+		})
+	}
+}
