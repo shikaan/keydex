@@ -78,10 +78,7 @@ For example, here's an of how you can use it to browse entries with [fzf](https:
 
 ```sh
 # copy entry's password selected with fzf to the clipboard
-keydex list | fzf | keydex copy  
-
-# open entry at ref selected with fzf
-keydex list | fzf | keydex open  
+keydex list | fzf | keydex copy
 ```
 
 ## 📄 Documentation
