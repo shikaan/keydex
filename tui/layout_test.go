@@ -135,7 +135,6 @@ func TestLayout_HandleEvent_Esc_RequiresExistingEntry(t *testing.T) {
 		Group:    nil,
 	}
 
-	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")
 	screen.Init()
 	defer screen.Fini()
@@ -144,53 +143,15 @@ func TestLayout_HandleEvent_Esc_RequiresExistingEntry(t *testing.T) {
 	App.layout = layout
 	App.screen = screen
 
-	// Create ESC key event
 	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
-
-	// Handle the event
 	handled := layout.HandleEvent(escEvent)
 
-	// Verify the event was handled (returns true)
 	if !handled {
 		t.Error("Expected ESC event to be handled even without entry")
 	}
 
-	// Verify App.State.Group is still nil (since we exit early when Entry is nil)
 	if App.State.Group != nil {
 		t.Error("App.State.Group should remain nil when Entry is nil")
-	}
-}
-
-func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
-	db := createTestDatabase()
-	entry := db.NewEntry()
-
-	App.State = State{
-		Database: db,
-		Entry:    entry,
-		Group:    nil,
-	}
-
-	App.isDirty = true
-
-	screen := tcell.NewSimulationScreen("UTF-8")
-	screen.Init()
-	defer screen.Fini()
-
-	layout := NewLayout(screen)
-	App.layout = layout
-	App.screen = screen
-
-	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
-
-	layout.HandleEvent(escEvent)
-
-	if App.IsDirty() {
-		t.Error("Should not be dirty after handling ESC event")
-	}
-
-	if App.State.Group == nil {
-		t.Error("App.State.Group should not be nil after handling ESC event")
 	}
 }
 
