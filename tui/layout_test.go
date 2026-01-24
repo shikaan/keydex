@@ -81,10 +81,9 @@ func TestLayout_HandleEvent_Esc_AlwaysSetsGroup(t *testing.T) {
 			entry := tt.setupEntry(db)
 
 			App.State = State{
-				Database:          db,
-				Entry:             entry,
-				Group:             nil, // Start with nil group
-				HasUnsavedChanges: false,
+				Database: db,
+				Entry:    entry,
+				Group:    nil, // Start with nil group
 			}
 
 			// Create layout and set up App
@@ -136,7 +135,6 @@ func TestLayout_HandleEvent_Esc_RequiresExistingEntry(t *testing.T) {
 		Group:    nil,
 	}
 
-	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")
 	screen.Init()
 	defer screen.Fini()
@@ -145,38 +143,28 @@ func TestLayout_HandleEvent_Esc_RequiresExistingEntry(t *testing.T) {
 	App.layout = layout
 	App.screen = screen
 
-	// Create ESC key event
 	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
-
-	// Handle the event
 	handled := layout.HandleEvent(escEvent)
 
-	// Verify the event was handled (returns true)
 	if !handled {
 		t.Error("Expected ESC event to be handled even without entry")
 	}
 
-	// Verify App.State.Group is still nil (since we exit early when Entry is nil)
 	if App.State.Group != nil {
 		t.Error("App.State.Group should remain nil when Entry is nil")
 	}
 }
 
-func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
-	// Setup test database
+func TestLayout_HandleEvent_DelegatesWhenConfirming(t *testing.T) {
 	db := createTestDatabase()
-
-	// Create an entry
 	entry := db.NewEntry()
 
 	App.State = State{
-		Database:          db,
-		Entry:             entry,
-		Group:             nil,
-		HasUnsavedChanges: true,
+		Database: db,
+		Entry:    entry,
+		Group:    nil,
 	}
 
-	// Create layout and set up App
 	screen := tcell.NewSimulationScreen("UTF-8")
 	screen.Init()
 	defer screen.Fini()
@@ -185,19 +173,95 @@ func TestLayout_HandleEvent_Esc_ClearsUnsavedChanges(t *testing.T) {
 	App.layout = layout
 	App.screen = screen
 
-	// Create ESC key event
-	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
+	confirmRejectCalled := false
+	layout.Status.Confirm("Test confirmation?",
+		func() { /* accept handler */ },
+		func() { confirmRejectCalled = true },
+	)
 
-	// Handle the event
-	layout.HandleEvent(escEvent)
-
-	// Verify HasUnsavedChanges is set to false
-	if App.State.HasUnsavedChanges {
-		t.Error("App.State.HasUnsavedChanges should be false after handling ESC event")
+	if !layout.Status.IsConfirming() {
+		t.Fatal("Expected confirmation to be active")
 	}
 
-	// Verify App.State.Group is set to root group (since entry has no group)
-	if App.State.Group == nil {
-		t.Error("App.State.Group should not be nil after handling ESC event")
+	escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
+	handled := layout.HandleEvent(escEvent)
+
+	if !handled {
+		t.Error("Expected event to be handled")
+	}
+
+	if !confirmRejectCalled {
+		t.Error("Expected confirmation reject callback to be called when ESC is pressed during confirmation")
+	}
+
+	if layout.Status.IsConfirming() {
+		t.Error("Expected confirmation to be dismissed after ESC")
+	}
+
+	if App.State.Group != nil {
+		t.Error("App.State.Group should remain nil when ESC is handled during confirmation")
+	}
+}
+
+func TestLayout_HandleEvent_Esc_ModifiedBadgeBehavior(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupEntry         func(db *kdbx.Database) *kdbx.Entry
+		initialDirty       bool
+		expectedDirtyAfter bool
+		description        string
+	}{
+		{
+			name: "keeps [MODIFIED] badge for new entries",
+			setupEntry: func(db *kdbx.Database) *kdbx.Entry {
+				// Create entry but don't add it to any group (simulates new entry)
+				return db.NewEntry()
+			},
+			initialDirty:       true,
+			expectedDirtyAfter: true,
+			description:        "New entries should keep dirty state after ESC",
+		},
+		{
+			name: "clears [MODIFIED] badge for updated entries",
+			setupEntry: func(db *kdbx.Database) *kdbx.Entry {
+				// Create entry and add it to root group (simulates existing entry)
+				entry := db.NewEntry()
+				db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, entry.Entry)
+				return entry
+			},
+			initialDirty:       true,
+			expectedDirtyAfter: false,
+			description:        "Updated entries should clear dirty state after ESC",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := createTestDatabase()
+			entry := tt.setupEntry(db)
+
+			App.State = State{
+				Database: db,
+				Entry:    entry,
+				Group:    nil,
+			}
+			App.isDirty = tt.initialDirty
+
+			screen := tcell.NewSimulationScreen("UTF-8")
+			screen.Init()
+			defer screen.Fini()
+
+			layout := NewLayout(screen)
+			App.layout = layout
+			App.screen = screen
+
+			escEvent := tcell.NewEventKey(tcell.KeyEsc, 0, tcell.ModNone)
+			layout.HandleEvent(escEvent)
+
+			if App.IsDirty() != tt.expectedDirtyAfter {
+				t.Errorf("%s: expected IsDirty() = %v, got %v",
+					tt.description, tt.expectedDirtyAfter, App.IsDirty())
+			}
+		})
 	}
 }

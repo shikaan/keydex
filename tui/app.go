@@ -5,6 +5,7 @@ import (
 	"github.com/gdamore/tcell/v2/views"
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/shikaan/keydex/pkg/kdbx"
+	"github.com/shikaan/keydex/pkg/log"
 	"github.com/shikaan/keydex/tui/components"
 )
 
@@ -13,8 +14,11 @@ type Application struct {
 	screen tcell.Screen
 
 	LastFocused components.Focusable
-	LastWidget  views.Widget
 	State       State
+
+	lastWidget views.Widget
+	isDirty    bool
+	isReadOnly bool
 
 	views.Application
 }
@@ -59,8 +63,28 @@ func (a *Application) SetTitle(title string) {
 	a.layout.Title.SetTitle(title)
 }
 
+func (a *Application) SetDirty(value bool) {
+	a.isDirty = value
+	a.layout.Title.SetDirty(value)
+}
+
+func (a *Application) IsDirty() bool {
+	return a.isDirty
+}
+
+func (a *Application) LockCurrentDatabase(e error) {
+	a.isReadOnly = true
+	msg := "Could not save. Switching to read-only to preserve database integrity."
+	a.Notify(msg)
+	log.Error(msg, e)
+}
+
+func (a *Application) IsReadOnly() bool {
+	return a.isReadOnly
+}
+
 func (a *Application) Quit() {
-	if !a.State.HasUnsavedChanges {
+	if !a.IsDirty() {
 		a.Application.Quit()
 		return
 	}
@@ -76,7 +100,7 @@ func (a *Application) CreateEmptyEntry() error {
 	entry := a.State.Database.NewEntry()
 	a.State.Entry = entry
 
-	if App.State.Group == nil {
+	if a.State.Group == nil {
 		a.State.Group = a.State.Database.GetRootGroup()
 	}
 
@@ -86,27 +110,27 @@ func (a *Application) CreateEmptyEntry() error {
 	}
 
 	a.State.Reference = path
+	a.SetDirty(true)
 	return nil
 }
 
 var App = &Application{}
 
 type State struct {
-	Entry             *kdbx.Entry
-	Group             *kdbx.Group
-	Database          *kdbx.Database
-	Reference         string
-	HasUnsavedChanges bool
-	IsReadOnly        bool
+	Entry     *kdbx.Entry
+	Group     *kdbx.Group
+	Database  *kdbx.Database
+	Reference string
 }
 
-func Run(state State) error {
+func Run(state State, readOnly bool) error {
 	if screen, err := tcell.NewScreen(); err == nil {
 		App.SetScreen(screen)
 		App.screen = screen
 		App.State = state
 		App.layout = NewLayout(screen)
 		App.SetRootWidget(App.layout)
+		App.isReadOnly = readOnly
 
 		if state.Reference == "" {
 			App.NavigateTo(NewHelpView)

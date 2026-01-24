@@ -9,11 +9,24 @@ import (
 )
 
 type Title struct {
+	content string
+	isDirty bool
+
 	views.TextBar
 }
 
-func (t *Title) SetTitle(s string) {
-	t.SetCenter(s, tcell.StyleDefault.Reverse(true))
+func (t *Title) SetTitle(title string) {
+	t.content = title
+	t.SetDirty(t.isDirty)
+}
+
+func (t *Title) SetDirty(dirty bool) {
+	t.isDirty = dirty
+	text := t.content
+	if dirty && text != "" {
+		text = text + " [MODIFIED]"
+	}
+	t.SetCenter(text, tcell.StyleDefault.Reverse(true))
 }
 
 func NewTitle(database string) *Title {
@@ -21,7 +34,8 @@ func NewTitle(database string) *Title {
 	tb.TextBar.SetStyle(tcell.StyleDefault.Reverse(true))
 	left := fmt.Sprintf("  %s %s (%s)", info.NAME, info.VERSION, info.REVISION)
 	tb.TextBar.SetLeft(left, tcell.StyleDefault.Reverse(true))
-	tb.TextBar.SetRight(database, tcell.StyleDefault.Reverse(true))
+	right := fmt.Sprintf("%s  ", database)
+	tb.TextBar.SetRight(right, tcell.StyleDefault.Reverse(true))
 
 	return tb
 }

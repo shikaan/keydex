@@ -3,7 +3,6 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/tui/components"
 	"github.com/shikaan/keydex/tui/components/status"
 )
@@ -25,6 +24,11 @@ func (l *Layout) SetContent(w views.Widget) {
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
+	// If there is a pending confirmation, delegate to panel to handle Y/N/Cancel
+	if v.Status.IsConfirming() {
+		return v.Panel.HandleEvent(ev)
+	}
+
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+X" {
@@ -40,7 +44,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Name() == "Ctrl+N" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				App.Notify("Could not create. Archive in read-only mode.")
 				return true
 			}
@@ -69,16 +73,22 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			if App.State.HasUnsavedChanges {
+			if App.IsDirty() {
 				App.Notify("Operation cancelled. Updates were not saved.")
-				App.State.HasUnsavedChanges = false
+				App.SetDirty(false)
 			}
 
 			// Group for entry is nil when the entry to be edited has just been created.
 			// In that case, we will use the root group.
-			var group *kdbx.Group
-			if group = App.State.Database.GetGroupForEntry(App.State.Entry); group == nil {
+			group := App.State.Database.GetGroupForEntry(App.State.Entry)
+			isNewEntry := group == nil
+
+			if isNewEntry {
 				group = App.State.Database.GetRootGroup()
+
+				// If the entry is new, saving the database will incur a write on disk
+				// This means the state is dirty, and we make sure it's reflected here.
+				App.SetDirty(true)
 			}
 			App.State.Group = group
 
@@ -94,7 +104,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 // and of the routing in between pages
 func NewLayout(screen tcell.Screen) *Layout {
 	l := &Layout{}
-	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName + "  ")
+	title := components.NewTitle(App.State.Database.Content.Meta.DatabaseName)
 	s := status.NewStatus()
 
 	t := views.NewText()

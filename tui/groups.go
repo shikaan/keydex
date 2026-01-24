@@ -20,7 +20,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+D" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -48,10 +48,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
@@ -88,7 +85,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 		MaxY:       maxY,
 		OnSelect: func(groupRef string) bool {
 			App.State.Group = App.State.Database.GetFirstGroupByPath(groupRef)
-			App.State.HasUnsavedChanges = true
+			App.SetDirty(true)
 			App.NavigateTo(NewEntryView)
 			return true
 		},
@@ -98,15 +95,12 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 			root.Groups = append(root.Groups, *group)
 
 			if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-				App.State.IsReadOnly = true
-				msg := "Could not save. Switching to read-only to not corrupt data."
-				App.Notify(msg)
-				log.Error(msg, e)
+				App.LockCurrentDatabase(e)
 				return true
 			}
 
 			App.State.Group = group
-			App.State.HasUnsavedChanges = true
+			App.SetDirty(true)
 			App.NavigateTo(NewEntryView)
 
 			App.Notify(fmt.Sprintf("Group \"%s\" created successfully.", input))

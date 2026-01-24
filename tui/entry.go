@@ -43,14 +43,14 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+K" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Cannot select group. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
 				return true
 			}
 
-			if !App.State.HasUnsavedChanges {
+			if !App.IsDirty() {
 				App.NavigateTo(NewGroupListView)
 				return true
 			}
@@ -63,7 +63,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 		}
 
 		if ev.Name() == "Ctrl+O" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not save. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -79,17 +79,14 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					func() {
 						v.updateEntry(App.State.Entry)
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-							App.State.IsReadOnly = true
-							msg := "Could not save. Switching to read-only to not corrupt data."
-							App.Notify(msg)
-							log.Error(msg, e)
+							App.LockCurrentDatabase(e)
 							return
 						}
 
 						msg := fmt.Sprintf("Entry \"%s\" created successfully.", App.State.Entry.GetTitle())
 						App.Notify(msg)
 						log.Info(msg)
-						App.State.HasUnsavedChanges = false
+						App.SetDirty(false)
 						v.refresh()
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
@@ -106,17 +103,14 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					v.updateEntry(existingEntry)
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
 					msg := fmt.Sprintf("Entry \"%s\" saved successfully.", App.State.Entry.GetTitle())
 					App.Notify(msg)
 					log.Info(msg)
-					App.State.HasUnsavedChanges = false
+					App.SetDirty(false)
 					v.refresh()
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
@@ -128,7 +122,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 		}
 
 		if ev.Name() == "Ctrl+D" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -159,17 +153,14 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 
 					msg := fmt.Sprintf("Entry \"%s\" deleted successfully.", title)
 					App.Notify(msg)
 					log.Info(msg)
-					App.State.HasUnsavedChanges = false
+					App.SetDirty(false)
 
 					App.NavigateTo(NewEntryListView)
 				}, func() {
@@ -194,8 +185,8 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 		panic("missing group")
 	}
 
-	title := "\"" + App.State.Entry.GetTitle() + "\""
-	if App.State.IsReadOnly {
+	title := App.State.Entry.GetTitle()
+	if App.IsReadOnly() {
 		title += " [READ ONLY]"
 	}
 	App.SetTitle(title)
@@ -258,7 +249,7 @@ func (view *EntryView) newEntryField(label, initialValue string, isProtected boo
 		inputType = field.InputTypePassword
 	}
 
-	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.State.IsReadOnly}
+	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.IsReadOnly()}
 	f := field.NewField(fieldOptions)
 
 	f.OnFocus(func() bool {
@@ -267,7 +258,7 @@ func (view *EntryView) newEntryField(label, initialValue string, isProtected boo
 	})
 
 	f.OnChange(func(ev tcell.Event) bool {
-		App.State.HasUnsavedChanges = true
+		App.SetDirty(true)
 		return false
 	})
 

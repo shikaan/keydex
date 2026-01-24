@@ -20,7 +20,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+D" {
-			if App.State.IsReadOnly {
+			if App.IsReadOnly() {
 				msg := "Could not delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
@@ -48,10 +48,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 					}
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
-						App.State.IsReadOnly = true
-						msg := "Could not save. Switching to read-only to not corrupt data."
-						App.Notify(msg)
-						log.Error(msg, e)
+						App.LockCurrentDatabase(e)
 						return
 					}
 

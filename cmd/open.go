@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func orDefault(s string) string {
+	if s == "" {
+		return "n/a"
+	}
+	return s
+}
+
 var Open = &cobra.Command{
 	Use:     "open [file] [reference]",
 	Short:   "Open the entry editor for a reference.",
@@ -51,7 +58,21 @@ See "Examples" for more details.`,
 		if err != nil {
 			return err
 		}
-		log.Debugf("Using: database %s, reference %s, key %s", database, reference, key)
+
+		log.Infof(
+			"Using: database: %s, reference: %s, key: %s, read only: %t",
+			database,
+			orDefault(reference),
+			orDefault(key),
+			readOnly)
+
+		_, err = os.Stat(database)
+		if err != nil {
+			if pathErr, ok := err.(*os.PathError); ok {
+				return errors.MakeError(pathErr.Err.Error(), "open")
+			}
+			return errors.MakeError(err.Error(), "open")
+		}
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
@@ -61,6 +82,11 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string, readOnly bool) error {
+	reference, err := ReadReferenceFromStdin(reference)
+	if err != nil {
+		return err
+	}
+
 	database, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
@@ -68,23 +94,21 @@ func open(databasePath, keyPath, passphrase, reference string, readOnly bool) er
 
 	if reference == "" {
 		return tui.Run(tui.State{
-			Entry:      nil,
-			Group:      nil,
-			Database:   database,
-			Reference:  reference,
-			IsReadOnly: readOnly,
-		})
+			Entry:     nil,
+			Group:     nil,
+			Database:  database,
+			Reference: reference,
+		}, readOnly)
 	}
 
 	if entry := database.GetFirstEntryByPath(reference); entry != nil {
 		if group := database.GetGroupForEntry(entry); group != nil {
 			return tui.Run(tui.State{
-				Entry:      entry,
-				Group:      group,
-				Database:   database,
-				Reference:  reference,
-				IsReadOnly: readOnly,
-			})
+				Entry:     entry,
+				Group:     group,
+				Database:  database,
+				Reference: reference,
+			}, readOnly)
 		}
 	}
 
