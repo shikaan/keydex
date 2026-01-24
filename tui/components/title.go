@@ -10,16 +10,18 @@ import (
 
 type Title struct {
 	content string
+	isDirty bool
 
 	views.TextBar
 }
 
 func (t *Title) SetTitle(title string) {
 	t.content = title
-	t.SetCenter(title, tcell.StyleDefault.Reverse(true))
+	t.SetDirty(t.isDirty)
 }
 
 func (t *Title) SetDirty(dirty bool) {
+	t.isDirty = dirty
 	text := t.content
 	if dirty && text != "" {
 		text = text + " [MODIFIED]"
