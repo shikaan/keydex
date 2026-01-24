@@ -50,10 +50,12 @@ For reference, most of them are documented here.
 **Test 1: Create and save new entry**
 1. Create Entry in Welcome Screen (^N)
    - **Expected:** Password has no ending `==`, is random, and is at least 16 characters
+   - **Expected:** Should show the [MODIFIED] before saving
 2. Save (^O)
 3. Confirm (Y)
 4. Open Entry List (^P)
    - **Expected:** Entry appears in list of entries
+   - **Expected:** No [MODIFIED] banner appears after saving
 
 **Test 2: Create and dismiss new entry**
 1. Create Entry in Welcome Screen (^N)
@@ -65,8 +67,10 @@ For reference, most of them are documented here.
 **Test 3: Create and cancel new entry**
 1. Create Entry in Welcome Screen (^N)
 2. Change one of the fields
+   - **Expected:** Should show [MODIFIED] banner
 3. Cancel (ESC)
    - **Expected:** Updates are cancelled (returns to initial)
+   - **Expected:** [MODIFIED] stays there (it's still a new entry)
 4. Open Entry List (^P)
    - **Expected:** Entry does NOT appear in list
 
@@ -83,8 +87,10 @@ For reference, most of them are documented here.
 2. Select an Entry
 3. Update non-hidden field
    - **Expected:** Field changes
+   - **Expected:** [MODIFIED] appears
 4. Cancel (ESC)
    - **Expected:** Entry returns to previous state
+   - **Expected:** [MODIFIED] disappears
 5. Update hidden field
    - **Expected:** Error displayed
 6. Reveal field (^R)
@@ -100,8 +106,10 @@ For reference, most of them are documented here.
 2. Select an Entry
 3. Update title field
    - **Expected:** Field changes
+   - **Expected:** [MODIFIED] appears
 4. Save (^O)
    - **Expected:** Notification displayed
+   - **Expected:** [MODIFIED] disappears
    - **Expected:** UI updates (title, meta, and reference in fuzzy finder)
 
 **Test 7: Update entry non-title field**
@@ -109,28 +117,35 @@ For reference, most of them are documented here.
 2. Select an Entry
 3. Update non-title field
    - **Expected:** Field changes
+   - **Expected:** [MODIFIED] appears
 4. Save (^O)
    - **Expected:** Notification displayed
+   - **Expected:** [MODIFIED] disappears
    - **Expected:** UI updates (meta changes)
 
 **Test 8: Update entry group and save**
 1. Open Entry List (^P)
 2. Select an Entry
 3. Update Group
+   - **Expected:** Meta changes
+   - **Expected:** [MODIFIED] appears
 4. Save (^O)
    - **Expected:** Notification displayed
+   - **Expected:** [MODIFIED] disappears
    - **Expected:** UI updates (meta changes)
 5. Open Entry List (^P)
-   - **Expected:** Updated entry appears in list of entries
+   - **Expected:** Updated entry appears in list of entries (with new group)
 
 **Test 9: Update entry group and cancel**
 1. Open Entry List (^P)
 2. Select an Entry
 3. Update Group
+   - **Expected:** Meta changes
+   - **Expected:** [MODIFIED] appears
 4. Cancel (ESC)
    - **Expected:** Entry returns to previous state
 5. Open Entry List (^P)
-   - **Expected:** Updated entry does NOT appear in new location
+   - **Expected:** Updated entry does NOT appear with new group
 
 **Test 10: Dismiss entry deletion**
 1. Open Entry List (^P)
