@@ -25,29 +25,23 @@ var Open = &cobra.Command{
 	Aliases: []string{"edit"},
 	Long: `Open the entry editor for a reference.
 
-Reads a 'reference' from the database at 'file' and opens the editor there. If no reference is passed, it opens a fuzzy search within the editor.
+Reads a 'reference' from the database at 'file' and opens the editor there. If no reference is passed, it opens the editor.
 
 The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the ` + ENV_DATABASE + ` environment variable.
-The 'reference' can be passed as last argument; if the reference is missing, it opens a fuzzy search.
+The 'reference' can be passed as last argument; if the reference is missing, it opens the editor.
 Use the 'list' command to get a list of all the references in the database.
 
 See "Examples" for more details.`,
 	Example: `  # Opens the "github" entry in the "coding" group in the "test" database at test.kdbx
   ` + info.NAME + ` open test.kdbx /test/coding/github
 
-  # Open fuzzy search within the test.kdbx database
+  # Open the editor for the test.kdbx database
   ` + info.NAME + ` open test.kdbx
 
   # Or with environment variables
   export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
   export ` + ENV_DATABASE + `=test.kdbx
-  ` + info.NAME + ` open
-
-  # List entries, browse them with fzf and edit the result
-  export ` + ENV_PASSPHRASE + `=${MY_SECRET_PHRASE}
-  export ` + ENV_DATABASE + `=test.kdbx
-
-  ` + info.NAME + ` list | fzf | ` + info.NAME + ` open`,
+  ` + info.NAME + ` open`,
 	Args: cobra.MatchAll(
 		cobra.MaximumNArgs(2),
 		DatabaseMustBeDefined(),
@@ -82,11 +76,6 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string, readOnly bool) error {
-	reference, err := ReadReferenceFromStdin(reference)
-	if err != nil {
-		return err
-	}
-
 	database, err := kdbx.New(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
