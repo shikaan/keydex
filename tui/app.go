@@ -123,23 +123,31 @@ type State struct {
 	Reference string
 }
 
-func Run(state State, readOnly bool) error {
-	if screen, err := tcell.NewScreen(); err == nil {
-		App.SetScreen(screen)
-		App.screen = screen
-		App.State = state
-		App.layout = NewLayout(screen)
-		App.SetRootWidget(App.layout)
-		App.isReadOnly = readOnly
+func (a *Application) SetScreen(screen tcell.Screen) {
+	a.Application.SetScreen(screen)
+	a.screen = screen
+}
 
-		if state.Reference == "" {
-			App.NavigateTo(NewHelpView)
-		} else {
-			App.NavigateTo(NewEntryView)
-		}
+// This is exported only for test purposes
+func Setup(screen tcell.Screen, state State, readOnly bool) {
+	App.SetScreen(screen)
+	App.State = state
+	App.layout = NewLayout(screen)
+	App.SetRootWidget(App.layout)
+	App.isReadOnly = readOnly
 
-		return App.Run()
+	if state.Reference == "" {
+		App.NavigateTo(NewHelpView)
+	} else {
+		App.NavigateTo(NewEntryView)
 	}
+}
 
-	return errors.MakeError("Unable to start screen", "tui")
+func Run(state State, readOnly bool) error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return errors.MakeError("Unable to start screen", "tui")
+	}
+	Setup(screen, state, readOnly)
+	return App.Run()
 }
