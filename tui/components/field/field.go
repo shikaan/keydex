@@ -45,7 +45,7 @@ func (f *Field) OnKeyPress(cb func(ev *tcell.EventKey) bool) func() {
 	return f.input.OnKeyPress(cb)
 }
 
-func (f* Field) OnChange(cb func(ev tcell.Event) bool) func() {
+func (f *Field) OnChange(cb func(ev tcell.Event) bool) func() {
 	return f.input.OnChange(cb)
 }
 

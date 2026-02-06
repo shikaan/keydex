@@ -44,11 +44,11 @@ func main() {
 		panic(err)
 	}
 
-  // This is needed for local development where env.VERSION might be nil
-  versionWithDefault := *version
-  if versionWithDefault == "" {
-    versionWithDefault = "dev"
-  } 
+	// This is needed for local development where env.VERSION might be nil
+	versionWithDefault := *version
+	if versionWithDefault == "" {
+		versionWithDefault = "dev"
+	}
 
 	result := strings.ReplaceAll(string(buffer[:]), "_REVISION_", *revision)
 	result = strings.ReplaceAll(result, "_VERSION_", versionWithDefault)
