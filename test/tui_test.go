@@ -213,7 +213,10 @@ func assertMetaUpdated(t *testing.T, screen tcell.SimulationScreen, db *kdbx.Dat
 	updatedAtRaw := readField(t, screen, "Updated")
 	updatedAt, _ := time.Parse(time.DateTime, updatedAtRaw)
 	if !updatedAt.After(createdAt) {
-		t.Error("metadata not updated")
+		t.Errorf(
+			"metadata not updated; expected %s to be after %s",
+			updatedAt.String(),
+			createdAt.String())
 	}
 }
 
