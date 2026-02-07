@@ -21,11 +21,6 @@ const glUser = "gluser"
 const glPassword = "glpass123"
 
 // makeTestKdbxFile creates a temp .kdbx file with a known structure:
-//
-//	TestDB (root group)
-//	  └── Coding (subgroup)
-//	        ├── GitHub  (user: ghuser, pass: ghpass123)
-//	        └── GitLab  (user: gluser, pass: glpass456)
 func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 	t.Helper()
 
@@ -159,19 +154,6 @@ func readScreen(screen tcell.SimulationScreen) string {
 	return b.String()
 }
 
-func readField(t *testing.T, screen tcell.SimulationScreen, field string) string {
-	t.Helper()
-	s := readScreen(screen)
-	for line := range strings.Lines(s) {
-		i := strings.Index(line, field)
-		if i > -1 {
-			i = i + len(field) + 1 // account for the ":" char
-			return strings.TrimSpace(line[i:])
-		}
-	}
-	return ""
-}
-
 func waitFor(t *testing.T, screen tcell.SimulationScreen, text string, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -191,6 +173,7 @@ func waitForAbsent(t *testing.T, screen tcell.SimulationScreen, text string, tim
 		if !strings.Contains(readScreen(screen), text) {
 			return
 		}
+		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatalf("text %q still present on screen after timeout.\nScreen content:\n%s", text, readScreen(screen))
 }
@@ -424,7 +407,7 @@ func TestViewEntryUpdateGroupAndSave(t *testing.T) {
 
 	// Select the root "TestDB" group
 	typeText(screen, "TestDB")
-	time.Sleep(100 * time.Millisecond)
+	waitFor(t, screen, "TestDB", e2eTimeout)
 	screen.InjectKey(tcell.KeyEnter, 0, 0)
 	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
 
@@ -628,7 +611,7 @@ func TestViewModifyThenCancelWithRef(t *testing.T) {
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
 }
 
-func TestViewUpdateTitlelWithRef(t *testing.T) {
+func TestViewUpdateTitleWithRef(t *testing.T) {
 	filePath, password := makeTestKdbxFile(t)
 	db := openTestDatabase(t, filePath, password)
 	screen := startAppWithRef(t, db, false)
