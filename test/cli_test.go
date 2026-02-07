@@ -134,7 +134,7 @@ func runKeydex(t *testing.T, env map[string]string, args ...string) (stdout, std
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode = exitErr.ExitCode()
 	} else if err != nil {
-		println(err.Error())
+		t.Errorf("command error: %s", err.Error())
 		exitCode = -1
 	}
 
