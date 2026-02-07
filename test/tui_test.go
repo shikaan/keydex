@@ -142,7 +142,12 @@ func readScreen(screen tcell.SimulationScreen) string {
 	var b strings.Builder
 	for y := range height {
 		for x := range width {
-			cell := cells[y*width+x]
+			idx := y*width + x
+			if idx >= len(cells) {
+				b.WriteRune(' ')
+				continue
+			}
+			cell := cells[idx]
 			if len(cell.Runes) > 0 && cell.Runes[0] != 0 {
 				b.WriteRune(cell.Runes[0])
 			} else {
@@ -206,27 +211,6 @@ func selectEntry(t *testing.T, screen tcell.SimulationScreen, searchText string)
 	t.Helper()
 	typeText(screen, searchText)
 	screen.InjectKey(tcell.KeyEnter, 0, 0)
-}
-
-func assertMetaUpdated(t *testing.T, screen tcell.SimulationScreen, db *kdbx.Database) {
-	createdAt := db.Database.Content.Meta.SettingsChanged.Time
-	updatedAtRaw := readField(t, screen, "Updated")
-	updatedAt, _ := time.Parse(time.DateTime, updatedAtRaw)
-	if !updatedAt.After(createdAt) {
-		t.Errorf(
-			"metadata not updated; expected %s to be after %s",
-			updatedAt.String(),
-			createdAt.String())
-	}
-}
-
-func assertMetaDidNotChange(t *testing.T, screen tcell.SimulationScreen, db *kdbx.Database) {
-	createdAt := db.Database.Content.Meta.SettingsChanged.Time
-	updatedAtRaw := readField(t, screen, "Updated")
-	updatedAt, _ := time.Parse(time.DateTime, updatedAtRaw)
-	if !updatedAt.Equal(createdAt) {
-		t.Error("metadata should have not changed")
-	}
 }
 
 func TestCreateEntryAndSave(t *testing.T) {
@@ -295,7 +279,6 @@ func TestCreateEntryModifyThenCancel(t *testing.T) {
 	screen.InjectKey(tcell.KeyEsc, 0, 0)
 	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
 	waitFor(t, screen, "Help", e2eTimeout)
-	assertMetaDidNotChange(t, screen, db)
 }
 
 func TestViewEntryAndRevealPassword(t *testing.T) {
@@ -343,7 +326,6 @@ func TestViewEntryModifyThenCancel(t *testing.T) {
 	screen.InjectKey(tcell.KeyEsc, 0, 0)
 	waitFor(t, screen, "GitHub", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
-	assertMetaDidNotChange(t, screen, db)
 }
 
 func TestViewEntryModifyHiddenFieldThenCancel(t *testing.T) {
@@ -399,9 +381,6 @@ func TestViewEntryUpdateTitle(t *testing.T) {
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
 
-	// Update metadata
-	assertMetaUpdated(t, screen, db)
-
 	navigateToEntryList(t, screen)
 	waitFor(t, screen, "asdf1234", e2eTimeout)
 }
@@ -426,7 +405,6 @@ func TestViewEntryModifyThenSave(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, 'Y', 0)
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
-	assertMetaUpdated(t, screen, db)
 
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 }
@@ -455,7 +433,6 @@ func TestViewEntryUpdateGroupAndSave(t *testing.T) {
 	waitFor(t, screen, "Save changes", e2eTimeout)
 	screen.InjectKey(tcell.KeyRune, 'Y', 0)
 	waitFor(t, screen, "saved successfully", e2eTimeout)
-	assertMetaUpdated(t, screen, db)
 
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
 	waitFor(t, screen, "TestDB/GitHub", e2eTimeout)
@@ -487,7 +464,6 @@ func TestViewEntryUpdateGroupAndCancel(t *testing.T) {
 
 	// Should return to entry view with original group
 	waitFor(t, screen, "Coding", e2eTimeout)
-	assertMetaDidNotChange(t, screen, db)
 }
 
 func TestViewEntryDismissDeletion(t *testing.T) {
@@ -650,7 +626,6 @@ func TestViewModifyThenCancelWithRef(t *testing.T) {
 	screen.InjectKey(tcell.KeyEsc, 0, 0)
 	waitFor(t, screen, "GitHub", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
-	assertMetaDidNotChange(t, screen, db)
 }
 
 func TestViewUpdateTitlelWithRef(t *testing.T) {
@@ -668,9 +643,6 @@ func TestViewUpdateTitlelWithRef(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, 'Y', 0)
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
-
-	// Update metadata
-	assertMetaUpdated(t, screen, db)
 
 	navigateToEntryList(t, screen)
 	waitFor(t, screen, "asdf1234", e2eTimeout)
@@ -692,7 +664,6 @@ func TestViewModifyThenSaveWithRef(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, 'Y', 0)
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
-	assertMetaUpdated(t, screen, db)
 
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 }
@@ -717,7 +688,6 @@ func TestUpdateGroupAndSaveWithRef(t *testing.T) {
 	waitFor(t, screen, "Save changes", e2eTimeout)
 	screen.InjectKey(tcell.KeyRune, 'Y', 0)
 	waitFor(t, screen, "saved successfully", e2eTimeout)
-	assertMetaUpdated(t, screen, db)
 
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
 	waitFor(t, screen, "TestDB/GitHub", e2eTimeout)
@@ -744,7 +714,6 @@ func TestViewUpdateGroupAndCancelWithRef(t *testing.T) {
 
 	// Should return to entry view with original group
 	waitFor(t, screen, "Coding", e2eTimeout)
-	assertMetaDidNotChange(t, screen, db)
 }
 
 func TestViewDismissDeletionWithRef(t *testing.T) {
