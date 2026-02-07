@@ -56,7 +56,12 @@ See "Examples" for more details.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, reference, key := ReadDatabaseArguments(cmd, args)
 		field := cmd.Flag("field").Value.String()
-		log.Debugf("Using: database %s, reference \"%s\", key \"%s\"", database, reference, key)
+
+		log.Infof(
+			"Using: database: %s, reference: %s, key: %s",
+			database,
+			orDefault(reference),
+			orDefault(key))
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
@@ -67,6 +72,11 @@ See "Examples" for more details.`,
 
 func copy(databasePath, keyPath, passphrase, reference, field string) error {
 	reference, err := ReadReferenceFromStdin(reference)
+
+	if reference == "" {
+		return errors.MakeError(`Missing reference. Provide one as an argument or via stdin.`, "copy")
+	}
+
 	if err != nil {
 		return err
 	}

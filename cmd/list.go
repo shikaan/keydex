@@ -38,7 +38,11 @@ See "Examples" for more details.`,
   ` + info.NAME + ` list | fzf | ` + info.NAME + ` copy`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		database, _, key := ReadDatabaseArguments(cmd, args)
-		log.Debugf("Using: database %s, key %s", database, key)
+		log.Infof(
+			"Using: database: %s, key: %s",
+			database,
+			orDefault(key))
+
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
