@@ -39,337 +39,102 @@ It will create a new Github Release tagged with the branch name.
 
 ## Manual testing
 
-Before rolling out a big change, it's good measure to test out the
-most important flows of keydex.
-
-For reference, most of them are documented here.
+Most flows are covered by automated tests in `test/tui_test.go` and
+`test/cli_test.go`. The smoke tests below focus on side effects that
+cannot be verified automatically (clipboard, file persistence,
+interactive input).
 
 <details>
-<summary>open: no read only, no selected entry</summary>
+<summary>Clipboard</summary>
 
-**Test 1: Create and save new entry**
-1. Create Entry in Welcome Screen (^N)
-   - **Expected:** Password has no ending `==`, is random, and is at least 16 characters
-   - **Expected:** Should show the [MODIFIED] before saving
-2. Save (^O)
-3. Confirm (Y)
-4. Open Entry List (^P)
-   - **Expected:** Entry appears in list of entries
-   - **Expected:** No [MODIFIED] banner appears after saving
+**Copy entry password**
+1. Open Entry List (^P), select an entry
+2. Reveal password (^R), then copy (^C)
+   - **Expected:** Password is in system clipboard
 
-**Test 2: Create and dismiss new entry**
-1. Create Entry in Welcome Screen (^N)
-2. Save (^O)
-3. Dismiss (N)
-4. Open Entry List (^P)
-   - **Expected:** Entry does NOT appear in list of entries
+**Copy password field**
+1. `keydex copy <archive> <ref>`
+   - **Expected:** Password is copied to system clipboard
 
-**Test 3: Create and cancel new entry**
-1. Create Entry in Welcome Screen (^N)
-2. Change one of the fields
-   - **Expected:** Should show [MODIFIED] banner
-3. Cancel (ESC)
-   - **Expected:** Updates are cancelled (returns to initial)
-   - **Expected:** [MODIFIED] stays there (it's still a new entry)
-4. Open Entry List (^P)
-   - **Expected:** Entry does NOT appear in list
-
-**Test 4: View and copy entry password**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Reveal password (^R)
-   - **Expected:** Password is readable
-4. Copy password (^C)
-   - **Expected:** Password is in clipboard
-
-**Test 5: Edit and cancel non-hidden and hidden fields**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update non-hidden field
-   - **Expected:** Field changes
-   - **Expected:** [MODIFIED] appears
-4. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-   - **Expected:** [MODIFIED] disappears
-5. Update hidden field
-   - **Expected:** Error displayed
-6. Reveal field (^R)
-   - **Expected:** Password can be updated
-7. Update password
-8. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-9. Save (^O)
-   - **Expected:** Nothing happens (no changes to save)
-
-**Test 6: Update entry title**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update title field
-   - **Expected:** Field changes
-   - **Expected:** [MODIFIED] appears
-4. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** [MODIFIED] disappears
-   - **Expected:** UI updates (title, meta, and reference in fuzzy finder)
-
-**Test 7: Update entry non-title field**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update non-title field
-   - **Expected:** Field changes
-   - **Expected:** [MODIFIED] appears
-4. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** [MODIFIED] disappears
-   - **Expected:** UI updates (meta changes)
-
-**Test 8: Update entry group and save**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update Group
-   - **Expected:** Meta changes
-   - **Expected:** [MODIFIED] appears
-4. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** [MODIFIED] disappears
-   - **Expected:** UI updates (meta changes)
-5. Open Entry List (^P)
-   - **Expected:** Updated entry appears in list of entries (with new group)
-
-**Test 9: Update entry group and cancel**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update Group
-   - **Expected:** Meta changes
-   - **Expected:** [MODIFIED] appears
-4. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-5. Open Entry List (^P)
-   - **Expected:** Updated entry does NOT appear with new group
-
-**Test 10: Dismiss entry deletion**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Delete (^D)
-4. Say No (N)
-5. Open Entry List (^P)
-   - **Expected:** Entry still appears in list of entries
-
-**Test 10.b: Dismiss entry deletion**
-1. Open Entry List (^P)
-3. Delete (^D)
-4. Say No (N)
-5. Open Entry List (^P)
-   - **Expected:** Entry still appears in list of entries
-
-**Test 11: Confirm entry deletion**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Delete (^D)
-4. Say Yes (Y)
-   - **Expected:** Navigates back to list
-5. Check Entry List (^P)
-   - **Expected:** Entry does NOT appear in list of entries
-
-**Test 11.b: Confirm entry deletion**
-1. Open Entry List (^P)
-3. Delete (^D)
-4. Say Yes (Y)
-   - **Expected:** Entry list updates
-   - **Expected:** Entry does NOT appear in list of entries
-
-**Test 12: Update group cancels other updates**
-1. Open Entry List (^P)
-2. Select an Entry
-3. Update Fields
-4. Update Group
-   - **Expected:** Are you sure?
+**Copy non-password field**
+1. `keydex copy --field UserName <archive> <ref>`
+   - **Expected:** Field value is copied to system clipboard
 
 </details>
 
 <details>
-<summary>open: read only, no entry</summary>
+<summary>File persistence</summary>
 
-**Test: Read-only mode restrictions**
-1. Open Entry List (^P)
-2. Select Entry
-3. Attempt to change fields
-   - **Expected:** Cannot change fields (notification displayed)
-4. Attempt to change groups
-   - **Expected:** Cannot change groups (notification displayed)
-5. Attempt to save changes
-   - **Expected:** Cannot save changes (notification displayed)
-6. Attempt to delete entry
-   - **Expected:** Cannot delete entry (notification displayed)
+**Save persists to disk**
+1. Open an entry, modify a field, save (^O → Y)
+2. Close keydex, reopen the same archive
+   - **Expected:** Changes are still present
+
+**Delete persists to disk**
+1. Open an entry, delete (^D → Y)
+2. Close keydex, reopen the same archive
+   - **Expected:** Entry no longer exists
 
 </details>
 
 <details>
-<summary>open: no read-only, with ref</summary>
+<summary>Interactive password prompt</summary>
 
-**Test 1: View and copy entry password by reference**
-1. Open Entry by Ref
-2. Reveal password (^R)
-   - **Expected:** Password is readable
-3. Copy password (^C)
-   - **Expected:** Password is in clipboard
-
-**Test 2: Edit and cancel non-hidden and hidden fields by reference**
-1. Open Entry by Ref
-2. Update non-hidden field
-   - **Expected:** Field changes
-3. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-4. Update hidden field
-   - **Expected:** Error displayed
-5. Reveal field (^R)
-   - **Expected:** Password can be updated
-6. Update password
-7. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-8. Save (^O)
-   - **Expected:** Nothing happens (no changes to save)
-
-**Test 3: Update entry title by reference**
-1. Open Entry by Ref
-2. Update title field
-   - **Expected:** Field changes
-3. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** UI updates (title, meta, and reference in fuzzy finder)
-   - **Expected:** Entry can be opened by new ref
-
-**Test 4: Update entry non-title field by reference**
-1. Open Entry by Ref
-2. Update non-title field
-   - **Expected:** Field changes
-3. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** UI updates (meta changes)
-
-**Test 5: Update entry group and save by reference**
-1. Open Entry by Ref
-2. Update Group
-3. Save (^O)
-   - **Expected:** Notification displayed
-   - **Expected:** UI updates (meta changes)
-4. Open Entry List (^P)
-   - **Expected:** Updated entry appears in list of entries
-   - **Expected:** Entry can be opened by new ref 
-
-**Test 6: Update entry group and cancel by reference**
-1. Open Entry by Ref
-2. Update Group
-3. Cancel (ESC)
-   - **Expected:** Entry returns to previous state
-4. Open Entry List (^P)
-   - **Expected:** Updated entry does NOT appear in new location
-   - **Expected:** Entry can be opened by old ref 
-
-**Test 7: Dismiss entry deletion by reference**
-1. Open Entry by Ref
-2. Delete (^D)
-3. Say No (N)
-4. Open Entry List (^P)
-   - **Expected:** Entry still appears in list of entries
-
-**Test 8: Confirm entry deletion by reference**
-1. Open Entry by Ref
-2. Delete (^D)
-3. Say Yes (Y)
-   - **Expected:** Navigates back to list
-4. Check Entry List (^P)
-   - **Expected:** Entry does NOT appear in list of entries
-
-</details>
-
-<details>
-<summary>list</summary>
-
-**Requirements:**
-- Shows all entries in the database
-- Can be piped to other commands (e.g., `fzf`)
-- Allows copying of output
-- Uses command aliases (ls)
-
-**Test: List command functionality**
-1. Run list command
-   - **Expected:** All entries are displayed
-   - **Expected:** Aliases are used in display
-2. Pipe output to another command
-   - **Expected:** Output can be piped successfully
-3. Copy result
-4. Paste result
-   - **Expected:** Result can be copied and pasted
-
-</details>
-
-<details>
-<summary>credentials</summary>
-
-**Requirements:**
-- Password can be provided via environment variable
-- Archive path can be provided via environment variable
-- Password can be typed interactively
-- Database can be unlocked using a keyfile
-
-**Test: Credentials handling**
-1. Open with password from environment
-   - **Expected:** Database opens successfully
-2. Open with archive from environment
-   - **Expected:** Database opens successfully
-3. Open with typed password
-   - **Expected:** Database opens successfully
-4. Open with keyfile
+1. Run keydex without `KEYDEX_PASSPHRASE` set
+   - **Expected:** Prompted for password
+2. Type the correct password
    - **Expected:** Database opens successfully
 
 </details>
 
 <details>
-<summary>copy</summary>
+<summary>Piping</summary>
 
-**Requirements:**
-- Can copy password field
-- Can copy other fields
-- Handles non-existing archive with appropriate error
-
-**Test 1: Copy password field**
-1. Run copy command for password field
-   - **Expected:** Password is copied to clipboard
-
-**Test 2: Copy non-password field**
-1. Run copy command for another field
-   - **Expected:** Field value is copied to clipboard
-
-**Test 3: Copy from non-existing archive**
-1. Run copy command with non-existing archive path
-   - **Expected:** Error message displayed (same as non-existing archive error)
-
-**Test 4: Copy from non-existing field**
-- Steps:
-  1. Run copy command with non-existing field
-- Expected:
-  - Error: `Missing field "{FIELD}" in entry {ENTRY}`
+1. `keydex list <archive> | grep GitHub`
+   - **Expected:** Only matching entries printed
+2. `echo "/TestDB/Coding/GitHub" | keydex copy <archive>`
+   - **Expected:** Password copied to clipboard from piped reference
+3. `keydex list | fzf | keydex copy`
+   - **Expected:** Browse list with fzf and copy to clipboard
 
 </details>
 
 <details>
-<summary>errors</summary>
+<summary>Smoke tests</summary>
 
-**Test 1: Non-existing archive**
-1. Attempt to open non-existing archive
-   - **Expected:** Error: `"open {FILE}: no such file or directory"`
+Quick walkthrough of the most important flows to sanity-check a
+release. These are all covered by automated tests too, but a human
+pair of eyes helps catch visual glitches and UX regressions.
 
-**Test 2: Invalid credentials**
-1. Attempt to open archive with wrong password
-   - **Expected:** Error: `"Wrong password? HMAC-SHA256 of header mismatching"`
+**Create, save, and verify a new entry**
+1. Open keydex, create entry (^N)
+2. Fill in fields, save (^O → Y)
+3. Open Entry List (^P)
+   - **Expected:** New entry appears, no [MODIFIED] banner
 
-**Test 3: Missing keyfile**
-1. Attempt to open archive with non-existing keyfile
-   - **Expected:** Error: `"open {FILE}: no such file or directory"`
+**Edit an existing entry**
+1. Open Entry List (^P), select an entry
+2. Change a field, save (^O → Y)
+   - **Expected:** Notification shown, [MODIFIED] disappears, UI reflects changes
 
-**Test 4: Invalid keyfile**
-1. Attempt to open archive with invalid keyfile
-   - **Expected:** Error: `"Wrong password? HMAC-SHA256 of header mismatching"`
+**Delete an entry**
+1. Open Entry List (^P), select an entry
+2. Delete (^D → Y)
+   - **Expected:** Entry removed from list
+
+**Read-only mode**
+1. Open archive with `--read-only`
+2. Attempt to edit, save, or delete
+   - **Expected:** Each action shows a read-only notification
+
+**List entries (CLI)**
+1. `keydex list <archive>`
+   - **Expected:** All entries printed to stdout
+
+**Error handling**
+1. `keydex open non-existent.kdbx`
+   - **Expected:** `"no such file or directory"` on stderr
+2. Open archive with wrong password
+   - **Expected:** `"Wrong password?"` on stderr
 
 </details>

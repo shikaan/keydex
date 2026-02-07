@@ -21,6 +21,7 @@ func (l *Layout) SetContent(w views.Widget) {
 	// Make sure the bottom panel is _always_ shown writing it last
 	l.Panel.SetStatus(l.Status)
 	l.Panel.SetTitle(l.Title)
+	l.Resize()
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {

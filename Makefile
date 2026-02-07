@@ -8,7 +8,7 @@ build:
 
 ## test: Run tests
 .PHONY: test
-test: info
+test: info build
 	@go test ./...
 
 ## coverage: Run coverage
@@ -26,16 +26,22 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## info: generate package version - run by go:generate
+## info: generate package version - run by go generate
 .PHONY: info
 info:
 	@echo "> ($@) Generating build info..."
 	@go run info.go -version=${VERSION}
 	@echo "  ($@) Done!"
 
-## docs: Generate documentation - run by go:generate
+## docs: Generate documentation - run by go generate
 .PHONY: docs
 docs: info
 	@echo "> ($@) Generating documentation..."
 	@go run docs.go
 	@echo "  ($@) Done!"
+
+## clean: Remove build artifacts
+.PHONY: clean
+clean:
+	@rm -rf keydex
+	@rm -rf .build/**
