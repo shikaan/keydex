@@ -97,10 +97,17 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			App.NavigateTo(NewEntryView)
 			return true
 		}
+		if ev.Key() == tcell.KeyRune {
+			if v.Panel.HandleEvent(ev) {
+				return true
+			}
 
-		if App.IsReadOnly() && ev.Key() == tcell.KeyRune {
-			App.Notify("Cannot update. Archive in read-only mode.")
-			return true
+			if App.IsReadOnly() {
+				App.Notify("Cannot update. Archive in read-only mode.")
+				return true
+			}
+
+			return false
 		}
 	}
 	return v.Panel.HandleEvent(ev)

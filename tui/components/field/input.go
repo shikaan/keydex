@@ -252,7 +252,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		// Prevent all input-changing actions when the field is disabled
 		if i.model.disabled {
-			return true
+			return false
 		}
 
 		switch ev.Key() {

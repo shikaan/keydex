@@ -573,6 +573,12 @@ func TestReadOnly(t *testing.T) {
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Ensure navigation works as expected
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	typeText(screen, "gitlab")
+	screen.InjectKey(tcell.KeyEnter, 0, 0)
+	waitFor(t, screen, glUser, e2eTimeout)
 }
 
 func TestReadOnlyWithRef(t *testing.T) {
@@ -609,6 +615,12 @@ func TestReadOnlyWithRef(t *testing.T) {
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Ensure navigation works as expected
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	typeText(screen, "gitlab")
+	screen.InjectKey(tcell.KeyEnter, 0, 0)
+	waitFor(t, screen, glUser, e2eTimeout)
 }
 
 func TestViewAndRevealPasswordWithRef(t *testing.T) {
