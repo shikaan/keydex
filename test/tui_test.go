@@ -545,36 +545,66 @@ func TestReadOnly(t *testing.T) {
 	selectEntry(t, screen, "GitHub")
 
 	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
+	// Try update the record
+	typeText(screen, "new username")
+	waitFor(t, screen, "Cannot update", e2eTimeout)
+
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot select group", e2eTimeout)
 
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot save", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot delete", e2eTimeout)
+
+	// Try ^N (create)
+	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create", e2eTimeout)
+
+	// Ensure navigation works as expected
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	typeText(screen, "gitlab")
+	screen.InjectKey(tcell.KeyEnter, 0, 0)
+	waitFor(t, screen, glUser, e2eTimeout)
 }
 
 func TestReadOnlyWithRef(t *testing.T) {
 	filePath, password := makeTestKdbxFile(t)
 	db := openTestDatabase(t, filePath, password)
-	screen := startAppWithRef(t, db, true)
 
+	screen := startAppWithRef(t, db, true)
 	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
+	// Try update the record
+	typeText(screen, "new username")
+	waitFor(t, screen, "Cannot update", e2eTimeout)
+
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout*2)
+	waitFor(t, screen, "Cannot select group", e2eTimeout)
 
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot save", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot delete", e2eTimeout)
+
+	// Try ^N (create)
+	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create", e2eTimeout)
+
+	// Ensure navigation works as expected
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	typeText(screen, "gitlab")
+	screen.InjectKey(tcell.KeyEnter, 0, 0)
+	waitFor(t, screen, glUser, e2eTimeout)
 }
 
 func TestViewAndRevealPasswordWithRef(t *testing.T) {

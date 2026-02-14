@@ -21,7 +21,7 @@ func (lv *EntriesView) HandleEvent(ev tcell.Event) bool {
 	case *tcell.EventKey:
 		if ev.Name() == "Ctrl+D" {
 			if App.IsReadOnly() {
-				msg := "Could not delete. Archive in read-only mode."
+				msg := "Cannot delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
 				return true

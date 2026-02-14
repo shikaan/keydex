@@ -46,7 +46,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 		}
 		if ev.Name() == "Ctrl+N" {
 			if App.IsReadOnly() {
-				App.Notify("Could not create. Archive in read-only mode.")
+				App.Notify("Cannot create. Archive in read-only mode.")
 				return true
 			}
 			err := App.CreateEmptyEntry()
@@ -96,6 +96,18 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			// Needed to reset group selection on cancelled operations
 			App.NavigateTo(NewEntryView)
 			return true
+		}
+		if ev.Key() == tcell.KeyRune {
+			if v.Panel.HandleEvent(ev) {
+				return true
+			}
+
+			if App.IsReadOnly() {
+				App.Notify("Cannot update. Archive in read-only mode.")
+				return true
+			}
+
+			return false
 		}
 	}
 	return v.Panel.HandleEvent(ev)
