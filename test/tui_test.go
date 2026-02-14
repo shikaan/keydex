@@ -548,31 +548,23 @@ func TestReadOnly(t *testing.T) {
 
 	// Try update the record
 	typeText(screen, "new username")
-	waitFor(t, screen, "read-only", e2eTimeout)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot update", e2eTimeout)
 
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot select group", e2eTimeout)
 
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot save", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot delete", e2eTimeout)
+
+	// Try ^N (create)
+	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create", e2eTimeout)
 
 	// Ensure navigation works as expected
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
@@ -590,31 +582,23 @@ func TestReadOnlyWithRef(t *testing.T) {
 
 	// Try update the record
 	typeText(screen, "new username")
-	waitFor(t, screen, "read-only", e2eTimeout)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot update", e2eTimeout)
 
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout*2)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot select group", e2eTimeout)
 
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
-
-	// Make notification disappear
-	screen = startAppWithRef(t, db, true)
-	waitFor(t, screen, "READ ONLY", e2eTimeout)
+	waitFor(t, screen, "Cannot save", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
-	waitFor(t, screen, "read-only", e2eTimeout)
+	waitFor(t, screen, "Cannot delete", e2eTimeout)
+
+	// Try ^N (create)
+	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create", e2eTimeout)
 
 	// Ensure navigation works as expected
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
