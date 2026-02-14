@@ -64,7 +64,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 
 		if ev.Name() == "Ctrl+O" {
 			if App.IsReadOnly() {
-				msg := "Could not save. Archive in read-only mode."
+				msg := "Cannot save. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
 				return true
@@ -123,7 +123,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 
 		if ev.Name() == "Ctrl+D" {
 			if App.IsReadOnly() {
-				msg := "Could not delete. Archive in read-only mode."
+				msg := "Cannot delete. Archive in read-only mode."
 				App.Notify(msg)
 				log.Info(msg)
 				return true

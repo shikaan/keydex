@@ -545,13 +545,30 @@ func TestReadOnly(t *testing.T) {
 	selectEntry(t, screen, "GitHub")
 
 	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
+	// Try update the record
+	typeText(screen, "new username")
+	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout)
 
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
@@ -561,16 +578,33 @@ func TestReadOnly(t *testing.T) {
 func TestReadOnlyWithRef(t *testing.T) {
 	filePath, password := makeTestKdbxFile(t)
 	db := openTestDatabase(t, filePath, password)
-	screen := startAppWithRef(t, db, true)
 
+	screen := startAppWithRef(t, db, true)
 	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
+	// Try update the record
+	typeText(screen, "new username")
+	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
 	// Try ^K (change group)
 	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout*2)
 
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
+
 	// Try ^O (save)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
 	waitFor(t, screen, "read-only", e2eTimeout)
+
+	// Make notification disappear
+	screen = startAppWithRef(t, db, true)
+	waitFor(t, screen, "READ ONLY", e2eTimeout)
 
 	// Try ^D (delete)
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
