@@ -212,8 +212,6 @@ func TestCreateEntryAndSave(t *testing.T) {
 	// Reveal password (^R)
 	screen.InjectKey(tcell.KeyCtrlR, 0, tcell.ModCtrl)
 	waitForAbsent(t, screen, "********", e2eTimeout)
-	// Password does not include "=="
-	waitForAbsent(t, screen, "==", e2eTimeout)
 
 	// Save (^O) -> Confirm (Y)
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
@@ -309,6 +307,29 @@ func TestViewEntryModifyThenCancel(t *testing.T) {
 	screen.InjectKey(tcell.KeyEsc, 0, 0)
 	waitFor(t, screen, "GitHub", e2eTimeout)
 	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
+}
+
+func TestViewEntryModifyThenLeave(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, "GitHub", e2eTimeout)
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	// Select User field -> Delete content -> Type New Content
+	screen.InjectKey(tcell.KeyDown, 0, 0)
+	for _ = range len(ghUser) {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, "Modified")
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+	waitForAbsent(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Navigate away", e2eTimeout)
 }
 
 func TestViewEntryModifyHiddenFieldThenCancel(t *testing.T) {

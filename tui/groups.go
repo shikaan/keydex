@@ -56,7 +56,7 @@ func (gv *GroupsView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 
-					App.NavigateTo(NewGroupListView)
+					App.RefreshCurrentView()
 				}, func() {
 					msg := "Operation cancelled. Group was not deleted."
 					App.Notify(msg)
@@ -86,7 +86,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 		OnSelect: func(groupRef string) bool {
 			App.State.Group = App.State.Database.GetFirstGroupByPath(groupRef)
 			App.SetDirty(true)
-			App.NavigateTo(NewEntryView)
+			App.NavigateToWithoutDirtyGuard(NewEntryView)
 			return true
 		},
 		OnEmpty: func(input string) bool {
@@ -101,7 +101,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 
 			App.State.Group = group
 			App.SetDirty(true)
-			App.NavigateTo(NewEntryView)
+			App.NavigateToWithoutDirtyGuard(NewEntryView)
 
 			App.Notify(fmt.Sprintf("Group \"%s\" created successfully.", input))
 			return true

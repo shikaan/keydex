@@ -56,7 +56,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			App.NavigateTo(NewEntryView)
+			App.NavigateToWithoutDirtyGuard(NewEntryView)
 			return true
 		}
 		if ev.Name() == "Ctrl+C" {
@@ -94,7 +94,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			App.State.Group = group
 
 			// Needed to reset group selection on cancelled operations
-			App.NavigateTo(NewEntryView)
+			App.NavigateToWithoutDirtyGuard(NewEntryView)
 			return true
 		}
 		if ev.Key() == tcell.KeyRune {
