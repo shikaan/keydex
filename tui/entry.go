@@ -35,10 +35,6 @@ func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	App.State.Entry = entry
 }
 
-func (v *EntryView) refresh() {
-	App.NavigateTo(NewEntryView)
-}
-
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
@@ -50,16 +46,8 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
-			if !App.IsDirty() {
-				App.NavigateTo(NewGroupListView)
-				return true
-			}
-
-			App.Confirm(
-				"Navigate away? Unsaved changes will be lost.",
-				func() {
-					App.NavigateTo(NewGroupListView)
-				}, nil)
+			App.NavigateTo(NewGroupListView)
+			return true
 		}
 
 		if ev.Name() == "Ctrl+O" {
@@ -87,12 +75,12 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						App.Notify(msg)
 						log.Info(msg)
 						App.SetDirty(false)
-						v.refresh()
+						App.RefreshCurrentView()
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
 						log.Info(msg)
-						v.refresh()
+						App.RefreshCurrentView()
 					})
 				return true
 			}
@@ -111,12 +99,12 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 					App.SetDirty(false)
-					v.refresh()
+					App.RefreshCurrentView()
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
 					log.Info(msg)
-					v.refresh()
+					App.RefreshCurrentView()
 				},
 			)
 		}
@@ -167,7 +155,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not deleted."
 					App.Notify(msg)
 					log.Info(msg)
-					v.refresh()
+					App.RefreshCurrentView()
 				},
 			)
 		}

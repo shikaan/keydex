@@ -17,14 +17,34 @@ type Application struct {
 	State       State
 
 	lastWidget views.Widget
+	lastView   func(tcell.Screen) views.Widget
 	isDirty    bool
 	isReadOnly bool
 
 	views.Application
 }
 
-func (a *Application) NavigateTo(newView func(tcell.Screen) views.Widget) {
+func (a *Application) RefreshCurrentView() {
+	a.layout.SetContent(a.lastView(a.screen))
+}
+
+func (a *Application) NavigateToWithoutDirtyGuard(newView func(tcell.Screen) views.Widget) {
+	a.lastView = newView
 	a.layout.SetContent(newView(a.screen))
+}
+
+func (a *Application) NavigateTo(newView func(tcell.Screen) views.Widget) {
+	if !a.isDirty {
+		a.NavigateToWithoutDirtyGuard(newView)
+		return
+	}
+
+	a.Confirm(
+		"Navigate away? Unsaved changes will be lost.",
+		func() {
+			a.SetDirty(false)
+			a.NavigateToWithoutDirtyGuard(newView)
+		}, nil)
 }
 
 func (a *Application) Notify(msg string) {
