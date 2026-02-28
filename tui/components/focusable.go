@@ -17,13 +17,13 @@ type WithFocusables struct {
 func (wf *WithFocusables) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
-		if ev.Key() == tcell.KeyUp {
+		if ev.Key() == tcell.KeyUp || ev.Key() == tcell.KeyBacktab {
 			if !wf.BoxLayout.HandleEvent(ev) {
 				wf.MoveFocus(-1)
 			}
 			return true
 		}
-		if ev.Key() == tcell.KeyDown {
+		if ev.Key() == tcell.KeyDown || ev.Key() == tcell.KeyTab {
 			if !wf.BoxLayout.HandleEvent(ev) {
 				wf.MoveFocus(1)
 			}

@@ -413,6 +413,39 @@ func TestViewEntryModifyThenSave(t *testing.T) {
 	waitFor(t, screen, "saved successfully", e2eTimeout)
 }
 
+func TestTabNavigation(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, "GitHub", e2eTimeout)
+
+	// Navigate to UserName field
+	screen.InjectKey(tcell.KeyTab, 0, 0)
+	typeText(screen, "2")
+	waitFor(t, screen, "2"+ghUser, e2eTimeout)
+
+	// Navigate back to title
+	screen.InjectKey(tcell.KeyBacktab, 0, 0)
+	typeText(screen, "3")
+	waitFor(t, screen, "3GitHub", e2eTimeout)
+
+	// Wrap around back to title
+	screen.InjectKey(tcell.KeyTab, 0, 0)
+	screen.InjectKey(tcell.KeyTab, 0, 0)
+	screen.InjectKey(tcell.KeyTab, 0, 0)
+	typeText(screen, "4")
+	waitFor(t, screen, "34GitHub", e2eTimeout)
+
+	// Wrap back to UserName
+	screen.InjectKey(tcell.KeyBacktab, 0, 0)
+	screen.InjectKey(tcell.KeyBacktab, 0, 0)
+	typeText(screen, "5")
+	waitFor(t, screen, "25"+ghUser, e2eTimeout)
+}
+
 func TestViewEntryUpdateGroupAndSave(t *testing.T) {
 	filePath, password := makeTestKdbxFile(t)
 	db := openTestDatabase(t, filePath, password)
