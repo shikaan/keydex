@@ -1,9 +1,17 @@
-## build: Compile example to binary
+## build: Make a release binary
 .PHONY: build
 build:
-	@echo "> ($@) Running the build..."
+	@echo "> ($@) Creating a build..."
 	@mkdir -p .build
 	@go build -v
+	@echo "  ($@) Done!"
+
+## build-debug: Make a debug binary
+.PHONY: build-debug
+build-debug:
+	@echo "> ($@) Creating a debug build..."
+	@mkdir -p .build
+	@go build -gcflags=all="-N -l" -v
 	@echo "  ($@) Done!"
 
 ## test: Run tests
