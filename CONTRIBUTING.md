@@ -100,6 +100,29 @@ interactive input).
 </details>
 
 <details>
+<summary>Create Database</summary>
+
+**Mismatching passphrase**
+1. `keydex new test.kdbx test`
+2. Input mistmatching passphrases
+    - **Expected:** Mistmatching passphrase error
+
+**Create and open the db**
+1. `keydex new test.kdbx test`
+2. Input correct passphrases
+    - **Expected:** No mistmatching passphrase error
+3. Press Y
+    - **Expected:** Opens TUI
+
+**Create and don't open the db**
+1. `keydex new test.kdbx test`
+2. Input correct passphrases
+    - **Expected:** No mistmatching passphrase error
+3. Press N
+    - **Expected:** Does not open TUI
+</details>
+
+<details>
 <summary>Smoke tests</summary>
 
 Quick walkthrough of the most important flows to sanity-check a
