@@ -6,18 +6,27 @@ import (
 	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/credentials"
 	"github.com/shikaan/keydex/pkg/errors"
+	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/tui"
 	"github.com/spf13/cobra"
 )
 
 var Create = &cobra.Command{
-	Use:     "create [filepath] [name]",
+	Use:     "create [file] [name]",
 	Short:   "Create an empty KeePass archive.",
 	Aliases: []string{"new"},
-	Long:    ``,
-	Example: ``,
-	Args:    cobra.ExactArgs(2),
+	Long: `Create an empty KeePass archive.
+
+Creates a new KeePass database at 'file' called 'name'. You will be prompted to set a passphrase for the new database.
+
+See "Examples" for more details.`,
+	Example: `  # Create a new database called "vault" at vault.kdbx
+  ` + info.NAME + ` create vault.kdbx vault
+
+  # Create a new database at a specific path
+  ` + info.NAME + ` create ~/passwords/work.kdbx work`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filepath := args[0]
 		databaseName := args[1]
