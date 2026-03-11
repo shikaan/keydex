@@ -41,21 +41,21 @@ func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 	rootGroup := db.NewGroup("TestDB")
 	codingGroup := db.NewGroup("Coding")
 
-	github := db.NewEntry()
+	github := gokeepasslib.NewEntry()
 	github.Values = append(github.Values,
 		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: "GitHub"}},
 		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: ghUser}},
 		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: ghPassword, Protected: wrappers.NewBoolWrapper(true)}},
 	)
 
-	gitlab := db.NewEntry()
+	gitlab := gokeepasslib.NewEntry()
 	gitlab.Values = append(gitlab.Values,
 		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: "GitLab"}},
 		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: glUser}},
 		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: glPassword, Protected: wrappers.NewBoolWrapper(true)}},
 	)
 
-	codingGroup.Entries = append(codingGroup.Entries, github.Entry, gitlab.Entry)
+	codingGroup.Entries = append(codingGroup.Entries, github, gitlab)
 	rootGroup.Groups = append(rootGroup.Groups, *codingGroup)
 	db.Content.Root.Groups = []gokeepasslib.Group{*rootGroup}
 
