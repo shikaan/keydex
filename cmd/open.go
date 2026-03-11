@@ -76,7 +76,7 @@ See "Examples" for more details.`,
 }
 
 func open(databasePath, keyPath, passphrase, reference string, readOnly bool) error {
-	database, err := kdbx.New(databasePath, passphrase, keyPath)
+	database, err := kdbx.OpenFromPath(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

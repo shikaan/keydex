@@ -2,9 +2,9 @@ package credentials
 
 import (
 	"fmt"
-	"syscall"
 
-	"golang.org/x/term"
+	"github.com/shikaan/keydex/pkg/cli"
+	"github.com/shikaan/keydex/pkg/errors"
 )
 
 // Retrieves a locally stored passphrase, if any, otherwise
@@ -14,21 +14,16 @@ func GetPassphrase(database, passphrase string) string {
 		return passphrase
 	}
 
-	return readFromPrompt(fmt.Sprintf("Passphrase for \"%s\": ", database))
+	return cli.ReadSecret(fmt.Sprintf("Passphrase for \"%s\": ", database))
 }
 
-func readFromPrompt(promptMessage string) string {
-	result := ""
-	fmt.Print(promptMessage)
+func MakePassphrase(database string) (string, error) {
+	passphrase := cli.ReadSecret(fmt.Sprintf("Create a passphrase for \"%s\": ", database))
+	repeated := cli.ReadSecret("Repeat: ")
 
-	for {
-		pw, _ := term.ReadPassword(int(syscall.Stdin))
-		result = string(pw)
-		if result != "" {
-			break
-		}
+	if passphrase != repeated {
+		return "", errors.MakeError("Password mismatch.", "credentials")
 	}
 
-	fmt.Println("")
-	return result
+	return passphrase, nil
 }

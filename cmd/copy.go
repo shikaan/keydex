@@ -81,7 +81,7 @@ func copy(databasePath, keyPath, passphrase, reference, field string) error {
 		return err
 	}
 
-	db, err := kdbx.New(databasePath, passphrase, keyPath)
+	db, err := kdbx.OpenFromPath(databasePath, passphrase, keyPath)
 	if err != nil {
 		return err
 	}

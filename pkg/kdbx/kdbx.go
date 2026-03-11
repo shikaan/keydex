@@ -14,7 +14,7 @@ import (
 )
 
 type Database struct {
-	file os.File
+	file *os.File
 
 	gokeepasslib.Database
 }
@@ -33,14 +33,17 @@ const TITLE_KEY = "Title"
 const PASSWORD_KEY = "Password"
 const USERNAME_KEY = "UserName"
 
-func New(filepath, password, keypath string) (*Database, error) {
+func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
 		return nil, errors.MakeError(err.Error(), "kdbx")
 	}
 
-	kdbx := &Database{*file, *gokeepasslib.NewDatabase()}
+	kdbx, err := NewFromFile(file)
+	if err != nil {
+		return nil, errors.MakeError("Cannot open "+filepath+": "+err.Error(), "kdbx")
+	}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
 		return nil, err
@@ -49,19 +52,32 @@ func New(filepath, password, keypath string) (*Database, error) {
 	return kdbx, nil
 }
 
-func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
+func NewFromFile(file *os.File) (*Database, error) {
+	if file == nil {
+		return nil, errors.MakeError("File must be valid and not nil.", "kdbx")
+	}
+	return &Database{file, *gokeepasslib.NewDatabase()}, nil
+}
+
+func (d *Database) SetPasswordAndKey(password, keypath string) error {
 	if keypath == "" {
 		d.Credentials = gokeepasslib.NewPasswordCredentials(password)
 	} else {
 		credentials, err := gokeepasslib.NewPasswordAndKeyCredentials(password, keypath)
 
 		if err != nil {
-			return errors.MakeError(err.Error(), "kdbx")
+			return errors.MakeError("Cannot create credentials: "+err.Error(), "kdbx")
 		}
 
 		d.Credentials = credentials
 	}
+	return nil
+}
 
+func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
+	if err := d.SetPasswordAndKey(password, keypath); err != nil {
+		return err
+	}
 	return d.unlock()
 }
 
@@ -272,10 +288,11 @@ func (d *Database) Save() error {
 	}
 
 	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		file.Close()
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
-	d.file = *file
+	d.file = file
 
 	return nil
 }
@@ -328,8 +345,8 @@ func (d *Database) unlock() error {
 		return errors.MakeError("Cannot unlock without credentials", "kdbx")
 	}
 
-	if err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+	if err := gokeepasslib.NewDecoder(d.file).Decode(&d.Database); err != nil {
+		return errors.MakeError("Cannot unlock database: "+err.Error(), "kdbx")
 	}
 
 	d.Database.UnlockProtectedEntries()
