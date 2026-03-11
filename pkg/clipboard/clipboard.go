@@ -9,7 +9,7 @@ func Write(msg string) error {
 	err := clipboard.WriteAll(msg)
 
 	if err != nil {
-		return errors.MakeError(err.Error(), "clipboard")
+		return errors.MakeError("Clipboard error: "+err.Error(), "clipboard")
 	}
 
 	return nil

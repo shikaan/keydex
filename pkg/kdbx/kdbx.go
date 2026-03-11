@@ -37,7 +37,7 @@ func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
-		return nil, errors.MakeError(err.Error(), "kdbx")
+		return nil, errors.MakeError("Cannot open "+filepath+": "+err.Error(), "kdbx")
 	}
 
 	kdbx, err := NewFromFile(file)
@@ -162,7 +162,7 @@ func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 		}
 	}
 
-	return errors.MakeError("entry not found", "kdbx")
+	return errors.MakeError("Entry not found.", "kdbx")
 }
 
 func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
@@ -176,7 +176,7 @@ func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 		}
 	}
 
-	return errors.MakeError("group not found", "kdbx")
+	return errors.MakeError("Group not found.", "kdbx")
 }
 
 func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
@@ -208,7 +208,7 @@ func (d *Database) MakeEntryEntityPath(entry *Entry, group *Group) (EntityPath, 
 		}
 	}
 
-	return "", errors.MakeError("cannot find group "+group.Name, "kdbx")
+	return "", errors.MakeError("Cannot find group "+group.Name+".", "kdbx")
 }
 
 // Return a new Entry with default title, user, and a random password set
@@ -275,16 +275,16 @@ func (d *Database) GetRootGroup() *Group {
 
 func (d *Database) Save() error {
 	if err := d.Database.LockProtectedEntries(); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
 	if err := d.file.Close(); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
 	file, err := os.Create(d.file.Name())
 	if err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
 	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
@@ -342,7 +342,7 @@ func (d *Database) unlock() error {
 	// TODO: it's probably possible to unlock without password,
 	// since you can create credentials-less archives
 	if d.Credentials == nil {
-		return errors.MakeError("Cannot unlock without credentials", "kdbx")
+		return errors.MakeError("Cannot unlock without credentials.", "kdbx")
 	}
 
 	if err := gokeepasslib.NewDecoder(d.file).Decode(&d.Database); err != nil {

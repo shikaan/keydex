@@ -25,14 +25,14 @@ func init() {
 	}
 
 	if err != nil {
-		errors.MakeError(err.Error(), "log")
+		errors.MakeError("Cannot read home directory: "+err.Error(), "log")
 		return
 	}
 
 	err = os.MkdirAll(logPath, 0755)
 
 	if err != nil {
-		errors.MakeError(err.Error(), "log")
+		errors.MakeError("Cannot create log directory: "+err.Error(), "log")
 		return
 	}
 

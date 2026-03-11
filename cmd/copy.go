@@ -96,11 +96,11 @@ func copy(databasePath, keyPath, passphrase, reference, field string) error {
 		}
 
 		if value == "" {
-			return errors.MakeError(`Missing field "`+field+`" in entry "`+reference+`"`, "copy")
+			return errors.MakeError(`Missing field "`+field+`" in entry "`+reference+`".`, "copy")
 		}
 
 		return clipboard.Write(value)
 	}
 
-	return errors.MakeError(`Missing entry at "`+reference+`"`, "copy")
+	return errors.MakeError(`Missing entry at "`+reference+`".`, "copy")
 }

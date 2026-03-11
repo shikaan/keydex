@@ -22,7 +22,7 @@ func MakePassphrase(database string) (string, error) {
 	repeated := cli.ReadSecret("Repeat: ")
 
 	if passphrase != repeated {
-		return "", errors.MakeError("Password mismatch.", "credentials")
+		return "", errors.MakeError("Passphrase mismatch.", "credentials")
 	}
 
 	return passphrase, nil
