@@ -40,10 +40,6 @@ See "Examples" for more details.`,
 			return err
 		}
 
-		if passphrase == "" {
-			return errors.MakeError("Passphrase cannot be empty.", "create")
-		}
-
 		file, err := os.Create(filepath)
 		if err != nil {
 			return errors.MakeError(`Cannot create file: `+err.Error(), "create")

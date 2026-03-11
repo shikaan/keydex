@@ -25,5 +25,9 @@ func MakePassphrase(database string) (string, error) {
 		return "", errors.MakeError("Passphrase mismatch.", "credentials")
 	}
 
+	if passphrase == "" {
+		return "", errors.MakeError("Passphrase cannot be empty.", "credentials")
+	}
+
 	return passphrase, nil
 }
