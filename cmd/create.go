@@ -61,6 +61,8 @@ See "Examples" for more details.`,
 		rootGroup := db.NewGroup(databaseName)
 		db.Content.Root.Groups = []kdbx.Group{*rootGroup}
 
+		db.Database.Content.Meta.DatabaseName = databaseName
+
 		if err = db.Save(); err != nil {
 			os.Remove(filepath)
 			return err
