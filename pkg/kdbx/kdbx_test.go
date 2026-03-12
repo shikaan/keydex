@@ -25,7 +25,7 @@ func makeEntry(title string) Entry {
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: title, Protected: wrappers.NewBoolWrapper(false)}})
 
-	return Entry{entry}
+	return Entry{&entry}
 }
 
 func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
@@ -34,7 +34,7 @@ func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 
 	var gkEntries []gokeepasslib.Entry
 	for _, e := range entries {
-		gkEntries = append(gkEntries, e.Entry)
+		gkEntries = append(gkEntries, *e.Entry)
 	}
 	group.Entries = append(group.Entries, gkEntries...)
 

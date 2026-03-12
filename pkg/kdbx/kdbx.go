@@ -6,7 +6,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -19,7 +18,7 @@ type Database struct {
 	gokeepasslib.Database
 }
 
-type Entry struct{ gokeepasslib.Entry }
+type Entry struct{ *gokeepasslib.Entry }
 type Group = gokeepasslib.Group
 type EntryField = gokeepasslib.ValueData
 type UUID = gokeepasslib.UUID
@@ -184,7 +183,7 @@ func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
 
 	// Group is nil when this is a new entry, no need to move
 	if entryGroup == nil {
-		group.Entries = append(group.Entries, entry.Entry)
+		group.Entries = append(group.Entries, *entry.Entry)
 		return
 	}
 
@@ -193,7 +192,7 @@ func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
 		return
 	}
 
-	group.Entries = append(group.Entries, entry.Entry)
+	group.Entries = append(group.Entries, *entry.Entry)
 	entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
 		return e.UUID.Compare(entry.UUID)
 	})
@@ -229,7 +228,7 @@ func (d *Database) NewEntry() *Entry {
 			Protected: wrappers.NewBoolWrapper(true),
 		},
 	})
-	return &Entry{entry}
+	return &Entry{&entry}
 }
 
 func (d *Database) NewGroup(name string) *Group {
@@ -398,7 +397,7 @@ func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
 	for i := range g.Entries {
 		if g.Entries[i].UUID.Compare(uuid) {
-			return &Entry{g.Entries[i]}, g
+			return &Entry{&g.Entries[i]}, g
 		}
 	}
 
