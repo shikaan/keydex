@@ -282,15 +282,15 @@ func (d *Database) Save() error {
 	}
 
 	file, err := os.Create(d.file.Name())
+	if err != nil {
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
+	}
+
 	defer func() {
 		if d.file != file {
 			file.Close()
 		}
 	}()
-
-	if err != nil {
-		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
-	}
 
 	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
 		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")

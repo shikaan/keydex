@@ -60,6 +60,7 @@ See "Examples" for more details.`,
 		db.Database.Content.Meta.DatabaseName = databaseName
 
 		if err = db.SaveAndUnlockEntries(); err != nil {
+			file.Close()
 			os.Remove(filepath)
 			return err
 		}
