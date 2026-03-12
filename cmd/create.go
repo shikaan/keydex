@@ -59,21 +59,16 @@ See "Examples" for more details.`,
 
 		db.Database.Content.Meta.DatabaseName = databaseName
 
-		if err = db.Save(); err != nil {
+		if err = db.SaveAndUnlockEntries(); err != nil {
 			os.Remove(filepath)
 			return err
 		}
 
 		if cli.Confirm("Creation successful. Do you want to open the database?") {
-			database, err := kdbx.OpenFromPath(filepath, passphrase, "")
-			if err != nil {
-				return err
-			}
-
 			return tui.Run(tui.State{
 				Entry:     nil,
 				Group:     nil,
-				Database:  database,
+				Database:  db,
 				Reference: "",
 			}, false)
 		}
