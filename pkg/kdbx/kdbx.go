@@ -444,5 +444,6 @@ func (e *Entry) SetValue(key string, value string) {
 }
 
 func (e *Entry) SetLastUpdated() {
-	e.Times.LastModificationTime = &wrappers.TimeWrapper{Time: time.Now()}
+	now := wrappers.Now()
+	e.Times.LastModificationTime = &now
 }
