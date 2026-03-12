@@ -637,6 +637,44 @@ func TestCommandCreateWithPassphrase(t *testing.T) {
 		}
 	})
 
+	t.Run("creates database with keyfile when confirmed", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool {
+			return strings.Contains(prompt, "keyfile")
+		}
+
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "withkey.kdbx")
+		keyPath := filepath.Join(tmpDir, "key.xml")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			t.Fatal("expected database file to be created")
+		}
+
+		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+			t.Fatal("expected keyfile to be created")
+		}
+
+		db, err := kdbx.OpenFromPath(dbPath, password, keyPath)
+		if err != nil {
+			t.Fatalf("failed to open created database with keyfile: %v", err)
+		}
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup == nil {
+			t.Fatal("expected root group to exist")
+		}
+		if rootGroup.Name != "TestVault" {
+			t.Errorf("expected root group name 'TestVault', got '%s'", rootGroup.Name)
+		}
+	})
+
 	t.Run("errors on empty passphrase", func(t *testing.T) {
 		cli.ReadSecret = func(prompt string) string { return "" }
 		cli.Confirm = func(prompt string) bool { return false }

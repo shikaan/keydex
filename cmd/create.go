@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path"
 
 	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/credentials"
@@ -40,6 +41,14 @@ See "Examples" for more details.`,
 			return err
 		}
 
+		keyfilepath := ""
+		if cli.Confirm("Do you want to create a keyfile?") {
+			keyfilepath = path.Join(path.Dir(filepath), "key.xml")
+			if err = credentials.CreateXMLKeyFileV2(keyfilepath); err != nil {
+				return err
+			}
+		}
+
 		file, err := os.Create(filepath)
 		if err != nil {
 			return errors.MakeError(`Cannot create file: `+err.Error(), "create")
@@ -50,7 +59,7 @@ See "Examples" for more details.`,
 			return err
 		}
 
-		if err = db.SetPasswordAndKey(passphrase, ""); err != nil {
+		if err = db.SetPasswordAndKey(passphrase, keyfilepath); err != nil {
 			file.Close()
 			return err
 		}

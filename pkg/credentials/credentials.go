@@ -1,7 +1,10 @@
 package credentials
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
+	"os"
 
 	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/errors"
@@ -30,4 +33,32 @@ func MakePassphrase(database string) (string, error) {
 	}
 
 	return passphrase, nil
+}
+
+func CreateXMLKeyFileV2(path string) error {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return errors.MakeError("Cannot generate key.", "credentials")
+	}
+
+	hash := sha256.Sum256(key)
+	hashPrefix := fmt.Sprintf("%X", hash[:4])
+	hexKey := fmt.Sprintf("%X", key)
+
+	data := []byte(
+		"<KeyFile>\n" +
+			"  <Meta>\n" +
+			"    <Version>2.0</Version>\n" +
+			"  </Meta>\n" +
+			"  <Key>\n" +
+			"    <Data Hash=\"" + hashPrefix + "\">" + hexKey + "</Data>\n" +
+			"  </Key>\n" +
+			"</KeyFile>\n",
+	)
+
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return errors.MakeError("Cannot generate key: "+err.Error(), "credentials")
+	}
+
+	return nil
 }
