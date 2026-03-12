@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/shikaan/keydex/cmd"
+	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -569,4 +571,122 @@ func TestCommandCreate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCommandCreateWithPassphrase(t *testing.T) {
+	originalReadSecret := cli.ReadSecret
+	originalConfirm := cli.Confirm
+	defer func() {
+		cli.ReadSecret = originalReadSecret
+		cli.Confirm = originalConfirm
+	}()
+
+	t.Run("creates database successfully", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "new.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			t.Fatal("expected database file to be created")
+		}
+
+		db, err := kdbx.OpenFromPath(dbPath, password, "")
+		if err != nil {
+			t.Fatalf("failed to open created database: %v", err)
+		}
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup == nil {
+			t.Fatal("expected root group to exist")
+		}
+		if rootGroup.Name != "TestVault" {
+			t.Errorf("expected root group name 'TestVault', got '%s'", rootGroup.Name)
+		}
+	})
+
+	t.Run("errors on passphrase mismatch", func(t *testing.T) {
+		callCount := 0
+		cli.ReadSecret = func(prompt string) string {
+			callCount++
+			if callCount == 1 {
+				return "password1"
+			}
+			return "password2"
+		}
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "mismatch.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for passphrase mismatch, got nil")
+		}
+		if !strings.Contains(err.Error(), "mismatch") {
+			t.Errorf("expected mismatch error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created on mismatch")
+		}
+	})
+
+	t.Run("errors on empty passphrase", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return "" }
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "empty.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for empty passphrase, got nil")
+		}
+		if !strings.Contains(err.Error(), "empty") {
+			t.Errorf("expected empty passphrase error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created on empty passphrase")
+		}
+	})
+}
+
+func TestCommandOpenWithPassphrase(t *testing.T) {
+	originalReadSecret := cli.ReadSecret
+	defer func() {
+		cli.ReadSecret = originalReadSecret
+	}()
+
+	// Ensure env var is unset so GetPassphrase falls through to ReadSecret
+	t.Setenv(cmd.ENV_PASSPHRASE, "")
+
+	t.Run("opens database with correct passphrase from prompt", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return fixturePassword }
+
+		err := cmd.Open.RunE(cmd.Open, []string{fixtureDB, "/TestDB/Coding/NonExistent"})
+		if err == nil {
+			t.Fatal("expected 'Missing entry' error, got nil")
+		}
+		if !strings.Contains(err.Error(), "Missing entry") {
+			t.Errorf("expected 'Missing entry' error, got: %v", err)
+		}
+	})
+
+	t.Run("fails with wrong passphrase from prompt", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return "wrong-password" }
+
+		err := cmd.Open.RunE(cmd.Open, []string{fixtureDB, "/TestDB/Coding/GitHub"})
+		if err == nil {
+			t.Fatal("expected error for wrong passphrase, got nil")
+		}
+		if !strings.Contains(err.Error(), "Wrong password?") {
+			t.Errorf("expected 'Wrong password?' error, got: %v", err)
+		}
+	})
 }

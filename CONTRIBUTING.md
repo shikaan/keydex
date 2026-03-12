@@ -78,16 +78,6 @@ interactive input).
 </details>
 
 <details>
-<summary>Interactive password prompt</summary>
-
-1. Run keydex without `KEYDEX_PASSPHRASE` set
-   - **Expected:** Prompted for password
-2. Type the correct password
-   - **Expected:** Database opens successfully
-
-</details>
-
-<details>
 <summary>Piping</summary>
 
 1. `keydex list <archive> | grep GitHub`
@@ -128,6 +118,10 @@ interactive input).
 Quick walkthrough of the most important flows to sanity-check a
 release. These are all covered by automated tests too, but a human
 pair of eyes helps catch visual glitches and UX regressions.
+
+**Create a database**
+1. `keydex new test.kdbx test`
+   - **Expected:** file is saved on disk
 
 **Create, save, and verify a new entry**
 1. Open keydex, create entry (^N)

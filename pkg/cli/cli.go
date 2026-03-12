@@ -10,7 +10,7 @@ import (
 	"golang.org/x/term"
 )
 
-func ReadSecret(prompt string) string {
+var ReadSecret = func(prompt string) string {
 	result := ""
 	fmt.Print(prompt)
 
@@ -26,7 +26,7 @@ func ReadSecret(prompt string) string {
 	return result
 }
 
-func Confirm(prompt string) bool {
+var Confirm = func(prompt string) bool {
 	fmt.Print(prompt + " [y/N] ")
 	out, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
