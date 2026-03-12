@@ -15,7 +15,10 @@ var ReadSecret = func(prompt string) string {
 	fmt.Print(prompt)
 
 	for {
-		pw, _ := term.ReadPassword(int(syscall.Stdin))
+		pw, err := term.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			break
+		}
 		result = string(pw)
 		if result != "" {
 			break
