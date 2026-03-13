@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"os"
-	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/credentials"
@@ -29,48 +30,64 @@ See "Examples" for more details.`,
   ` + info.NAME + ` create ~/passwords/work.kdbx work`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		filepath := args[0]
-		databaseName := args[1]
+		path := args[0]
+		name := args[1]
 
-		if _, err := os.Stat(filepath); err == nil {
-			return errors.MakeError("File already exists.", "create")
+		if _, err := os.Stat(path); err == nil {
+			return errors.MakeError("Database file "+path+" already exists.", "create")
 		}
 
-		passphrase, err := credentials.MakePassphrase(filepath)
+		passphrase, err := credentials.MakePassphrase(path)
 		if err != nil {
 			return err
 		}
 
 		keyfilepath := ""
 		if cli.Confirm("Do you want to create a keyfile?") {
-			keyfilepath = path.Join(path.Dir(filepath), "key.xml")
+			filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "-key.xml", 1)
+			keyfilepath = filepath.Join(filepath.Dir(path), filename)
+
 			if err = credentials.CreateXMLKeyFileV2(keyfilepath); err != nil {
 				return err
 			}
 		}
 
-		file, err := os.Create(filepath)
+		file, err := os.Create(path)
 		if err != nil {
+			if keyfilepath != "" {
+				_ = os.Remove(keyfilepath)
+			}
 			return errors.MakeError(`Cannot create file: `+err.Error(), "create")
 		}
 
+		defer file.Close()
+
 		db, err := kdbx.NewFromFile(file)
 		if err != nil {
+			if keyfilepath != "" {
+				_ = os.Remove(keyfilepath)
+			}
+			os.Remove(path)
 			return err
 		}
 
 		if err = db.SetPasswordAndKey(passphrase, keyfilepath); err != nil {
-			file.Close()
+			if keyfilepath != "" {
+				_ = os.Remove(keyfilepath)
+			}
+			os.Remove(path)
 			return err
 		}
-		rootGroup := db.NewGroup(databaseName)
+		rootGroup := db.NewGroup(name)
 		db.Content.Root.Groups = []kdbx.Group{*rootGroup}
 
-		db.Database.Content.Meta.DatabaseName = databaseName
+		db.Database.Content.Meta.DatabaseName = name
 
 		if err = db.SaveAndUnlockEntries(); err != nil {
-			file.Close()
-			os.Remove(filepath)
+			if keyfilepath != "" {
+				_ = os.Remove(keyfilepath)
+			}
+			os.Remove(path)
 			return err
 		}
 

@@ -36,9 +36,13 @@ func MakePassphrase(database string) (string, error) {
 }
 
 func CreateXMLKeyFileV2(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return errors.MakeError("Key file at "+path+" already exists.", "credentials")
+	}
+
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
-		return errors.MakeError("Cannot generate key.", "credentials")
+		return errors.MakeError("Cannot generate key: "+err.Error(), "credentials")
 	}
 
 	hash := sha256.Sum256(key)

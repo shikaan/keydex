@@ -646,7 +646,7 @@ func TestCommandCreateWithPassphrase(t *testing.T) {
 
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "withkey.kdbx")
-		keyPath := filepath.Join(tmpDir, "key.xml")
+		keyPath := filepath.Join(tmpDir, "withkey-key.xml")
 
 		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
 		if err != nil {
@@ -691,6 +691,36 @@ func TestCommandCreateWithPassphrase(t *testing.T) {
 
 		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
 			t.Error("expected no database file to be created on empty passphrase")
+		}
+	})
+
+	t.Run("errors when keyfile already exists", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool {
+			return strings.Contains(prompt, "keyfile")
+		}
+
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "with-existing-key.kdbx")
+		keyPath := filepath.Join(tmpDir, "with-existing-key-key.xml")
+
+		if err := os.WriteFile(keyPath, []byte("already here"), 0o600); err != nil {
+			t.Fatalf("failed to create existing keyfile: %v", err)
+		}
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for existing keyfile, got nil")
+		}
+		if !strings.Contains(err.Error(), "already exists") {
+			t.Errorf("expected existing keyfile error, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), keyPath) {
+			t.Errorf("expected error to mention keyfile path, got: %v", err)
+		}
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created when keyfile already exists")
 		}
 	})
 }
