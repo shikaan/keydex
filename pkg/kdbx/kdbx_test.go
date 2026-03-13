@@ -25,7 +25,7 @@ func makeEntry(title string) Entry {
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: title, Protected: wrappers.NewBoolWrapper(false)}})
 
-	return Entry{entry}
+	return Entry{&entry}
 }
 
 func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
@@ -34,7 +34,7 @@ func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 
 	var gkEntries []gokeepasslib.Entry
 	for _, e := range entries {
-		gkEntries = append(gkEntries, e.Entry)
+		gkEntries = append(gkEntries, *e.Entry)
 	}
 	group.Entries = append(group.Entries, gkEntries...)
 
@@ -43,7 +43,7 @@ func makeGroup(name string, entries ...Entry) gokeepasslib.Group {
 
 func makeDatabase(_ string, groups ...gokeepasslib.Group) *Database {
 	gdb := gokeepasslib.NewDatabase()
-	db := &Database{os.File{}, *gdb}
+	db := &Database{&os.File{}, *gdb}
 	gdb.Content.Root.Groups = groups
 
 	return db
@@ -150,7 +150,7 @@ func TestDatabase_Save(t *testing.T) {
 	}()
 
 	type fields struct {
-		file     os.File
+		file     *os.File
 		Database gokeepasslib.Database
 	}
 	tests := []struct {
@@ -158,8 +158,8 @@ func TestDatabase_Save(t *testing.T) {
 		fields  fields
 		wantErr bool
 	}{
-		{"does not save with missing file", fields{os.File{}, *gokeepasslib.NewDatabase()}, true},
-		{"saves the database to file", fields{*makeFile(), *gokeepasslib.NewDatabase()}, false},
+		{"does not save with missing file", fields{&os.File{}, *gokeepasslib.NewDatabase()}, true},
+		{"saves the database to file", fields{makeFile(), *gokeepasslib.NewDatabase()}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

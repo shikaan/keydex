@@ -13,3 +13,6 @@ jobs:
         with:
           go-version: 1.25.0
       - run: make test
+      - run: make docs
+      - name: Verify no stale documentation
+        run: git diff --exit-code -- . ':(exclude)**/*.md'

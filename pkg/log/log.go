@@ -18,21 +18,21 @@ const CONFIG_FOLDER = ".config"
 func init() {
 	var logPath string
 	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("%v", errors.MakeError("Cannot read home directory: "+err.Error(), "log"))
+		return
+	}
+
 	if runtime.GOOS != "windows" {
 		logPath = strings.Join([]string{home, CONFIG_FOLDER, info.NAME}, string(os.PathSeparator))
 	} else {
 		logPath = strings.Join([]string{home, info.NAME}, string(os.PathSeparator))
 	}
 
-	if err != nil {
-		errors.MakeError(err.Error(), "log")
-		return
-	}
-
 	err = os.MkdirAll(logPath, 0755)
 
 	if err != nil {
-		errors.MakeError(err.Error(), "log")
+		log.Printf("%v", errors.MakeError("Cannot create log directory: "+err.Error(), "log"))
 		return
 	}
 

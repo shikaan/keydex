@@ -20,7 +20,7 @@ func main() {
 			default:
 				log.Error(fmt.Sprintf("Unexpected error: %v", e), nil)
 			}
-			println(errors.MakeError("An unexpected error occurred. Check logs for details.", "open").Error())
+			println(errors.MakeError("An unexpected error occurred. Check logs for details.", "main").Error())
 
 			os.Exit(1)
 		}

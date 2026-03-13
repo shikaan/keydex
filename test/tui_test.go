@@ -29,17 +29,17 @@ func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
 
-	db := gokeepasslib.NewDatabase()
-	db.Credentials = gokeepasslib.NewPasswordCredentials(e2ePassword)
+	db, err := kdbx.NewFromFile(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to create database: %v", err)
+	}
 
-	rootGroup := gokeepasslib.NewGroup()
-	rootGroup.Name = "TestDB"
-	rootGroup.Entries = make([]gokeepasslib.Entry, 0)
+	if err := db.SetPasswordAndKey(e2ePassword, ""); err != nil {
+		t.Fatalf("failed to set password: %v", err)
+	}
 
-	codingGroup := gokeepasslib.NewGroup()
-	codingGroup.Name = "Coding"
-	codingGroup.Entries = make([]gokeepasslib.Entry, 0)
-	codingGroup.Groups = make([]gokeepasslib.Group, 0)
+	rootGroup := db.NewGroup("TestDB")
+	codingGroup := db.NewGroup("Coding")
 
 	github := gokeepasslib.NewEntry()
 	github.Values = append(github.Values,
@@ -56,23 +56,19 @@ func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 	)
 
 	codingGroup.Entries = append(codingGroup.Entries, github, gitlab)
-	rootGroup.Groups = append(rootGroup.Groups, codingGroup)
-	db.Content.Root.Groups = []gokeepasslib.Group{rootGroup}
+	rootGroup.Groups = append(rootGroup.Groups, *codingGroup)
+	db.Content.Root.Groups = []gokeepasslib.Group{*rootGroup}
 
-	if err := db.LockProtectedEntries(); err != nil {
-		t.Fatalf("failed to lock entries: %v", err)
+	if err := db.Save(); err != nil {
+		t.Fatalf("failed to save database: %v", err)
 	}
-	if err := gokeepasslib.NewEncoder(tmpFile).Encode(db); err != nil {
-		t.Fatalf("failed to encode kdbx: %v", err)
-	}
-	tmpFile.Close()
 
 	return tmpFile.Name(), e2ePassword
 }
 
 func openTestDatabase(t *testing.T, filePath, password string) *kdbx.Database {
 	t.Helper()
-	db, err := kdbx.New(filePath, password, "")
+	db, err := kdbx.OpenFromPath(filePath, password, "")
 	if err != nil {
 		t.Fatalf("failed to open test database: %v", err)
 	}

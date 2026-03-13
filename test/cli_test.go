@@ -9,7 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/shikaan/keydex/cmd"
+	"github.com/shikaan/keydex/pkg/cli"
 	"github.com/shikaan/keydex/pkg/info"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/tobischo/gokeepasslib/v3"
 	"github.com/tobischo/gokeepasslib/v3/wrappers"
 )
@@ -24,17 +27,16 @@ func createFixtureDB() error {
 		return err
 	}
 
-	db := gokeepasslib.NewDatabase()
-	db.Credentials = gokeepasslib.NewPasswordCredentials(fixturePassword)
+	db, err := kdbx.NewFromFile(file)
+	if err != nil {
+		return err
+	}
+	if err := db.SetPasswordAndKey(fixturePassword, ""); err != nil {
+		return err
+	}
 
-	rootGroup := gokeepasslib.NewGroup()
-	rootGroup.Name = "TestDB"
-	rootGroup.Entries = make([]gokeepasslib.Entry, 0)
-
-	codingGroup := gokeepasslib.NewGroup()
-	codingGroup.Name = "Coding"
-	codingGroup.Entries = make([]gokeepasslib.Entry, 0)
-	codingGroup.Groups = make([]gokeepasslib.Group, 0)
+	rootGroup := db.NewGroup("TestDB")
+	codingGroup := db.NewGroup("Coding")
 
 	github := gokeepasslib.NewEntry()
 	github.Values = append(github.Values,
@@ -66,17 +68,10 @@ func createFixtureDB() error {
 	)
 
 	codingGroup.Entries = append(codingGroup.Entries, github, gitlab)
-	rootGroup.Groups = append(rootGroup.Groups, codingGroup)
-	db.Content.Root.Groups = []gokeepasslib.Group{rootGroup}
+	rootGroup.Groups = append(rootGroup.Groups, *codingGroup)
+	db.Content.Root.Groups = []gokeepasslib.Group{*rootGroup}
 
-	if err := db.LockProtectedEntries(); err != nil {
-		return err
-	}
-	if err := gokeepasslib.NewEncoder(file).Encode(db); err != nil {
-		return err
-	}
-	file.Close()
-	return nil
+	return db.Save()
 }
 
 func TestMain(m *testing.M) {
@@ -513,6 +508,253 @@ func TestCommandHelp(t *testing.T) {
 		}
 		if !strings.Contains(stdout, "copy") && !strings.Contains(stdout, "password") {
 			t.Errorf("expected stdout to mention copy/password, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("shows help for subcommand create", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, nil, "create", "--help")
+
+		if exitCode != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stdout, "create") {
+			t.Errorf("expected stdout to mention create, got:\n%s", stdout)
+		}
+	})
+}
+
+func TestCommandCreate(t *testing.T) {
+	aliases := []string{"create", "new"}
+
+	for _, alias := range aliases {
+		t.Run(alias+" errors without arguments", func(t *testing.T) {
+			_, stderr, exitCode := runKeydex(t, nil, alias)
+
+			if exitCode != 1 {
+				t.Fatalf("expected exit code 1, got %d. stderr: %s", exitCode, stderr)
+			}
+			if !strings.Contains(stderr, "Usage:") && !strings.Contains(stderr, "USAGE:") {
+				t.Errorf("expected stderr to contain Usage, got:\n%s", stderr)
+			}
+		})
+
+		t.Run(alias+" errors with filepath only", func(t *testing.T) {
+			_, stderr, exitCode := runKeydex(t, nil, alias, "test.kdbx")
+
+			if exitCode != 1 {
+				t.Fatalf("expected exit code 1, got %d. stderr: %s", exitCode, stderr)
+			}
+			if !strings.Contains(stderr, "accepts 2 arg(s), received 1") {
+				t.Errorf("expected stderr to contain args error, got:\n%s", stderr)
+			}
+		})
+
+		t.Run(alias+" errors with too many args", func(t *testing.T) {
+			_, stderr, exitCode := runKeydex(t, nil, alias, "a", "b", "c")
+
+			if exitCode != 1 {
+				t.Fatalf("expected exit code 1, got %d. stderr: %s", exitCode, stderr)
+			}
+			if !strings.Contains(stderr, "accepts 2 arg(s), received 3") {
+				t.Errorf("expected stderr to contain args error, got:\n%s", stderr)
+			}
+		})
+
+		t.Run(alias+" errors with existing file", func(t *testing.T) {
+			_, stderr, exitCode := runKeydex(t, nil, alias, "README.md", "test")
+
+			if exitCode != 1 {
+				t.Fatalf("expected exit code 1, got %d. stderr: %s", exitCode, stderr)
+			}
+			if !strings.Contains(stderr, "exists") {
+				t.Errorf("expected stderr to contain existing file error, got:\n%s", stderr)
+			}
+		})
+	}
+}
+
+func TestCommandCreateWithPassphrase(t *testing.T) {
+	originalReadSecret := cli.ReadSecret
+	originalConfirm := cli.Confirm
+	defer func() {
+		cli.ReadSecret = originalReadSecret
+		cli.Confirm = originalConfirm
+	}()
+
+	t.Run("creates database successfully", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "new.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			t.Fatal("expected database file to be created")
+		}
+
+		db, err := kdbx.OpenFromPath(dbPath, password, "")
+		if err != nil {
+			t.Fatalf("failed to open created database: %v", err)
+		}
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup == nil {
+			t.Fatal("expected root group to exist")
+		}
+		if rootGroup.Name != "TestVault" {
+			t.Errorf("expected root group name 'TestVault', got '%s'", rootGroup.Name)
+		}
+	})
+
+	t.Run("errors on passphrase mismatch", func(t *testing.T) {
+		callCount := 0
+		cli.ReadSecret = func(prompt string) string {
+			callCount++
+			if callCount == 1 {
+				return "password1"
+			}
+			return "password2"
+		}
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "mismatch.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for passphrase mismatch, got nil")
+		}
+		if !strings.Contains(err.Error(), "mismatch") {
+			t.Errorf("expected mismatch error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created on mismatch")
+		}
+	})
+
+	t.Run("creates database with keyfile when confirmed", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool {
+			return strings.Contains(prompt, "keyfile")
+		}
+
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "withkey.kdbx")
+		keyPath := filepath.Join(tmpDir, "withkey-key.xml")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			t.Fatal("expected database file to be created")
+		}
+
+		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+			t.Fatal("expected keyfile to be created")
+		}
+
+		db, err := kdbx.OpenFromPath(dbPath, password, keyPath)
+		if err != nil {
+			t.Fatalf("failed to open created database with keyfile: %v", err)
+		}
+
+		rootGroup := db.GetRootGroup()
+		if rootGroup == nil {
+			t.Fatal("expected root group to exist")
+		}
+		if rootGroup.Name != "TestVault" {
+			t.Errorf("expected root group name 'TestVault', got '%s'", rootGroup.Name)
+		}
+	})
+
+	t.Run("errors on empty passphrase", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return "" }
+		cli.Confirm = func(prompt string) bool { return false }
+
+		dbPath := filepath.Join(t.TempDir(), "empty.kdbx")
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for empty passphrase, got nil")
+		}
+		if !strings.Contains(err.Error(), "empty") {
+			t.Errorf("expected empty passphrase error, got: %v", err)
+		}
+
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created on empty passphrase")
+		}
+	})
+
+	t.Run("errors when keyfile already exists", func(t *testing.T) {
+		password := "test-create-password"
+		cli.ReadSecret = func(prompt string) string { return password }
+		cli.Confirm = func(prompt string) bool {
+			return strings.Contains(prompt, "keyfile")
+		}
+
+		tmpDir := t.TempDir()
+		dbPath := filepath.Join(tmpDir, "with-existing-key.kdbx")
+		keyPath := filepath.Join(tmpDir, "with-existing-key-key.xml")
+
+		if err := os.WriteFile(keyPath, []byte("already here"), 0o600); err != nil {
+			t.Fatalf("failed to create existing keyfile: %v", err)
+		}
+
+		err := cmd.Create.RunE(cmd.Create, []string{dbPath, "TestVault"})
+		if err == nil {
+			t.Fatal("expected error for existing keyfile, got nil")
+		}
+		if !strings.Contains(err.Error(), "already exists") {
+			t.Errorf("expected existing keyfile error, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), keyPath) {
+			t.Errorf("expected error to mention keyfile path, got: %v", err)
+		}
+		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
+			t.Error("expected no database file to be created when keyfile already exists")
+		}
+	})
+}
+
+func TestCommandOpenWithPassphrase(t *testing.T) {
+	originalReadSecret := cli.ReadSecret
+	defer func() {
+		cli.ReadSecret = originalReadSecret
+	}()
+
+	// Ensure env var is unset so GetPassphrase falls through to ReadSecret
+	t.Setenv(cmd.ENV_PASSPHRASE, "")
+
+	t.Run("opens database with correct passphrase from prompt", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return fixturePassword }
+
+		err := cmd.Open.RunE(cmd.Open, []string{fixtureDB, "/TestDB/Coding/NonExistent"})
+		if err == nil {
+			t.Fatal("expected 'Missing entry' error, got nil")
+		}
+		if !strings.Contains(err.Error(), "Missing entry") {
+			t.Errorf("expected 'Missing entry' error, got: %v", err)
+		}
+	})
+
+	t.Run("fails with wrong passphrase from prompt", func(t *testing.T) {
+		cli.ReadSecret = func(prompt string) string { return "wrong-password" }
+
+		err := cmd.Open.RunE(cmd.Open, []string{fixtureDB, "/TestDB/Coding/GitHub"})
+		if err == nil {
+			t.Fatal("expected error for wrong passphrase, got nil")
+		}
+		if !strings.Contains(err.Error(), "Wrong password?") {
+			t.Errorf("expected 'Wrong password?' error, got: %v", err)
 		}
 	})
 }

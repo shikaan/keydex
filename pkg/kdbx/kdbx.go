@@ -6,7 +6,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -14,12 +13,12 @@ import (
 )
 
 type Database struct {
-	file os.File
+	file *os.File
 
 	gokeepasslib.Database
 }
 
-type Entry struct{ gokeepasslib.Entry }
+type Entry struct{ *gokeepasslib.Entry }
 type Group = gokeepasslib.Group
 type EntryField = gokeepasslib.ValueData
 type UUID = gokeepasslib.UUID
@@ -33,14 +32,17 @@ const TITLE_KEY = "Title"
 const PASSWORD_KEY = "Password"
 const USERNAME_KEY = "UserName"
 
-func New(filepath, password, keypath string) (*Database, error) {
+func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
 
 	if err != nil {
-		return nil, errors.MakeError(err.Error(), "kdbx")
+		return nil, errors.MakeError("Cannot open "+filepath+": "+err.Error(), "kdbx")
 	}
 
-	kdbx := &Database{*file, *gokeepasslib.NewDatabase()}
+	kdbx, err := NewFromFile(file)
+	if err != nil {
+		return nil, errors.MakeError("Cannot open "+filepath+": "+err.Error(), "kdbx")
+	}
 
 	if err := kdbx.UnlockWithPasswordAndKey(password, keypath); err != nil {
 		return nil, err
@@ -49,19 +51,32 @@ func New(filepath, password, keypath string) (*Database, error) {
 	return kdbx, nil
 }
 
-func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
+func NewFromFile(file *os.File) (*Database, error) {
+	if file == nil {
+		return nil, errors.MakeError("File must be valid and not nil.", "kdbx")
+	}
+	return &Database{file, *gokeepasslib.NewDatabase()}, nil
+}
+
+func (d *Database) SetPasswordAndKey(password, keypath string) error {
 	if keypath == "" {
 		d.Credentials = gokeepasslib.NewPasswordCredentials(password)
 	} else {
 		credentials, err := gokeepasslib.NewPasswordAndKeyCredentials(password, keypath)
 
 		if err != nil {
-			return errors.MakeError(err.Error(), "kdbx")
+			return errors.MakeError("Cannot create credentials: "+err.Error(), "kdbx")
 		}
 
 		d.Credentials = credentials
 	}
+	return nil
+}
 
+func (d *Database) UnlockWithPasswordAndKey(password, keypath string) error {
+	if err := d.SetPasswordAndKey(password, keypath); err != nil {
+		return err
+	}
 	return d.unlock()
 }
 
@@ -146,7 +161,7 @@ func (d *Database) RemoveEntry(uuid gokeepasslib.UUID) error {
 		}
 	}
 
-	return errors.MakeError("entry not found", "kdbx")
+	return errors.MakeError("Entry not found.", "kdbx")
 }
 
 func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
@@ -160,7 +175,7 @@ func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 		}
 	}
 
-	return errors.MakeError("group not found", "kdbx")
+	return errors.MakeError("Group not found.", "kdbx")
 }
 
 func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
@@ -168,7 +183,7 @@ func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
 
 	// Group is nil when this is a new entry, no need to move
 	if entryGroup == nil {
-		group.Entries = append(group.Entries, entry.Entry)
+		group.Entries = append(group.Entries, *entry.Entry)
 		return
 	}
 
@@ -177,7 +192,7 @@ func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
 		return
 	}
 
-	group.Entries = append(group.Entries, entry.Entry)
+	group.Entries = append(group.Entries, *entry.Entry)
 	entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
 		return e.UUID.Compare(entry.UUID)
 	})
@@ -192,7 +207,7 @@ func (d *Database) MakeEntryEntityPath(entry *Entry, group *Group) (EntityPath, 
 		}
 	}
 
-	return "", errors.MakeError("cannot find group "+group.Name, "kdbx")
+	return "", errors.MakeError("Cannot find group "+group.Name+".", "kdbx")
 }
 
 // Return a new Entry with default title, user, and a random password set
@@ -213,7 +228,7 @@ func (d *Database) NewEntry() *Entry {
 			Protected: wrappers.NewBoolWrapper(true),
 		},
 	})
-	return &Entry{entry}
+	return &Entry{&entry}
 }
 
 func (d *Database) NewGroup(name string) *Group {
@@ -259,23 +274,29 @@ func (d *Database) GetRootGroup() *Group {
 
 func (d *Database) Save() error {
 	if err := d.Database.LockProtectedEntries(); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
 	if err := d.file.Close(); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
 	file, err := os.Create(d.file.Name())
 	if err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
+
+	defer func() {
+		if d.file != file {
+			file.Close()
+		}
+	}()
 
 	if err := gokeepasslib.NewEncoder(file).Encode(&d.Database); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+		return errors.MakeError("Cannot save database: "+err.Error(), "kdbx")
 	}
 
-	d.file = *file
+	d.file = file
 
 	return nil
 }
@@ -325,11 +346,11 @@ func (d *Database) unlock() error {
 	// TODO: it's probably possible to unlock without password,
 	// since you can create credentials-less archives
 	if d.Credentials == nil {
-		return errors.MakeError("Cannot unlock without credentials", "kdbx")
+		return errors.MakeError("Cannot unlock without credentials.", "kdbx")
 	}
 
-	if err := gokeepasslib.NewDecoder(&d.file).Decode(&d.Database); err != nil {
-		return errors.MakeError(err.Error(), "kdbx")
+	if err := gokeepasslib.NewDecoder(d.file).Decode(&d.Database); err != nil {
+		return errors.MakeError("Cannot unlock database: "+err.Error(), "kdbx")
 	}
 
 	d.Database.UnlockProtectedEntries()
@@ -376,7 +397,7 @@ func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 func getEntryByUUID(g *Group, uuid gokeepasslib.UUID) (*Entry, *Group) {
 	for i := range g.Entries {
 		if g.Entries[i].UUID.Compare(uuid) {
-			return &Entry{g.Entries[i]}, g
+			return &Entry{&g.Entries[i]}, g
 		}
 	}
 
@@ -422,5 +443,6 @@ func (e *Entry) SetValue(key string, value string) {
 }
 
 func (e *Entry) SetLastUpdated() {
-	e.Times.LastModificationTime = &wrappers.TimeWrapper{Time: time.Now()}
+	now := wrappers.Now()
+	e.Times.LastModificationTime = &now
 }

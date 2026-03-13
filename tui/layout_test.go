@@ -55,7 +55,7 @@ func TestLayout_HandleEvent_Esc_AlwaysSetsGroup(t *testing.T) {
 				// Create an entry and add it to SubGroup
 				entry := db.NewEntry()
 				subGroup := &db.Content.Root.Groups[0].Groups[0]
-				subGroup.Entries = append(subGroup.Entries, entry.Entry)
+				subGroup.Entries = append(subGroup.Entries, *entry.Entry)
 				return entry
 			},
 			expectGroupFromDB: true,
@@ -226,7 +226,7 @@ func TestLayout_HandleEvent_Esc_ModifiedBadgeBehavior(t *testing.T) {
 			setupEntry: func(db *kdbx.Database) *kdbx.Entry {
 				// Create entry and add it to root group (simulates existing entry)
 				entry := db.NewEntry()
-				db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, entry.Entry)
+				db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, *entry.Entry)
 				return entry
 			},
 			initialDirty:       true,

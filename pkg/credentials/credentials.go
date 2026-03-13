@@ -1,10 +1,13 @@
 package credentials
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
-	"syscall"
+	"os"
 
-	"golang.org/x/term"
+	"github.com/shikaan/keydex/pkg/cli"
+	"github.com/shikaan/keydex/pkg/errors"
 )
 
 // Retrieves a locally stored passphrase, if any, otherwise
@@ -14,21 +17,52 @@ func GetPassphrase(database, passphrase string) string {
 		return passphrase
 	}
 
-	return readFromPrompt(fmt.Sprintf("Passphrase for \"%s\": ", database))
+	return cli.ReadSecret(fmt.Sprintf("Passphrase for \"%s\": ", database))
 }
 
-func readFromPrompt(promptMessage string) string {
-	result := ""
-	fmt.Print(promptMessage)
+func MakePassphrase(database string) (string, error) {
+	passphrase := cli.ReadSecret(fmt.Sprintf("Create a passphrase for \"%s\": ", database))
+	repeated := cli.ReadSecret("Repeat: ")
 
-	for {
-		pw, _ := term.ReadPassword(int(syscall.Stdin))
-		result = string(pw)
-		if result != "" {
-			break
-		}
+	if passphrase != repeated {
+		return "", errors.MakeError("Passphrase mismatch.", "credentials")
 	}
 
-	fmt.Println("")
-	return result
+	if passphrase == "" {
+		return "", errors.MakeError("Passphrase cannot be empty.", "credentials")
+	}
+
+	return passphrase, nil
+}
+
+func CreateXMLKeyFileV2(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return errors.MakeError("Key file at "+path+" already exists.", "credentials")
+	}
+
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return errors.MakeError("Cannot generate key: "+err.Error(), "credentials")
+	}
+
+	hash := sha256.Sum256(key)
+	hashPrefix := fmt.Sprintf("%X", hash[:4])
+	hexKey := fmt.Sprintf("%X", key)
+
+	data := []byte(
+		"<KeyFile>\n" +
+			"  <Meta>\n" +
+			"    <Version>2.0</Version>\n" +
+			"  </Meta>\n" +
+			"  <Key>\n" +
+			"    <Data Hash=\"" + hashPrefix + "\">" + hexKey + "</Data>\n" +
+			"  </Key>\n" +
+			"</KeyFile>\n",
+	)
+
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return errors.MakeError("Cannot generate key: "+err.Error(), "credentials")
+	}
+
+	return nil
 }

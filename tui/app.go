@@ -166,7 +166,7 @@ func Setup(screen tcell.Screen, state State, readOnly bool) {
 func Run(state State, readOnly bool) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return errors.MakeError("Unable to start screen", "tui")
+		return errors.MakeError("Unable to start screen.", "tui")
 	}
 	Setup(screen, state, readOnly)
 	return App.Run()

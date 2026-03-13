@@ -210,11 +210,12 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	groupField := view.newMetaField("Group", "  "+group.Name)
 	form.AddWidget(groupField, 0)
 
-	createdAt := entry.Times.CreationTime.Time.Format(time.DateTime)
+	times := entry.Times
+	createdAt := times.CreationTime.Time.In(time.Local).Format(time.DateTime)
 	created := view.newMetaField("Created", createdAt)
 	form.AddWidget(created, 0)
 
-	updatedAt := entry.Times.LastModificationTime.Time.Format(time.DateTime)
+	updatedAt := times.LastModificationTime.Time.In(time.Local).Format(time.DateTime)
 	updated := view.newMetaField("Updated", updatedAt)
 	form.AddWidget(updated, 0)
 
