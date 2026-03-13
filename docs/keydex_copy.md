@@ -23,7 +23,7 @@ keydex copy [file] [reference] [flags]
 ```
   # Copy the password of the "github" entry in the "coding" group in the "test" database at test.kdbx
   keydex copy test.kdbx /test/coding/github
-  
+
   # Or copy the username instead
   keydex copy -f username test.kdbx /test/coding/github
 
@@ -48,12 +48,7 @@ keydex copy [file] [reference] [flags]
 ```
   -f, --field string   field whose value will be copied (default "password")
   -h, --help           help for copy
-```
-
-### Options inherited from parent commands
-
-```
-  -k, --key string   path to the key file to unlock the database
+  -k, --key string     path to the key file to unlock the database
 ```
 
 ### SEE ALSO

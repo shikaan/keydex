@@ -4,7 +4,7 @@ Lists all the entries in the database
 
 ### Synopsis
 
-Lists all the entries in the database. 
+Lists all the entries in the database.
 
 The list of references - in the form of - /database/group/.../entry will be printed on stadout, allowing for piping.
 The 'file' is the the path to the *.kdbx database. It can be passed either as an argument or via the KEYDEX_DATABASE environment variable.
@@ -32,12 +32,7 @@ keydex list [file] [flags]
 ### Options
 
 ```
-  -h, --help   help for list
-```
-
-### Options inherited from parent commands
-
-```
+  -h, --help         help for list
   -k, --key string   path to the key file to unlock the database
 ```
 
