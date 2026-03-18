@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - feat/support-linux-arm64
     paths-ignore:
       - "**.md"
       - "**.yaml"
