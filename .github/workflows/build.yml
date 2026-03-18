@@ -20,24 +20,22 @@ jobs:
           enable_prerelease_mode: true
           major_pattern: "BREAKING"
           minor_pattern: "feat:"
+      - run: mkdir -p .build
       - run: |
           export VERSION="${{ steps.version.outputs.version }}"
           go generate
-      - run: mkdir -p .build
       - uses: crazy-max/ghaction-xgo@v2
         with:
-          dest: ${{ env.GITHUB_WORKSPACE }}/.build
+          dest: .build
           go_version: 1.25.0
           prefix: keydex
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/arm64,darwin/amd64
           v: true
           x: true
-      - run: ls ${{ env.GITHUB_WORKSPACE }}/.build
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: true
           prerelease: ${{ github.ref != 'refs/heads/main' }}
-          files: |
-            ${{ env.GITHUB_WORKSPACE }}/.build/*
+          files: .build/*

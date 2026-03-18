@@ -52,11 +52,18 @@ See "Examples" for more details.`,
 			}
 		}
 
+		success := false
+		defer func() {
+			if !success {
+				if keyfilepath != "" {
+					_ = os.Remove(keyfilepath)
+				}
+				_ = os.Remove(path)
+			}
+		}()
+
 		file, err := os.Create(path)
 		if err != nil {
-			if keyfilepath != "" {
-				_ = os.Remove(keyfilepath)
-			}
 			return errors.MakeError(`Cannot create file: `+err.Error(), "create")
 		}
 
@@ -64,18 +71,10 @@ See "Examples" for more details.`,
 
 		db, err := kdbx.NewFromFile(file)
 		if err != nil {
-			if keyfilepath != "" {
-				_ = os.Remove(keyfilepath)
-			}
-			os.Remove(path)
 			return err
 		}
 
 		if err = db.SetPasswordAndKey(passphrase, keyfilepath); err != nil {
-			if keyfilepath != "" {
-				_ = os.Remove(keyfilepath)
-			}
-			os.Remove(path)
 			return err
 		}
 		rootGroup := db.NewGroup(name)
@@ -84,12 +83,10 @@ See "Examples" for more details.`,
 		db.Database.Content.Meta.DatabaseName = name
 
 		if err = db.SaveAndUnlockEntries(); err != nil {
-			if keyfilepath != "" {
-				_ = os.Remove(keyfilepath)
-			}
-			os.Remove(path)
 			return err
 		}
+
+		success = true
 
 		if cli.Confirm("Creation successful. Do you want to open the database?") {
 			return tui.Run(tui.State{
