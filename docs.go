@@ -67,8 +67,8 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		// if err := os.Remove(page); err != nil {
-		// 	log.Fatal(err.Error())
-		// }
+		if err := os.Remove(page); err != nil {
+			log.Fatal(err.Error())
+		}
 	}
 }
