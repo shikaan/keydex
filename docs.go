@@ -28,14 +28,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	hdr := &doc.GenManHeader{Title: info.NAME, Section: "1"}
+	hdr := &doc.GenManHeader{Title: info.NAME, Section: "1", Source: info.VERSION, Manual: info.NAME + " manual"}
 	if err := doc.GenManTree(cmd.Root, hdr, manpath); err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 
 	archive, err := os.Create(filepath.Join(manpath, info.NAME+".1.tar"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 	defer archive.Close()
 
@@ -44,13 +44,13 @@ func main() {
 
 	pages, err := filepath.Glob(filepath.Join(manpath, "*.1"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 
 	for _, page := range pages {
 		data, err := os.ReadFile(page)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 
 		hdr := &tar.Header{
@@ -60,15 +60,15 @@ func main() {
 		}
 
 		if err := tw.WriteHeader(hdr); err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 
 		if _, err := tw.Write(data); err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 
-		if err := os.Remove(page); err != nil {
-			log.Fatal(err)
-		}
+		// if err := os.Remove(page); err != nil {
+		// 	log.Fatal(err.Error())
+		// }
 	}
 }
