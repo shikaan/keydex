@@ -17,6 +17,13 @@ const manpath = "./.build"
 const docspath = "./docs"
 
 func main() {
+	if err := os.MkdirAll(docspath, 0o755); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.MkdirAll(manpath, 0o755); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := doc.GenMarkdownTree(cmd.Root, docspath); err != nil {
 		log.Fatal(err)
 	}
