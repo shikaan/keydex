@@ -29,7 +29,7 @@ jobs:
           dest: .build
           go_version: 1.25.0
           prefix: keydex
-          targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/arm64,darwin/amd64
+          targets: windows/386,windows/amd64,linux/386,linux/arm64,linux/amd64,darwin/arm64,darwin/amd64
           v: true
           x: true
       - uses: softprops/action-gh-release@v1
