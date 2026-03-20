@@ -12,7 +12,7 @@ import (
 
 var ReadSecret = func(prompt string) string {
 	result := ""
-	fmt.Print(prompt)
+	fmt.Fprint(os.Stderr, prompt)
 
 	for {
 		pw, err := term.ReadPassword(int(syscall.Stdin))
@@ -25,7 +25,7 @@ var ReadSecret = func(prompt string) string {
 		}
 	}
 
-	fmt.Println("")
+	fmt.Fprintln(os.Stderr, "")
 	return result
 }
 
