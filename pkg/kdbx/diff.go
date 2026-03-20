@@ -78,7 +78,7 @@ func makeRecordMap(db *Database) map[UUID]entryRecord {
 }
 
 func collectRecords(g Group, prefix string, out map[UUID]entryRecord) {
-	groupPrefix := makeGroupPrefix(prefix, g)
+	groupPrefix := formatGroupPrefix(prefix, g)
 
 	for _, sub := range g.Groups {
 		collectRecords(sub, groupPrefix, out)
@@ -90,7 +90,7 @@ func collectRecords(g Group, prefix string, out map[UUID]entryRecord) {
 			t = entry.Times.LastModificationTime.Time
 		}
 		out[entry.UUID] = entryRecord{
-			path: makeEntryPath(groupPrefix, entry),
+			path: formatEntryPath(groupPrefix, entry),
 			time: t,
 		}
 	}

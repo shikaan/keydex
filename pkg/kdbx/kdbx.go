@@ -357,20 +357,8 @@ func (d *Database) unlock() error {
 	return nil
 }
 
-func makeGroupPrefix(prefix string, g Group) string {
-	return prefix + g.Name + PATH_SEPARATOR
-}
-
-func makeEntryPath(groupPrefix string, entry gokeepasslib.Entry) EntityPath {
-	title := entry.GetTitle()
-	if title == "" {
-		title = "(UNKNOWN)"
-	}
-	return groupPrefix + sanitizePathPortion(title)
-}
-
 func getEntityPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
-	groupPrefix := makeGroupPrefix(prefix, g)
+	groupPrefix := formatGroupPrefix(prefix, g)
 	entries := []uniqueEntityPath{}
 
 	for _, subGroup := range g.Groups {
@@ -379,14 +367,14 @@ func getEntityPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 	}
 
 	for _, entry := range g.Entries {
-		entries = append(entries, uniqueEntityPath{path: makeEntryPath(groupPrefix, entry), uuid: entry.UUID})
+		entries = append(entries, uniqueEntityPath{path: formatEntryPath(groupPrefix, entry), uuid: entry.UUID})
 	}
 
 	return entries
 }
 
 func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
-	groupPrefix := makeGroupPrefix(prefix, g)
+	groupPrefix := formatGroupPrefix(prefix, g)
 	paths := []uniqueEntityPath{}
 
 	paths = append(paths, uniqueEntityPath{path: groupPrefix, uuid: g.UUID})
