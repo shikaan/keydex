@@ -21,6 +21,8 @@ func formatEntryPath(groupPrefix string, entry gokeepasslib.Entry) EntityPath {
 
 func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 	var countA, countB int
+	var changed []EntryDiff
+
 	for _, d := range diffs {
 		switch d.Status {
 		case Unchanged:
@@ -28,12 +30,19 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 			countB++
 		case Removed:
 			countA++
+			changed = append(changed, d)
 		case Added:
 			countB++
+			changed = append(changed, d)
 		case Modified:
 			countA++
 			countB++
+			changed = append(changed, d)
 		}
+	}
+
+	if len(changed) == 0 {
+		return ""
 	}
 
 	var sb strings.Builder
@@ -41,11 +50,9 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 	fmt.Fprintf(&sb, "+++ %s\n", nameB)
 	fmt.Fprintf(&sb, "@@ -%d entries +%d entries @@\n", countA, countB)
 
-	for _, d := range diffs {
+	for _, d := range changed {
 		var prefix string
 		switch d.Status {
-		case Unchanged:
-			prefix = " "
 		case Removed:
 			prefix = "-"
 		case Added:

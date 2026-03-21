@@ -20,6 +20,8 @@ import (
 const binaryPath = "./" + info.NAME
 const fixtureDB = "test.kdbx"
 const fixturePassword = "test-password"
+const fixtureDB2 = "test2.kdbx"
+const fixturePassword2 = "test-password-2"
 
 func createFixtureDB() error {
 	file, err := os.Create(fixtureDB)
@@ -100,9 +102,14 @@ func TestMain(m *testing.M) {
 		panic(err.Error())
 	}
 
+	if err = createFixtureDB2(); err != nil {
+		panic(err.Error())
+	}
+
 	code := m.Run()
 
 	os.RemoveAll(fixtureDB)
+	os.RemoveAll(fixtureDB2)
 	os.Exit(code)
 }
 
@@ -721,6 +728,162 @@ func TestCommandCreateWithPassphrase(t *testing.T) {
 		}
 		if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
 			t.Error("expected no database file to be created when keyfile already exists")
+		}
+	})
+}
+
+func createFixtureDB2() error {
+	file, err := os.Create(fixtureDB2)
+	if err != nil {
+		return err
+	}
+
+	db, err := kdbx.NewFromFile(file)
+	if err != nil {
+		return err
+	}
+	if err := db.SetPasswordAndKey(fixturePassword2, ""); err != nil {
+		return err
+	}
+
+	rootGroup := db.NewGroup("TestDB2")
+	socialGroup := db.NewGroup("Social")
+
+	twitter := gokeepasslib.NewEntry()
+	twitter.Values = append(twitter.Values,
+		gokeepasslib.ValueData{
+			Key:   "Title",
+			Value: gokeepasslib.V{Content: "Twitter"}},
+		gokeepasslib.ValueData{
+			Key: "Password",
+			Value: gokeepasslib.V{
+				Content:   "twpass",
+				Protected: wrappers.NewBoolWrapper(true)}},
+	)
+
+	socialGroup.Entries = append(socialGroup.Entries, twitter)
+	rootGroup.Groups = append(rootGroup.Groups, *socialGroup)
+	db.Content.Root.Groups = []gokeepasslib.Group{*rootGroup}
+
+	return db.Save()
+}
+
+func TestCommandDiff(t *testing.T) {
+	t.Run("diff identical archives outputs nothing", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword,
+		}, "diff", fixtureDB, fixtureDB)
+
+		if exitCode != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
+		}
+		if stdout != "" {
+			t.Errorf("expected empty output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("diff different archives shows added and removed entries", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", fixtureDB, fixtureDB2)
+
+		if exitCode != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stdout, "- /") {
+			t.Errorf("expected removed entries in output, got:\n%s", stdout)
+		}
+		if !strings.Contains(stdout, "+ /") {
+			t.Errorf("expected added entries in output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("output includes file name headers", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", fixtureDB, fixtureDB2)
+
+		if exitCode != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stdout, "--- "+fixtureDB) {
+			t.Errorf("expected --- header in output, got:\n%s", stdout)
+		}
+		if !strings.Contains(stdout, "+++ "+fixtureDB2) {
+			t.Errorf("expected +++ header in output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("output includes entry count line", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", fixtureDB, fixtureDB2)
+
+		if exitCode != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stdout, "@@ -") {
+			t.Errorf("expected @@ line in output, got:\n%s", stdout)
+		}
+	})
+
+	t.Run("fails with wrong password for first archive", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": "wrong-password",
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", fixtureDB, fixtureDB2)
+
+		if exitCode == 0 {
+			t.Fatalf("expected non-zero exit code, got 0. stdout: %s", stdout)
+		}
+		if !strings.Contains(stderr, "Wrong password?") {
+			t.Errorf("expected 'Wrong password?' in stderr, got:\n%s", stderr)
+		}
+	})
+
+	t.Run("fails with wrong password for second archive", func(t *testing.T) {
+		stdout, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": "wrong-password",
+		}, "diff", fixtureDB, fixtureDB2)
+
+		if exitCode == 0 {
+			t.Fatalf("expected non-zero exit code, got 0. stdout: %s", stdout)
+		}
+		if !strings.Contains(stderr, "Wrong password?") {
+			t.Errorf("expected 'Wrong password?' in stderr, got:\n%s", stderr)
+		}
+	})
+
+	t.Run("fails with non-existing first archive", func(t *testing.T) {
+		_, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", "non-existent.kdbx", fixtureDB2)
+
+		if exitCode == 0 {
+			t.Fatal("expected non-zero exit code")
+		}
+		if !strings.Contains(stderr, "no such file or directory") {
+			t.Errorf("expected 'no such file or directory' in stderr, got:\n%s", stderr)
+		}
+	})
+
+	t.Run("fails with non-existing second archive", func(t *testing.T) {
+		_, stderr, exitCode := runKeydex(t, map[string]string{
+			"KEYDEX_PASSPHRASE_A": fixturePassword,
+			"KEYDEX_PASSPHRASE_B": fixturePassword2,
+		}, "diff", fixtureDB, "non-existent.kdbx")
+
+		if exitCode == 0 {
+			t.Fatal("expected non-zero exit code")
+		}
+		if !strings.Contains(stderr, "no such file or directory") {
+			t.Errorf("expected 'no such file or directory' in stderr, got:\n%s", stderr)
 		}
 	})
 }
