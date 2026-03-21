@@ -3,6 +3,7 @@ package kdbx
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/tobischo/gokeepasslib/v3"
 )
@@ -19,7 +20,9 @@ func formatEntryPath(groupPrefix string, entry gokeepasslib.Entry) EntityPath {
 	return groupPrefix + sanitizePathPortion(title)
 }
 
-func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
+const timestampLayout = "2006-01-02 15:04:05"
+
+func FormatDiff(nameA, nameB string, timeA, timeB time.Time, diffs []EntryDiff) string {
 	var countA, countB int
 	var changed []EntryDiff
 
@@ -54,8 +57,8 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 	}
 
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "--- %s\n", nameA)
-	fmt.Fprintf(&sb, "+++ %s\n", nameB)
+	fmt.Fprintf(&sb, "--- %s\t%s\n", nameA, timeA.Format(timestampLayout))
+	fmt.Fprintf(&sb, "+++ %s\t%s\n", nameB, timeB.Format(timestampLayout))
 	fmt.Fprintf(&sb, "@@ -%d,%d +%d,%d @@\n", startA, countA, startB, countB)
 
 	for _, d := range changed {

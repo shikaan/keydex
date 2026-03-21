@@ -59,8 +59,17 @@ func diff(fileA, fileB, keyA, keyB, passphraseA, passphraseB string) error {
 		return err
 	}
 
+	statA, err := os.Stat(fileA)
+	if err != nil {
+		return err
+	}
+	statB, err := os.Stat(fileB)
+	if err != nil {
+		return err
+	}
+
 	diffs := kdbx.DiffDatabases(dbA, dbB)
-	fmt.Print(kdbx.FormatDiff(filepath.Base(fileA), filepath.Base(fileB), diffs))
+	fmt.Print(kdbx.FormatDiff(filepath.Base(fileA), filepath.Base(fileB), statA.ModTime(), statB.ModTime(), diffs))
 
 	return nil
 }
