@@ -28,9 +28,6 @@ func FormatDiff(nameA, nameB string, timeA, timeB time.Time, diffs []EntryDiff) 
 
 	for _, d := range diffs {
 		switch d.Status {
-		case Unchanged:
-			countA++
-			countB++
 		case Removed:
 			countA++
 			changed = append(changed, d)

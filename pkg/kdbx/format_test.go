@@ -80,9 +80,9 @@ func TestFormatDiff(t *testing.T) {
 
 		got := FormatDiff("a.kdbx", "b.kdbx", time.Time{}, time.Time{}, diffs)
 
-		// a has Unchanged + Removed + Modified = 3
-		// b has Unchanged + Added + Modified = 3
-		if !strings.Contains(got, "@@ -1,3 +1,3 @@") {
+		// a has Removed + Modified = 2 (Unchanged is not emitted)
+		// b has Added + Modified = 2 (Unchanged is not emitted)
+		if !strings.Contains(got, "@@ -1,2 +1,2 @@") {
 			t.Errorf("unexpected @@ line, got:\n%s", got)
 		}
 	})
