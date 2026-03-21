@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/shikaan/keydex/pkg/credentials"
+	"github.com/shikaan/keydex/pkg/errors"
 	"github.com/shikaan/keydex/pkg/info"
 	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/pkg/log"
@@ -39,6 +40,15 @@ Passphrases can be provided via environment variables to avoid interactive promp
 
 		log.Infof("Using: file-a: %s, key-a: %s, file-b: %s, key-b: %s",
 			fileA, orDefault(keyA), fileB, orDefault(keyB))
+
+		for _, f := range []string{fileA, fileB} {
+			if _, err := os.Stat(f); err != nil {
+				if pathErr, ok := err.(*os.PathError); ok {
+					return errors.MakeError("Cannot open "+f+": "+pathErr.Err.Error(), "diff")
+				}
+				return errors.MakeError("Cannot open "+f+": "+err.Error(), "diff")
+			}
+		}
 
 		passphraseA := credentials.GetPassphrase(fileA, os.Getenv(ENV_PASSPHRASE_A))
 		passphraseB := credentials.GetPassphrase(fileB, os.Getenv(ENV_PASSPHRASE_B))

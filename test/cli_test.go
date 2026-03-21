@@ -877,8 +877,8 @@ func TestCommandDiff(t *testing.T) {
 		if exitCode == 0 {
 			t.Fatal("expected non-zero exit code")
 		}
-		if !strings.Contains(stderr, "no such file or directory") {
-			t.Errorf("expected 'no such file or directory' in stderr, got:\n%s", stderr)
+		if !strings.Contains(stderr, "non-existent.kdbx") {
+			t.Errorf("expected filename in error, got:\n%s", stderr)
 		}
 	})
 
@@ -891,8 +891,24 @@ func TestCommandDiff(t *testing.T) {
 		if exitCode == 0 {
 			t.Fatal("expected non-zero exit code")
 		}
+		if !strings.Contains(stderr, "non-existent.kdbx") {
+			t.Errorf("expected filename in error, got:\n%s", stderr)
+		}
+	})
+
+	t.Run("checks file existence before prompting for passphrase", func(t *testing.T) {
+		// No env vars: without an early file check the binary would write a
+		// passphrase prompt to stderr before discovering the file is missing.
+		_, stderr, exitCode := runKeydex(t, nil, "diff", "non-existent.kdbx", fixtureDB2)
+
+		if exitCode == 0 {
+			t.Fatal("expected non-zero exit code")
+		}
+		if strings.Contains(stderr, "Passphrase for") {
+			t.Errorf("passphrase was prompted before file existence was checked, stderr:\n%s", stderr)
+		}
 		if !strings.Contains(stderr, "no such file or directory") {
-			t.Errorf("expected 'no such file or directory' in stderr, got:\n%s", stderr)
+			t.Errorf("expected file error in stderr, got:\n%s", stderr)
 		}
 	})
 }
