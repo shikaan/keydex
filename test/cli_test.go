@@ -792,10 +792,10 @@ func TestCommandDiff(t *testing.T) {
 		if exitCode != 0 {
 			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
 		}
-		if !strings.Contains(stdout, "- /") {
+		if !strings.Contains(stdout, "-/") {
 			t.Errorf("expected removed entries in output, got:\n%s", stdout)
 		}
-		if !strings.Contains(stdout, "+ /") {
+		if !strings.Contains(stdout, "+/") {
 			t.Errorf("expected added entries in output, got:\n%s", stdout)
 		}
 	})

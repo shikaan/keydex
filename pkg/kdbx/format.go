@@ -61,12 +61,12 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 	for _, d := range changed {
 		switch d.Status {
 		case Removed:
-			fmt.Fprintf(&sb, "- %s\n", d.Path)
+			fmt.Fprintf(&sb, "-%s\n", d.Path)
 		case Added:
-			fmt.Fprintf(&sb, "+ %s\n", d.Path)
+			fmt.Fprintf(&sb, "+%s\n", d.Path)
 		case Modified:
-			fmt.Fprintf(&sb, "- %s\n", d.Path)
-			fmt.Fprintf(&sb, "+ %s\n", d.Path)
+			fmt.Fprintf(&sb, "-%s\n", d.Path)
+			fmt.Fprintf(&sb, "+%s\n", d.Path)
 		}
 	}
 

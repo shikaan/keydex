@@ -96,7 +96,7 @@ func TestFormatDiff(t *testing.T) {
 	t.Run("removed entries have - prefix", func(t *testing.T) {
 		got := FormatDiff("a.kdbx", "b.kdbx", []EntryDiff{{Path: "/G/Entry", Status: Removed}})
 
-		if !strings.Contains(got, "- /G/Entry") {
+		if !strings.Contains(got, "-/G/Entry") {
 			t.Errorf("expected - prefixed entry, got:\n%s", got)
 		}
 	})
@@ -104,7 +104,7 @@ func TestFormatDiff(t *testing.T) {
 	t.Run("added entries have + prefix", func(t *testing.T) {
 		got := FormatDiff("a.kdbx", "b.kdbx", []EntryDiff{{Path: "/G/Entry", Status: Added}})
 
-		if !strings.Contains(got, "+ /G/Entry") {
+		if !strings.Contains(got, "+/G/Entry") {
 			t.Errorf("expected + prefixed entry, got:\n%s", got)
 		}
 	})
@@ -125,10 +125,10 @@ func TestFormatDiff(t *testing.T) {
 		if len(entryLines) != 2 {
 			t.Fatalf("expected 2 entry lines for modified, got %d:\n%s", len(entryLines), got)
 		}
-		if entryLines[0] != "- /G/Entry" {
+		if entryLines[0] != "-/G/Entry" {
 			t.Errorf("expected first line to be removal, got: %s", entryLines[0])
 		}
-		if entryLines[1] != "+ /G/Entry" {
+		if entryLines[1] != "+/G/Entry" {
 			t.Errorf("expected second line to be addition, got: %s", entryLines[1])
 		}
 	})
