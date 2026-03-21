@@ -52,7 +52,7 @@ func TestFormatDiff(t *testing.T) {
 		}
 	})
 
-	t.Run("@@ line counts all entries in each database", func(t *testing.T) {
+	t.Run("@@ line follows POSIX unified diff format", func(t *testing.T) {
 		diffs := []EntryDiff{
 			{Path: "/G/Unchanged", Status: Unchanged},
 			{Path: "/G/Removed", Status: Removed},
@@ -64,7 +64,7 @@ func TestFormatDiff(t *testing.T) {
 
 		// a has Unchanged + Removed + Modified = 3
 		// b has Unchanged + Added + Modified = 3
-		if !strings.Contains(got, "@@ -3 entries +3 entries @@") {
+		if !strings.Contains(got, "@@ -1,3 +1,3 @@") {
 			t.Errorf("unexpected @@ line, got:\n%s", got)
 		}
 	})
@@ -85,11 +85,27 @@ func TestFormatDiff(t *testing.T) {
 		}
 	})
 
-	t.Run("modified entries have ~ prefix", func(t *testing.T) {
+	t.Run("modified entries are shown as removal followed by addition", func(t *testing.T) {
 		got := FormatDiff("a.kdbx", "b.kdbx", []EntryDiff{{Path: "/G/Entry", Status: Modified}})
 
-		if !strings.Contains(got, "~ /G/Entry") {
-			t.Errorf("expected ~ prefixed entry, got:\n%s", got)
+		lines := strings.Split(strings.TrimSpace(got), "\n")
+		var entryLines []string
+		for _, l := range lines {
+			if strings.HasPrefix(l, "-") || strings.HasPrefix(l, "+") {
+				if !strings.HasPrefix(l, "---") && !strings.HasPrefix(l, "+++") {
+					entryLines = append(entryLines, l)
+				}
+			}
+		}
+
+		if len(entryLines) != 2 {
+			t.Fatalf("expected 2 entry lines for modified, got %d:\n%s", len(entryLines), got)
+		}
+		if entryLines[0] != "- /G/Entry" {
+			t.Errorf("expected first line to be removal, got: %s", entryLines[0])
+		}
+		if entryLines[1] != "+ /G/Entry" {
+			t.Errorf("expected second line to be addition, got: %s", entryLines[1])
 		}
 	})
 }

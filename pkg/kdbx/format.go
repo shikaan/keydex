@@ -48,19 +48,18 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "--- %s\n", nameA)
 	fmt.Fprintf(&sb, "+++ %s\n", nameB)
-	fmt.Fprintf(&sb, "@@ -%d entries +%d entries @@\n", countA, countB)
+	fmt.Fprintf(&sb, "@@ -1,%d +1,%d @@\n", countA, countB)
 
 	for _, d := range changed {
-		var prefix string
 		switch d.Status {
 		case Removed:
-			prefix = "-"
+			fmt.Fprintf(&sb, "- %s\n", d.Path)
 		case Added:
-			prefix = "+"
+			fmt.Fprintf(&sb, "+ %s\n", d.Path)
 		case Modified:
-			prefix = "~"
+			fmt.Fprintf(&sb, "- %s\n", d.Path)
+			fmt.Fprintf(&sb, "+ %s\n", d.Path)
 		}
-		fmt.Fprintf(&sb, "%s %s\n", prefix, d.Path)
 	}
 
 	return sb.String()
