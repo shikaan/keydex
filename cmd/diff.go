@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/shikaan/keydex/pkg/credentials"
 	"github.com/shikaan/keydex/pkg/info"
@@ -59,7 +60,7 @@ func diff(fileA, fileB, keyA, keyB, passphraseA, passphraseB string) error {
 	}
 
 	diffs := kdbx.DiffDatabases(dbA, dbB)
-	fmt.Print(kdbx.FormatDiff(fileA, fileB, diffs))
+	fmt.Print(kdbx.FormatDiff(filepath.Base(fileA), filepath.Base(fileB), diffs))
 
 	return nil
 }

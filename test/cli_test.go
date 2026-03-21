@@ -801,19 +801,28 @@ func TestCommandDiff(t *testing.T) {
 	})
 
 	t.Run("output includes file name headers", func(t *testing.T) {
+		absA, _ := filepath.Abs(fixtureDB)
+		absB, _ := filepath.Abs(fixtureDB2)
+
 		stdout, stderr, exitCode := runKeydex(t, map[string]string{
 			"KEYDEX_PASSPHRASE_A": fixturePassword,
 			"KEYDEX_PASSPHRASE_B": fixturePassword2,
-		}, "diff", fixtureDB, fixtureDB2)
+		}, "diff", absA, absB)
 
 		if exitCode != 0 {
 			t.Fatalf("expected exit code 0, got %d. stderr: %s", exitCode, stderr)
 		}
 		if !strings.Contains(stdout, "--- "+fixtureDB) {
-			t.Errorf("expected --- header in output, got:\n%s", stdout)
+			t.Errorf("expected --- header with base name in output, got:\n%s", stdout)
 		}
 		if !strings.Contains(stdout, "+++ "+fixtureDB2) {
-			t.Errorf("expected +++ header in output, got:\n%s", stdout)
+			t.Errorf("expected +++ header with base name in output, got:\n%s", stdout)
+		}
+		if strings.Contains(stdout, absA) {
+			t.Errorf("expected full path to be absent from output, got:\n%s", stdout)
+		}
+		if strings.Contains(stdout, absB) {
+			t.Errorf("expected full path to be absent from output, got:\n%s", stdout)
 		}
 	})
 
