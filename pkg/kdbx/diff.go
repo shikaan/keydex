@@ -62,8 +62,16 @@ func DiffDatabases(a, b *Database) []EntryDiff {
 		result = append(result, EntryDiff{UUID: uuid, Path: path, Status: status})
 	}
 
-	slices.SortFunc(result, func(a, b EntryDiff) int {
-		return strings.Compare(a.Path, b.Path)
+	slices.SortStableFunc(result, func(a, b EntryDiff) int {
+		if c := strings.Compare(a.Path, b.Path); c != 0 {
+			return c
+		}
+		for i := range a.UUID {
+			if d := int(a.UUID[i]) - int(b.UUID[i]); d != 0 {
+				return d
+			}
+		}
+		return 0
 	})
 
 	return result

@@ -136,4 +136,29 @@ func TestDiffDatabases(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("same-path entries are ordered by UUID", func(t *testing.T) {
+		// Two entries with the same title (same path) but different UUIDs: one
+		// only in A (Removed) and one only in B (Added). The one with the smaller
+		// UUID must always come first regardless of map-iteration order.
+		low := makeEntryAt("Twin", t0)
+		low.UUID = UUID{0x00}
+		high := makeEntryAt("Twin", t0)
+		high.UUID = UUID{0xff}
+
+		a := makeDatabase("a.kdbx", makeGroup("G", low))
+		b := makeDatabase("b.kdbx", makeGroup("G", high))
+
+		got := DiffDatabases(a, b)
+
+		if len(got) != 2 {
+			t.Fatalf("expected 2 diffs, got %d", len(got))
+		}
+		if got[0].UUID != low.UUID {
+			t.Errorf("expected low UUID first, got %v", got[0].UUID)
+		}
+		if got[1].UUID != high.UUID {
+			t.Errorf("expected high UUID second, got %v", got[1].UUID)
+		}
+	})
 }

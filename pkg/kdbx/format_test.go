@@ -69,6 +69,30 @@ func TestFormatDiff(t *testing.T) {
 		}
 	})
 
+	t.Run("@@ start line is 0 when a is empty (all entries added)", func(t *testing.T) {
+		diffs := []EntryDiff{
+			{Path: "/G/Entry", Status: Added},
+		}
+
+		got := FormatDiff("a.kdbx", "b.kdbx", diffs)
+
+		if !strings.Contains(got, "@@ -0,0 +1,1 @@") {
+			t.Errorf("expected @@ -0,0 +1,1 @@, got:\n%s", got)
+		}
+	})
+
+	t.Run("@@ start line is 0 when b is empty (all entries removed)", func(t *testing.T) {
+		diffs := []EntryDiff{
+			{Path: "/G/Entry", Status: Removed},
+		}
+
+		got := FormatDiff("a.kdbx", "b.kdbx", diffs)
+
+		if !strings.Contains(got, "@@ -1,1 +0,0 @@") {
+			t.Errorf("expected @@ -1,1 +0,0 @@, got:\n%s", got)
+		}
+	})
+
 	t.Run("removed entries have - prefix", func(t *testing.T) {
 		got := FormatDiff("a.kdbx", "b.kdbx", []EntryDiff{{Path: "/G/Entry", Status: Removed}})
 

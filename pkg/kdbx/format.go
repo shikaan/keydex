@@ -45,10 +45,18 @@ func FormatDiff(nameA, nameB string, diffs []EntryDiff) string {
 		return ""
 	}
 
+	startA, startB := 1, 1
+	if countA == 0 {
+		startA = 0
+	}
+	if countB == 0 {
+		startB = 0
+	}
+
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "--- %s\n", nameA)
 	fmt.Fprintf(&sb, "+++ %s\n", nameB)
-	fmt.Fprintf(&sb, "@@ -1,%d +1,%d @@\n", countA, countB)
+	fmt.Fprintf(&sb, "@@ -%d,%d +%d,%d @@\n", startA, countA, startB, countB)
 
 	for _, d := range changed {
 		switch d.Status {
