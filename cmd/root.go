@@ -46,6 +46,7 @@ func init() {
 	Root.AddCommand(List)
 	Root.AddCommand(Open)
 	Root.AddCommand(Create)
+	Root.AddCommand(Diff)
 
 	Copy.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
 	List.PersistentFlags().StringP("key", "k", "", "path to the key file to unlock the database")
@@ -53,4 +54,7 @@ func init() {
 
 	Copy.Flags().StringP("field", "f", DEFAULT_FIELD, "field whose value will be copied")
 	Open.Flags().Bool("read-only", false, "open "+info.NAME+" in read-only mode")
+
+	Diff.Flags().String("key-a", "", "path to the key file for the first archive")
+	Diff.Flags().String("key-b", "", "path to the key file for the second archive")
 }

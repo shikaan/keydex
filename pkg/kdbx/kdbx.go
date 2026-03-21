@@ -358,7 +358,7 @@ func (d *Database) unlock() error {
 }
 
 func getEntityPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
-	groupPrefix := prefix + g.Name + PATH_SEPARATOR
+	groupPrefix := formatGroupPrefix(prefix, g)
 	entries := []uniqueEntityPath{}
 
 	for _, subGroup := range g.Groups {
@@ -367,21 +367,14 @@ func getEntityPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
 	}
 
 	for _, entry := range g.Entries {
-		title := entry.GetTitle()
-
-		if title == "" {
-			title = "(UNKNOWN)"
-		}
-
-		key := groupPrefix + sanitizePathPortion(title)
-		entries = append(entries, uniqueEntityPath{path: key, uuid: entry.UUID})
+		entries = append(entries, uniqueEntityPath{path: formatEntryPath(groupPrefix, entry), uuid: entry.UUID})
 	}
 
 	return entries
 }
 
 func getGroupPathsFromGroup(g Group, prefix string) []uniqueEntityPath {
-	groupPrefix := prefix + g.Name + PATH_SEPARATOR
+	groupPrefix := formatGroupPrefix(prefix, g)
 	paths := []uniqueEntityPath{}
 
 	paths = append(paths, uniqueEntityPath{path: groupPrefix, uuid: g.UUID})

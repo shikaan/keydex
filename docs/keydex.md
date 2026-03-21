@@ -45,6 +45,7 @@ keydex [flags]
 
 * [keydex copy](keydex_copy.md)	 - Copies a field of a reference to the clipboard.
 * [keydex create](keydex_create.md)	 - Create an empty KeePass archive.
+* [keydex diff](keydex_diff.md)	 - Compares two KeePass archives
 * [keydex list](keydex_list.md)	 - Lists all the entries in the database
 * [keydex open](keydex_open.md)	 - Open the entry editor for a reference.
 

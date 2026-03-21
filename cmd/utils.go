@@ -11,6 +11,8 @@ import (
 
 const ENV_DATABASE = "KEYDEX_DATABASE"
 const ENV_PASSPHRASE = "KEYDEX_PASSPHRASE"
+const ENV_PASSPHRASE_A = "KEYDEX_PASSPHRASE_A"
+const ENV_PASSPHRASE_B = "KEYDEX_PASSPHRASE_B"
 const ENV_KEY = "KEYDEX_KEY"
 
 // If zero value reference is passed, reads from stdin to get the value

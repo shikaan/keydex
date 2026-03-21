@@ -3,8 +3,38 @@ package cli
 import (
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
+
+func TestReadSecret_promptGoesToStderr(t *testing.T) {
+	rErr, wErr, _ := os.Pipe()
+	oldStderr := os.Stderr
+	os.Stderr = wErr
+	defer func() { os.Stderr = oldStderr }()
+
+	rOut, wOut, _ := os.Pipe()
+	oldStdout := os.Stdout
+	os.Stdout = wOut
+	defer func() { os.Stdout = oldStdout }()
+
+	ReadSecret("secret-prompt: ")
+
+	wErr.Close()
+	wOut.Close()
+
+	stderrContent, _ := io.ReadAll(rErr)
+	stdoutContent, _ := io.ReadAll(rOut)
+	rErr.Close()
+	rOut.Close()
+
+	if !strings.Contains(string(stderrContent), "secret-prompt: ") {
+		t.Errorf("expected prompt on stderr, got stderr=%q stdout=%q", stderrContent, stdoutContent)
+	}
+	if strings.Contains(string(stdoutContent), "secret-prompt: ") {
+		t.Errorf("expected prompt NOT on stdout, got %q", stdoutContent)
+	}
+}
 
 func TestConfirm(t *testing.T) {
 	tests := []struct {

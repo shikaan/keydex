@@ -90,6 +90,15 @@ interactive input).
 </details>
 
 <details>
+<summary>Diff</summary>
+
+**Compare two archives with interactive prompts**
+1. `keydex diff old.kdbx new.kdbx` (no env vars set)
+   - **Expected:** prompted for passphrase A, then passphrase B; diff output printed to stdout
+
+</details>
+
+<details>
 <summary>Smoke tests</summary>
 
 Quick walkthrough of the most important flows to sanity-check a
