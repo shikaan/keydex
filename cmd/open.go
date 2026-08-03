@@ -60,12 +60,8 @@ See "Examples" for more details.`,
 			orDefault(key),
 			readOnly)
 
-		_, err = os.Stat(database)
-		if err != nil {
-			if pathErr, ok := err.(*os.PathError); ok {
-				return errors.MakeError("Cannot open file: "+pathErr.Err.Error(), "open")
-			}
-			return errors.MakeError("Cannot open file: "+err.Error(), "open")
+		if err = CheckDatabaseExists(database, "open"); err != nil {
+			return err
 		}
 
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))

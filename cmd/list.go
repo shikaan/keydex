@@ -43,6 +43,10 @@ See "Examples" for more details.`,
 			database,
 			orDefault(key))
 
+		if err := CheckDatabaseExists(database, "list"); err != nil {
+			return err
+		}
+
 		passphrase := credentials.GetPassphrase(database, os.Getenv(ENV_PASSPHRASE))
 
 		return list(database, key, passphrase)
