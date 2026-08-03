@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	keydex_errors "github.com/shikaan/keydex/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -89,4 +90,15 @@ func DatabaseMustBeDefined() cobra.PositionalArgs {
 
 		return nil
 	}
+}
+
+func CheckDatabaseExists(database string, scope string) error {
+	_, err := os.Stat(database)
+	if err != nil {
+		if pathErr, ok := err.(*os.PathError); ok {
+			return keydex_errors.MakeError("Cannot open '"+database+"': "+pathErr.Err.Error(), scope)
+		}
+		return keydex_errors.MakeError("Cannot open '"+database+"': "+err.Error(), scope)
+	}
+	return nil
 }

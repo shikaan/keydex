@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -50,6 +53,48 @@ func TestReadDatabaseArguments(t *testing.T) {
 			}
 			if gotKey != tt.wantKey {
 				t.Errorf("ReadDatabaseArguments() gotKey = %v, want %v", gotKey, tt.wantKey)
+			}
+		})
+	}
+}
+
+func TestCheckDatabaseExists(t *testing.T) {
+	dir := t.TempDir()
+
+	existing := filepath.Join(dir, "vault.kdbx")
+	if err := os.WriteFile(existing, []byte("data"), 0o600); err != nil {
+		t.Fatalf("failed to set up test file: %v", err)
+	}
+
+	missing := filepath.Join(dir, "missing.kdbx")
+
+	tests := []struct {
+		name      string
+		database  string
+		scope     string
+		wantErr   bool
+		wantParts []string
+	}{
+		{"existing file", existing, "open", false, nil},
+		{"missing file", missing, "open", true, []string{"(open)", missing}},
+		{"missing file, list scope", missing, "list", true, []string{"(list)", missing}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CheckDatabaseExists(tt.database, tt.scope)
+
+			if tt.wantErr && err == nil {
+				t.Fatalf("CheckDatabaseExists() expected an error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("CheckDatabaseExists() unexpected error: %v", err)
+			}
+
+			for _, part := range tt.wantParts {
+				if !strings.Contains(err.Error(), part) {
+					t.Errorf("CheckDatabaseExists() error = %q, want it to contain %q", err.Error(), part)
+				}
 			}
 		})
 	}
