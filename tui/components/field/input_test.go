@@ -19,15 +19,15 @@ func Test_inputModel_GetCell(t *testing.T) {
 	}{
 		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'L', 'O', 'L'}}}, 2, 2, line.EMPTY_CELL, 1},
 		{"EMPTY_CELL when cursor out of password bounds (password)",
-			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, inputType: InputTypePassword},
+			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, hidden: true},
 			PASSWORD_FIELD_LENGTH + 1, 0, // This is longer than a password, but shorter than field itself
 			line.EMPTY_CELL, 1},
 		{"EMPTY_CELL when cursor out of field bounds (password)",
-			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, inputType: InputTypePassword},
+			inputModel{cells: [][]rune{{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}}, hidden: true},
 			14, 0, // This is longer than the field
 			line.EMPTY_CELL, 1},
-		{"* when password", inputModel{cells: [][]rune{{'L', 'O', 'L'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
-		{"* when non-byte password", inputModel{cells: [][]rune{{'🤖', '✅', '😂'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
+		{"* when password", inputModel{cells: [][]rune{{'L', 'O', 'L'}}, hidden: true}, 1, 0, '*', 1},
+		{"* when non-byte password", inputModel{cells: [][]rune{{'🤖', '✅', '😂'}}, hidden: true}, 1, 0, '*', 1},
 		{"returns byte with size 1 (only byte)", inputModel{cells: [][]rune{{'L', 'O', 'L'}}}, 1, 0, 'O', 1},
 		{"returns emoji with size 2 (only emoji)", inputModel{cells: [][]rune{{'🤖', '✅', '😂'}}}, 1, 0, '✅', 2},
 		{"returns byte with size 1 (mixed)", inputModel{cells: [][]rune{{'I', '🤖'}}}, 0, 0, 'I', 1},
@@ -46,7 +46,7 @@ func Test_inputModel_GetCell(t *testing.T) {
 				y:               tt.fields.y,
 				style:           tt.fields.style,
 				hasFocus:        tt.fields.hasFocus,
-				inputType:       tt.fields.inputType,
+				hidden:          tt.fields.hidden,
 				keyPressHandler: tt.fields.keyPressHandler,
 				changeHandler:   tt.fields.changeHandler,
 				focusHandler:    tt.fields.focusHandler,
@@ -91,7 +91,7 @@ func Test_inputModel_SetCursor(t *testing.T) {
 				y:               tt.fields.y,
 				style:           tt.fields.style,
 				hasFocus:        tt.fields.hasFocus,
-				inputType:       tt.fields.inputType,
+				hidden:          tt.fields.hidden,
 				keyPressHandler: tt.fields.keyPressHandler,
 				changeHandler:   tt.fields.changeHandler,
 				focusHandler:    tt.fields.focusHandler,
@@ -136,7 +136,7 @@ func Test_inputModel_MoveCursor(t *testing.T) {
 				y:               tt.fields.y,
 				style:           tt.fields.style,
 				hasFocus:        tt.fields.hasFocus,
-				inputType:       tt.fields.inputType,
+				hidden:          tt.fields.hidden,
 				keyPressHandler: tt.fields.keyPressHandler,
 				changeHandler:   tt.fields.changeHandler,
 				focusHandler:    tt.fields.focusHandler,
@@ -161,12 +161,12 @@ func Test_inputModel_GetRuneAtPosition(t *testing.T) {
 		wantRune    rune
 		wantHOffset int
 	}{
-		{"get * with password", inputModel{cells: [][]rune{{'T', 'e'}}, inputType: InputTypePassword}, 1, 0, '*', 1},
+		{"get * with password", inputModel{cells: [][]rune{{'T', 'e'}}, hidden: true}, 1, 0, '*', 1},
 		{"get byte char", inputModel{cells: [][]rune{{'T', 'e', 's'}}}, 1, 0, 'e', 1},
 		{"get unicode char", inputModel{cells: [][]rune{{'T', '✅', line.PAD_BYTE, 's'}}}, 1, 0, '✅', 1},
 		{"get unicode char on PAD_BYTE", inputModel{cells: [][]rune{{'T', '✅', line.PAD_BYTE, 's'}}}, 2, 0, '✅', 1},
 		{"EMPTY_CELL when out of bounds", inputModel{cells: [][]rune{{'T', 's'}}}, 2, 0, line.EMPTY_CELL, -1},
-		{"EMPTY_CELL when out of bounds (password)", inputModel{inputType: InputTypePassword, cells: [][]rune{{'T', 's'}}}, PASSWORD_FIELD_LENGTH + 1, 0, line.EMPTY_CELL, -1},
+		{"EMPTY_CELL when out of bounds (password)", inputModel{hidden: true, cells: [][]rune{{'T', 's'}}}, PASSWORD_FIELD_LENGTH + 1, 0, line.EMPTY_CELL, -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -179,7 +179,7 @@ func Test_inputModel_GetRuneAtPosition(t *testing.T) {
 				y:               tt.fields.y,
 				style:           tt.fields.style,
 				hasFocus:        tt.fields.hasFocus,
-				inputType:       tt.fields.inputType,
+				hidden:          tt.fields.hidden,
 				keyPressHandler: tt.fields.keyPressHandler,
 				changeHandler:   tt.fields.changeHandler,
 				focusHandler:    tt.fields.focusHandler,
@@ -612,11 +612,11 @@ func TestInput_HandleEvent(t *testing.T) {
 	}
 }
 
-func TestInput_SetInputType(t *testing.T) {
+func TestInput_SetHidden(t *testing.T) {
 	tests := []struct {
 		name           string
-		initialType    InputType
-		newType        InputType
+		initHidden     bool
+		newHidden      bool
 		initialContent string
 		wantWidth      int
 		wantHeight     int
@@ -624,9 +624,9 @@ func TestInput_SetInputType(t *testing.T) {
 		wantY          int
 	}{
 		{
-			name:           "set to password type",
-			initialType:    InputTypeText,
-			newType:        InputTypePassword,
+			name:           "set to hidden",
+			initHidden:     false,
+			newHidden:      true,
 			initialContent: "test",
 			wantWidth:      PASSWORD_FIELD_LENGTH,
 			wantHeight:     1,
@@ -634,9 +634,9 @@ func TestInput_SetInputType(t *testing.T) {
 			wantY:          0,
 		},
 		{
-			name:           "set to text type",
-			initialType:    InputTypePassword,
-			newType:        InputTypeText,
+			name:           "set to revealed",
+			initHidden:     true,
+			newHidden:      false,
 			initialContent: "test",
 			wantWidth:      4,
 			wantHeight:     1,
@@ -644,9 +644,9 @@ func TestInput_SetInputType(t *testing.T) {
 			wantY:          0,
 		},
 		{
-			name:           "set to password type (multiline)",
-			initialType:    InputTypeText,
-			newType:        InputTypePassword,
+			name:           "set to hidden (multiline)",
+			initHidden:     false,
+			newHidden:      true,
 			initialContent: "test\nline",
 			wantWidth:      PASSWORD_FIELD_LENGTH,
 			wantHeight:     1,
@@ -657,12 +657,12 @@ func TestInput_SetInputType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := NewInput(&InputOptions{Type: tt.initialType})
+			i := NewInput(&InputOptions{Hidden: tt.initHidden})
 			i.SetContent(tt.initialContent)
-			i.SetInputType(tt.newType)
+			i.SetHidden(tt.newHidden)
 
-			if i.model.inputType != tt.newType {
-				t.Errorf("Input.SetInputType() inputType = %v, want %v", i.model.inputType, tt.newType)
+			if i.model.hidden != tt.newHidden {
+				t.Errorf("Input.SetInputType() inputType = %v, want %v", i.model.hidden, tt.newHidden)
 			}
 			if i.model.width != tt.wantWidth {
 				t.Errorf("Input.SetInputType() width = %v, want %v", i.model.width, tt.wantWidth)

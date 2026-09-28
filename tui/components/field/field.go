@@ -6,6 +6,13 @@ import (
 	"github.com/shikaan/keydex/tui/components"
 )
 
+type FieldType int
+
+const (
+	FieldTypeText FieldType = iota
+	FieldTypePassword
+)
+
 type Field struct {
 	input *Input
 	label *views.SimpleStyledText
@@ -17,7 +24,7 @@ type Field struct {
 type FieldOptions struct {
 	Label        string
 	InitialValue string
-	InputType    InputType
+	FieldType    FieldType
 	Disabled     bool
 }
 
@@ -53,23 +60,30 @@ func (f *Field) GetContent() string {
 	return f.input.GetContent()
 }
 
-func (f *Field) SetInputType(t InputType) {
-	f.input.SetInputType(t)
+func (f *Field) SetFieldType(t FieldType) {
+	f.input.SetHidden(t == FieldTypePassword)
 }
 
-func (f *Field) GetInputType() InputType {
-	return f.input.GetInputType()
+func (f *Field) GetFieldType() FieldType {
+	if f.input.IsHidden() {
+		return FieldTypePassword
+	}
+	return FieldTypeText
 }
 
 func NewField(options *FieldOptions) *Field {
-	// TODO: we can maybe add some padding by directly accessing the model and tampering wiht GetBounds
 	field := &Field{}
 	field.SetOrientation(views.Horizontal)
 
-	opts := &InputOptions{InitialValue: options.InitialValue, Type: options.InputType, Disabled: options.Disabled}
+	hidden := options.FieldType == FieldTypePassword
+
+	opts := &InputOptions{
+		InitialValue: options.InitialValue,
+		Hidden:       hidden,
+		Disabled:     options.Disabled,
+	}
 	input := NewInput(opts)
 	input.SetContent(options.InitialValue)
-	input.SetInputType(options.InputType)
 
 	label := views.NewSimpleStyledText()
 	label.SetStyle(tcell.StyleDefault.Attributes(tcell.AttrBold))
