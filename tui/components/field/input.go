@@ -389,6 +389,7 @@ func NewInput(options *InputOptions) *Input {
 	i.Init()
 	i.model.hidden = options.Hidden
 	i.model.disabled = options.Disabled
+	i.SetContent(options.InitialValue)
 	return i
 }
 

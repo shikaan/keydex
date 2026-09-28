@@ -589,9 +589,11 @@ func TestInput_HandleEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := NewInput(&InputOptions{Disabled: tt.disabled})
+			i := NewInput(&InputOptions{
+				Disabled: tt.disabled,
+				InitialValue: tt.content,
+			})
 			i.SetFocus(tt.hasFocus)
-			i.SetContent(tt.content)
 			i.SetCursor(tt.x, tt.y)
 			handled := i.HandleEvent(tt.event)
 			if handled != tt.wantHandled {
@@ -657,8 +659,10 @@ func TestInput_SetHidden(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := NewInput(&InputOptions{Hidden: tt.initHidden})
-			i.SetContent(tt.initialContent)
+			i := NewInput(&InputOptions{
+				Hidden: tt.initHidden, 
+				InitialValue: tt.initialContent,
+			})
 			i.SetHidden(tt.newHidden)
 
 			if i.model.hidden != tt.newHidden {

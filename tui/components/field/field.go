@@ -83,7 +83,6 @@ func NewField(options *FieldOptions) *Field {
 		Disabled:     options.Disabled,
 	}
 	input := NewInput(opts)
-	input.SetContent(options.InitialValue)
 
 	label := views.NewSimpleStyledText()
 	label.SetStyle(tcell.StyleDefault.Attributes(tcell.AttrBold))
