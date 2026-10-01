@@ -105,6 +105,11 @@ func (c *Checkbox) HandleEvent(ev tcell.Event) bool {
 			return handled
 		}
 
+		// Prevent all input-changing actions when the field is disabled
+		if c.model.disabled {
+			return false
+		}
+
 		switch ev.Key() {
 		case tcell.KeyEnter:
 			c.SetContent(!c.model.content)
@@ -140,6 +145,14 @@ func (c *Checkbox) OnFocus(cb func() bool) func() {
 	}
 }
 
+func (c *Checkbox) Init() {
+	c.once.Do(func() {
+		c.model = newCheckboxModel()
+		c.CellView.Init()
+		c.CellView.SetModel(c.model)
+	})
+}
+
 func newCheckboxModel() *checkboxModel {
 	m := &checkboxModel{}
 	return m
@@ -147,11 +160,7 @@ func newCheckboxModel() *checkboxModel {
 
 func NewCheckbox(options *CheckboxOptions) *Checkbox {
 	c := &Checkbox{}
-	c.once.Do(func() {
-		c.model = newCheckboxModel()
-		c.CellView.Init()
-		c.CellView.SetModel(c.model)
-	})
+	c.Init()
 	c.model.disabled = options.Disabled
 	c.SetContent(options.InitialValue)
 	return c
