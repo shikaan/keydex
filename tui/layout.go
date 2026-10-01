@@ -97,6 +97,7 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			App.NavigateToWithoutDirtyGuard(NewEntryView)
 			return true
 		}
+
 		if ev.Key() == tcell.KeyRune {
 			if v.Panel.HandleEvent(ev) {
 				return true

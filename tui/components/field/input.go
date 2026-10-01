@@ -125,7 +125,7 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, m.y, true, m.hasFocus
 }
 
-func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
+func (m *inputModel) getRuneAtPosition(x, y int) (rune, int) {
 	if m.isOutOfBounds(x, y) {
 		return line.EMPTY_CELL, -1
 	}
@@ -220,23 +220,23 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 
 		switch ev.Key() {
 		case tcell.KeyLeft:
-			_, p := i.model.GetRuneAtPosition(i.model.x-1, i.model.y)
+			_, p := i.model.getRuneAtPosition(i.model.x-1, i.model.y)
 			i.model.SetCursor(p, i.model.y)
 			return true
 		case tcell.KeyRight:
-			char, _ := i.model.GetRuneAtPosition(i.model.x, i.model.y)
+			char, _ := i.model.getRuneAtPosition(i.model.x, i.model.y)
 			i.model.MoveCursor(runewidth.RuneWidth(char), 0)
 			return true
 		case tcell.KeyDown:
 			if i.model.y < i.model.height-1 {
-				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y+1)
+				_, p := i.model.getRuneAtPosition(i.model.x, i.model.y+1)
 				i.model.SetCursor(p, i.model.y+1)
 				return true
 			}
 			return false
 		case tcell.KeyUp:
 			if i.model.y > 0 {
-				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y-1)
+				_, p := i.model.getRuneAtPosition(i.model.x, i.model.y-1)
 				i.model.SetCursor(p, i.model.y-1)
 				return true
 			}
@@ -298,7 +298,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 						return previousLineLength - x, -1
 					}
 
-					char, _ := i.model.GetRuneAtPosition(x-1, y)
+					char, _ := i.model.getRuneAtPosition(x-1, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x-offset, x)
 					return -offset, 0
@@ -324,7 +324,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 						return currentLineLength - x, 0
 					}
 
-					char, _ := i.model.GetRuneAtPosition(x, y)
+					char, _ := i.model.getRuneAtPosition(x, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x, x+offset)
 					return 0, 0

@@ -137,10 +137,11 @@ func (a *Application) CreateEmptyEntry() error {
 var App = &Application{}
 
 type State struct {
-	Entry     *kdbx.Entry
-	Group     *kdbx.Group
-	Database  *kdbx.Database
-	Reference string
+	EntryField *kdbx.EntryField
+	Entry      *kdbx.Entry
+	Group      *kdbx.Group
+	Database   *kdbx.Database
+	Reference  string
 }
 
 func (a *Application) SetScreen(screen tcell.Screen) {

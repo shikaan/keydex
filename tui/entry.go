@@ -16,7 +16,7 @@ import (
 )
 
 type fieldKey = string
-type fieldMap = map[fieldKey]*field.Field
+type fieldMap = map[fieldKey]*field.InputField
 
 type EntryView struct {
 	fieldByKey   fieldMap
@@ -27,7 +27,7 @@ type EntryView struct {
 
 func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	for key, field := range v.fieldByKey {
-		entry.SetValue(key, field.GetContent())
+		entry.SetValue(key, field.Input.GetContent())
 	}
 
 	entry.SetLastUpdated()
@@ -173,6 +173,8 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 		panic("missing group")
 	}
 
+	App.State.EntryField = nil
+
 	title := App.State.Entry.GetTitle()
 	if App.IsReadOnly() {
 		title += " [READ ONLY]"
@@ -194,8 +196,9 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	form := components.NewForm()
 	fields := fieldMap{}
 
-	for _, f := range entry.Values {
-		if field := view.newEntryField(f.Key, f.Value.Content, f.Value.Protected.Bool); field != nil {
+	for i := range entry.Values {
+		f := &entry.Values[i]
+		if field := view.newEntryField(f); field != nil {
 			form.AddWidget(field, 0)
 			// Using f.Value as binding key (for example, is we just used props.reference)
 			// would cause the title field to be unmodifiable, because the reference
@@ -227,51 +230,50 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	return form, fields
 }
 
-func (view *EntryView) newEntryField(label, initialValue string, isProtected bool) *field.Field {
-	// Do not print empty fields, unless they are the title
-	if initialValue == "" && label != kdbx.TITLE_KEY {
-		return nil
+func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
+	label := ef.Key
+	initialValue := ef.Value.Content
+	isProtected := ef.Value.Protected.Bool
+
+	fieldOpts := &field.InputOptions{
+		InitialValue: initialValue,
+		Hidden:       isProtected,
+		Disabled:     App.IsReadOnly(),
 	}
+	f := field.NewInputField(label, fieldOpts)
 
-	inputType := field.InputTypeText
-	if isProtected {
-		inputType = field.InputTypePassword
-	}
-
-	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.IsReadOnly()}
-	f := field.NewField(fieldOptions)
-
-	f.OnFocus(func() bool {
+	f.Input.OnFocus(func() bool {
 		App.LastFocused = f
 		return true
 	})
 
-	f.OnChange(func(ev tcell.Event) bool {
+	f.Input.OnChange(func(ev tcell.Event) bool {
 		App.SetDirty(true)
 		return false
 	})
 
-	f.OnKeyPress(func(ev *tcell.EventKey) bool {
+	f.Input.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Name() == "Ctrl+C" {
-			clipboard.Write(string(f.GetContent()))
+			clipboard.Write(string(f.Input.GetContent()))
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard.", label))
 			return true
 		}
 
 		if ev.Name() == "Ctrl+R" {
 			if isProtected {
-				if f.GetInputType() == field.InputTypePassword {
-					f.SetInputType(field.InputTypeText)
-				} else {
-					f.SetInputType(field.InputTypePassword)
-				}
+				f.Input.SetHidden(!f.Input.IsHidden())
 			}
 
 			return true
 		}
 
+		if ev.Name() == "Ctrl+S" {
+			App.State.EntryField = ef
+			App.NavigateTo(NewFieldView)
+		}
+
 		if ev.Key() == tcell.KeyRune {
-			if isProtected && f.GetInputType() == field.InputTypePassword {
+			if isProtected && f.Input.IsHidden() {
 				App.Notify("Reveal (^R) the field to edit.")
 			}
 		}

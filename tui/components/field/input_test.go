@@ -184,7 +184,7 @@ func Test_inputModel_GetRuneAtPosition(t *testing.T) {
 				changeHandler:   tt.fields.changeHandler,
 				focusHandler:    tt.fields.focusHandler,
 			}
-			gotRune, gotHOffset := m.GetRuneAtPosition(tt.x, tt.y)
+			gotRune, gotHOffset := m.getRuneAtPosition(tt.x, tt.y)
 			if gotRune != tt.wantRune {
 				t.Errorf("inputModel.GetRuneAtPosition() got rune = %v, want %v", gotRune, tt.wantRune)
 			}
