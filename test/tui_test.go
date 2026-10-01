@@ -292,7 +292,7 @@ func TestViewEntryModifyThenCancel(t *testing.T) {
 
 	// Select User field -> Delete content -> Type New Content
 	screen.InjectKey(tcell.KeyDown, 0, 0)
-	for _ = range len(ghUser) {
+	for range len(ghUser) {
 		screen.InjectKey(tcell.KeyDelete, 0, 0)
 	}
 	typeText(screen, "Modified")
@@ -317,7 +317,7 @@ func TestViewEntryModifyThenLeave(t *testing.T) {
 
 	// Select User field -> Delete content -> Type New Content
 	screen.InjectKey(tcell.KeyDown, 0, 0)
-	for _ = range len(ghUser) {
+	for range len(ghUser) {
 		screen.InjectKey(tcell.KeyDelete, 0, 0)
 	}
 	typeText(screen, "Modified")
@@ -612,6 +612,10 @@ func TestReadOnly(t *testing.T) {
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot delete", e2eTimeout)
 
+	// Try ^S (field settings)
+	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot open field settings", e2eTimeout)
+
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot create", e2eTimeout)
@@ -646,6 +650,10 @@ func TestReadOnlyWithRef(t *testing.T) {
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot delete", e2eTimeout)
 
+	// Try ^S (field settings)
+	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot open field settings", e2eTimeout)
+
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot create", e2eTimeout)
@@ -678,7 +686,7 @@ func TestViewModifyThenCancelWithRef(t *testing.T) {
 	screen := startAppWithRef(t, db, false)
 
 	screen.InjectKey(tcell.KeyDown, 0, 0)
-	for _ = range len(ghUser) {
+	for range len(ghUser) {
 		screen.InjectKey(tcell.KeyDelete, 0, 0)
 	}
 	typeText(screen, "Modified")

@@ -268,6 +268,13 @@ func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
 		}
 
 		if ev.Name() == "Ctrl+S" {
+			if App.IsReadOnly() {
+				msg := "Cannot open field settings. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
 			App.State.EntryField = ef
 			App.NavigateTo(NewFieldView)
 		}
