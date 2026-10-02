@@ -73,7 +73,50 @@ func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Field was not saved."
 					App.Notify(msg)
 					log.Info(msg)
-					App.RefreshCurrentView()
+				},
+			)
+			return true
+		}
+
+		if ev.Name() == "Ctrl+D" {
+			// Read-only archives and standard fields never reach this view
+			entry, entryField := App.State.Entry, App.State.EntryField
+			if !entry.HasField(entryField) {
+				msg := "Cannot delete field. Field was not saved."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			label := entryField.Key
+			App.Confirm(
+				"Delete \""+label+"\"? This cannot be undone.",
+				func() {
+					if err := entry.RemoveField(entryField); err != nil {
+						msg := "Could not delete. Field cannot be found."
+						App.Notify(msg)
+						log.Error(msg, err)
+						return
+					}
+
+					entry.SetLastUpdated()
+					App.SaveEntry()
+
+					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
+						App.LockCurrentDatabase(e)
+						App.NavigateTo(NewEntryView)
+						return
+					}
+
+					msg := fmt.Sprintf("Field \"%s\" deleted successfully.", label)
+					App.Notify(msg)
+					log.Info(msg)
+					App.SetDirty(false)
+					App.NavigateTo(NewEntryView)
+				}, func() {
+					msg := "Operation cancelled. Field was not deleted."
+					App.Notify(msg)
+					log.Info(msg)
 				},
 			)
 			return true
@@ -112,6 +155,11 @@ func NewFieldView(screen tcell.Screen) views.Widget {
 	}
 	view.label = field.NewInputField("Label", labelOpts)
 
+	view.label.Input.OnFocus(func() bool {
+		App.LastFocused = view.label.Input
+		return true
+	})
+
 	view.label.Input.OnChange(func(ev tcell.Event) bool {
 		App.SetDirty(true)
 		return false
@@ -122,6 +170,11 @@ func NewFieldView(screen tcell.Screen) views.Widget {
 		Disabled:     false,
 	}
 	view.protected = field.NewCheckboxField("Protected", protectedOpts)
+
+	view.protected.Checkbox.OnFocus(func() bool {
+		App.LastFocused = view.protected.Checkbox
+		return true
+	})
 
 	view.protected.Checkbox.OnChange(func(ev tcell.Event) bool {
 		App.SetDirty(true)

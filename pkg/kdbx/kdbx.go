@@ -465,6 +465,17 @@ func (e *Entry) HasField(field *EntryField) bool {
 	return false
 }
 
+func (e *Entry) RemoveField(field *EntryField) error {
+	for i := range e.Values {
+		if &e.Values[i] == field {
+			e.Values = slices.Delete(e.Values, i, i+1)
+			return nil
+		}
+	}
+
+	return errors.MakeError("Field not found.", "kdbx")
+}
+
 func (e *Entry) SetLastUpdated() {
 	now := wrappers.Now()
 	e.Times.LastModificationTime = &now

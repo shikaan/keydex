@@ -1275,3 +1275,112 @@ func TestCreateFieldThenLeave(t *testing.T) {
 	waitFor(t, screen, ghUser, e2eTimeout)
 	waitForAbsent(t, screen, kdbx.DEFAULT_CUSTOM_FIELD_KEY+":", e2eTimeout)
 }
+
+func TestDeleteCustomField(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	for range 5 {
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: ApiKey", e2eTimeout)
+
+	// Edit the label, then delete (^D) → Confirm
+	typeText(screen, "1")
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
+	waitFor(t, screen, `Delete "ApiKey"?`, e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	waitFor(t, screen, `Field "ApiKey" deleted successfully`, e2eTimeout)
+
+	// Back in the entry view, without the field
+	waitFor(t, screen, "Region:", e2eTimeout)
+	waitForAbsent(t, screen, "ApiKey:", e2eTimeout)
+	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
+
+	saved := openTestDatabase(t, filePath, password)
+	entry := saved.GetEntry(saved.GetRootGroup().Groups[0].Entries[2].UUID)
+	if entry.Get("ApiKey") != nil || entry.Get("1ApiKey") != nil {
+		t.Error("deleted field should be removed from the saved file")
+	}
+	if entry.GetContent("Region") != "eu-west-1" {
+		t.Error("other custom fields should be kept")
+	}
+}
+
+func TestDismissDeleteCustomField(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	for range 5 {
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: ApiKey", e2eTimeout)
+
+	// Delete (^D) → Dismiss
+	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
+	waitFor(t, screen, `Delete "ApiKey"?`, e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Field was not deleted", e2eTimeout)
+	waitFor(t, screen, "Label: ApiKey", e2eTimeout)
+
+	saved := openTestDatabase(t, filePath, password)
+	if saved.GetEntry(saved.GetRootGroup().Groups[0].Entries[2].UUID).Get("ApiKey") == nil {
+		t.Error("dismissed deletion should keep the field")
+	}
+}
+
+func TestDeleteUnsavedField(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Try ^D (delete): it is refused without asking for confirmation
+	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot delete field. Field was not saved.", e2eTimeout)
+	waitForAbsent(t, screen, "Delete \"", e2eTimeout)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY+" ", e2eTimeout)
+}
+
+func TestFieldDismissSaveKeepsFocus(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Protected: [ ]", e2eTimeout)
+
+	// Focus the checkbox, then Save (^O) → Dismiss
+	screen.InjectKey(tcell.KeyTab, 0, 0)
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Save changes?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Field was not saved", e2eTimeout)
+
+	// The checkbox is still focused
+	screen.InjectKey(tcell.KeyEnter, 0, 0)
+	waitFor(t, screen, "Protected: [X]", e2eTimeout)
+}
