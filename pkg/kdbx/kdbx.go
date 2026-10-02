@@ -178,24 +178,26 @@ func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 	return errors.MakeError("Group not found.", "kdbx")
 }
 
-func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
+func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) *Entry {
 	entryGroup := d.GetGroupForEntry(entry)
 
-	// Group is nil when this is a new entry, no need to move
-	if entryGroup == nil {
-		group.Entries = append(group.Entries, *entry.Entry)
-		return
-	}
-
 	// If source and destination are the same, do nothing
-	if entryGroup.UUID.Compare(group.UUID) {
-		return
+	if entryGroup != nil && entryGroup.UUID.Compare(group.UUID) {
+		return entry
 	}
 
+	uuid := entry.UUID
 	group.Entries = append(group.Entries, *entry.Entry)
-	entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
-		return e.UUID.Compare(entry.UUID)
-	})
+	moved := &Entry{&group.Entries[len(group.Entries)-1]}
+
+	// Group is nil when this is a new entry, no need to remove it
+	if entryGroup != nil {
+		entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
+			return e.UUID.Compare(uuid)
+		})
+	}
+
+	return moved
 }
 
 // Builds the full path for an entry within the specified group.

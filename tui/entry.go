@@ -31,8 +31,7 @@ func (v *EntryView) updateEntry(entry *kdbx.Entry) {
 	}
 
 	entry.SetLastUpdated()
-	App.State.Database.MoveEntryToGroup(entry, App.State.Group)
-	App.State.Entry = entry
+	App.State.Entry = App.State.Database.MoveEntryToGroup(entry, App.State.Group)
 }
 
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {

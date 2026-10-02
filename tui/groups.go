@@ -99,7 +99,7 @@ func NewGroupListView(screen tcell.Screen) views.Widget {
 				return true
 			}
 
-			App.State.Group = group
+			App.State.Group = &root.Groups[len(root.Groups)-1]
 			App.SetDirty(true)
 			App.NavigateToWithoutDirtyGuard(NewEntryView)
 
