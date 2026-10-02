@@ -25,13 +25,13 @@ type EntryView struct {
 	components.Container
 }
 
-func (v *EntryView) updateEntry(entry *kdbx.Entry) {
+func (v *EntryView) updateEntry() {
 	for key, field := range v.fieldByKey {
-		entry.SetValue(key, field.Input.GetContent())
+		App.State.Entry.SetValue(key, field.Input.GetContent())
 	}
 
-	entry.SetLastUpdated()
-	App.State.Entry = App.State.Database.MoveEntryToGroup(entry, App.State.Group)
+	App.State.Entry.SetLastUpdated()
+	App.SaveEntry()
 }
 
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
@@ -64,7 +64,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 				App.Confirm(
 					"Create \""+App.State.Entry.GetTitle()+"\"? This will overwrite the existing file.",
 					func() {
-						v.updateEntry(App.State.Entry)
+						v.updateEntry()
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 							App.LockCurrentDatabase(e)
 							return
@@ -87,7 +87,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 			App.Confirm(
 				"Save changes? This will overwrite the existing file.",
 				func() {
-					v.updateEntry(existingEntry)
+					v.updateEntry()
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 						App.LockCurrentDatabase(e)
@@ -157,6 +157,26 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.RefreshCurrentView()
 				},
 			)
+		}
+
+		if ev.Name() == "Ctrl+T" {
+			if App.IsReadOnly() {
+				msg := "Cannot create field. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			if App.IsDirty() {
+				msg := "Cannot create field. Save the entry first."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			App.State.EntryField = App.State.Database.NewCustomEntryField()
+			App.NavigateTo(NewFieldView)
+			return true
 		}
 	}
 
@@ -281,7 +301,7 @@ func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
 			return true
 		}
 
-		if ev.Name() == "Ctrl+S" {
+		if ev.Name() == "Ctrl+Y" {
 			if App.IsReadOnly() {
 				msg := "Cannot edit field settings. Archive in read-only mode."
 				App.Notify(msg)
@@ -296,8 +316,16 @@ func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
 				return true
 			}
 
+			if App.IsDirty() {
+				msg := "Cannot edit field settings. Save the entry first."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
 			App.State.EntryField = ef
 			App.NavigateTo(NewFieldView)
+			return true
 		}
 
 		if ev.Key() == tcell.KeyRune {

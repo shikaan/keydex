@@ -93,6 +93,10 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			}
 			App.State.Group = group
 
+			if !isNewEntry {
+				App.State.Entry = App.State.Database.GetEntry(App.State.Entry.UUID).Copy()
+			}
+
 			// Needed to reset group selection on cancelled operations
 			App.NavigateToWithoutDirtyGuard(NewEntryView)
 			return true

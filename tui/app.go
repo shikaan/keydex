@@ -134,6 +134,16 @@ func (a *Application) CreateEmptyEntry() error {
 	return nil
 }
 
+func (a *Application) SaveEntry() {
+	entry := a.State.Entry.Copy()
+	if existingEntry := a.State.Database.GetEntry(entry.UUID); existingEntry != nil {
+		*existingEntry.Entry = *entry.Entry
+		entry = existingEntry
+	}
+
+	a.State.Entry = a.State.Database.MoveEntryToGroup(entry, a.State.Group).Copy()
+}
+
 var App = &Application{}
 
 type State struct {

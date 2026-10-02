@@ -85,7 +85,7 @@ func NewEntryListView(screen tcell.Screen) views.Widget {
 		MaxY:       maxY,
 		OnSelect: func(ref string) bool {
 			App.State.Reference = ref
-			App.State.Entry = App.State.Database.GetFirstEntryByPath(ref)
+			App.State.Entry = App.State.Database.GetFirstEntryByPath(ref).Copy()
 			App.State.Group = App.State.Database.GetGroupForEntry(App.State.Entry)
 			App.NavigateTo(NewEntryView)
 			return true

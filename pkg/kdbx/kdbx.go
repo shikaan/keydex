@@ -33,6 +33,7 @@ const PASSWORD_KEY = "Password"
 const USERNAME_KEY = "UserName"
 const URL_KEY = "URL"
 const NOTES_KEY = "Notes"
+const DEFAULT_CUSTOM_FIELD_KEY = "Field"
 
 func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
@@ -233,6 +234,16 @@ func (d *Database) NewEntry() *Entry {
 		},
 	})
 	return &Entry{&entry}
+}
+
+func (d *Database) NewCustomEntryField() *EntryField {
+	return &EntryField{
+		Key: DEFAULT_CUSTOM_FIELD_KEY,
+		Value: gokeepasslib.V{
+			Content:   "",
+			Protected: wrappers.NewBoolWrapper(false),
+		},
+	}
 }
 
 func (d *Database) NewGroup(name string) *Group {
@@ -437,6 +448,21 @@ func generateRandomString(length uint) string {
 func (e *Entry) SetValue(key string, value string) {
 	v := e.Get(key)
 	v.Value.Content = value
+}
+
+func (e *Entry) Copy() *Entry {
+	clone := e.Entry.Clone()
+	clone.UUID = e.UUID
+	return &Entry{&clone}
+}
+
+func (e *Entry) HasField(field *EntryField) bool {
+	for i := range e.Values {
+		if &e.Values[i] == field {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Entry) SetLastUpdated() {

@@ -37,13 +37,26 @@ func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
+			entry, entryField := App.State.Entry, App.State.EntryField
+			if existing := entry.Get(label); existing != nil && existing != entryField {
+				msg := fmt.Sprintf("Cannot save. Label \"%s\" is already in use.", label)
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
 			App.Confirm(
 				"Save changes? This will overwrite the existing file.",
 				func() {
-					App.State.EntryField.Key = v.label.Input.GetContent()
-					App.State.EntryField.Value.Protected.Bool = v.protected.Checkbox.GetContent()
+					entryField.Key = label
+					entryField.Value.Protected.Bool = v.protected.Checkbox.GetContent()
 
-					App.State.Entry.SetLastUpdated()
+					if !entry.HasField(entryField) {
+						entry.Values = append(entry.Values, *entryField)
+					}
+
+					entry.SetLastUpdated()
+					App.SaveEntry()
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 						App.LockCurrentDatabase(e)
@@ -51,13 +64,13 @@ func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 						return
 					}
 
-					msg := fmt.Sprintf("Field \"%s\" updated successfully.", App.State.EntryField.Key)
+					msg := fmt.Sprintf("Field \"%s\" saved successfully.", label)
 					App.Notify(msg)
 					log.Info(msg)
 					App.SetDirty(false)
 					App.NavigateTo(NewEntryView)
 				}, func() {
-					msg := "Operation cancelled. Field was not updated."
+					msg := "Operation cancelled. Field was not saved."
 					App.Notify(msg)
 					log.Info(msg)
 					App.RefreshCurrentView()
@@ -81,6 +94,10 @@ func NewFieldView(screen tcell.Screen) views.Widget {
 
 	if App.State.EntryField == nil {
 		panic("missing field")
+	}
+
+	if !App.State.Entry.HasField(App.State.EntryField) {
+		App.SetDirty(true)
 	}
 
 	App.SetTitle(App.State.EntryField.Key)

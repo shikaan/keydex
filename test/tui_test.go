@@ -125,7 +125,7 @@ func startAppWithRef(t *testing.T, db *kdbx.Database, readOnly bool) tcell.Simul
 	state := tui.State{
 		Database:  db,
 		Group:     group,
-		Entry:     entry,
+		Entry:     entry.Copy(),
 		Reference: ref,
 	}
 
@@ -620,13 +620,17 @@ func TestReadOnly(t *testing.T) {
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot delete", e2eTimeout)
 
-	// Try ^S (field settings)
-	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	// Try ^Y (field settings)
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot edit field settings", e2eTimeout)
+
+	// Try ^T (create field)
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create field", e2eTimeout)
 
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
-	waitFor(t, screen, "Cannot create", e2eTimeout)
+	waitFor(t, screen, "Cannot create. Archive", e2eTimeout)
 
 	// Ensure navigation works as expected
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
@@ -658,13 +662,17 @@ func TestReadOnlyWithRef(t *testing.T) {
 	screen.InjectKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot delete", e2eTimeout)
 
-	// Try ^S (field settings)
-	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	// Try ^Y (field settings)
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Cannot edit field settings", e2eTimeout)
+
+	// Try ^T (create field)
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create field", e2eTimeout)
 
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
-	waitFor(t, screen, "Cannot create", e2eTimeout)
+	waitFor(t, screen, "Cannot create. Archive", e2eTimeout)
 
 	// Ensure navigation works as expected
 	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
@@ -1012,7 +1020,7 @@ func TestStandardFieldsCannotBeEdited(t *testing.T) {
 
 	// Title, UserName, Password
 	for range 3 {
-		screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+		screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
 		waitFor(t, screen, "Standard fields cannot be changed", e2eTimeout)
 		screen.InjectKey(tcell.KeyDown, 0, 0)
 	}
@@ -1032,8 +1040,8 @@ func TestCustomFieldCannotUseStandardLabel(t *testing.T) {
 		screen.InjectKey(tcell.KeyDown, 0, 0)
 	}
 
-	// Open field settings (^S)
-	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	// Open field settings (^Y)
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
 	waitFor(t, screen, "Label:", e2eTimeout)
 
 	// Replace the label with a standard one
@@ -1046,11 +1054,224 @@ func TestCustomFieldCannotUseStandardLabel(t *testing.T) {
 
 	// Try ^O (save): it is refused without asking for confirmation
 	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
-	waitFor(t, screen, "Label 'Password' is reserved for standard fields", e2eTimeout)
+	waitFor(t, screen, `Label "Password" is reserved for standard fields`, e2eTimeout)
 	waitForAbsent(t, screen, "Save changes?", e2eTimeout)
 
 	// The field was not renamed
 	if db.GetEntry(db.GetRootGroup().Groups[0].Entries[2].UUID).GetContent("ApiKey") != "apikey123" {
 		t.Error("custom field should not have been renamed")
 	}
+}
+
+// fileEntry returns the GitHub entry as saved on disk
+func fileEntry(t *testing.T, filePath, password string) *kdbx.Entry {
+	t.Helper()
+	saved := openTestDatabase(t, filePath, password)
+	return saved.GetEntry(saved.GetRootGroup().Groups[0].Entries[0].UUID)
+}
+
+func TestCreateFieldAndSave(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	// Create field (^T) with a blank, unprotected default
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+	waitFor(t, screen, "Protected: [ ]", e2eTimeout)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+
+	// Rename it
+	for range len(kdbx.DEFAULT_CUSTOM_FIELD_KEY) {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, "Pin")
+	waitFor(t, screen, "Label: Pin ", e2eTimeout)
+
+	// Save (^O) → Confirm
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Save changes?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	waitFor(t, screen, `Field "Pin" saved successfully`, e2eTimeout)
+
+	// Back in the entry view, with the new field
+	waitFor(t, screen, ghUser, e2eTimeout)
+	waitFor(t, screen, "Pin:", e2eTimeout)
+	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
+
+	if fileEntry(t, filePath, password).Get("Pin") == nil {
+		t.Error("created field should be saved to file")
+	}
+}
+func TestCreateFieldAndDismissSave(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Save (^O) → Dismiss
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Save changes?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Field was not saved", e2eTimeout)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	if fileEntry(t, filePath, password).Get(kdbx.DEFAULT_CUSTOM_FIELD_KEY) != nil {
+		t.Error("dismissed field should not be saved")
+	}
+}
+func TestCreateFieldAndCancel(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+
+	// Cancel (ESC) → back to the entry, field is lost
+	screen.InjectKey(tcell.KeyEsc, 0, 0)
+	waitFor(t, screen, "Updates were not saved", e2eTimeout)
+	waitFor(t, screen, ghUser, e2eTimeout)
+	waitForAbsent(t, screen, kdbx.DEFAULT_CUSTOM_FIELD_KEY+":", e2eTimeout)
+	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
+}
+func TestFieldSettingsOnDirtyEntry(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	// Edit the title
+	typeText(screen, "1")
+	waitFor(t, screen, "1Custom", e2eTimeout)
+
+	// Try ^T (create field)
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create field. Save the entry first.", e2eTimeout)
+
+	// Try ^Y (field settings) on ApiKey
+	for range 5 {
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot edit field settings. Save the entry first.", e2eTimeout)
+	waitForAbsent(t, screen, "Label:", e2eTimeout)
+}
+func TestUpdateCustomFieldAndSave(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	// Skip the standard fields (Title, UserName, Password, URL, Notes) to reach ApiKey
+	for range 5 {
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+	screen.InjectKey(tcell.KeyCtrlY, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: ApiKey", e2eTimeout)
+
+	for range len("ApiKey") {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, "Token")
+	waitFor(t, screen, "Label: Token ", e2eTimeout)
+
+	// Save (^O) → Confirm
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Save changes?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	waitFor(t, screen, `Field "Token" saved successfully`, e2eTimeout)
+	waitFor(t, screen, "Token:", e2eTimeout)
+
+	saved := openTestDatabase(t, filePath, password)
+	entry := saved.GetEntry(saved.GetRootGroup().Groups[0].Entries[2].UUID)
+	if entry.Get("ApiKey") != nil || entry.GetContent("Token") != "apikey123" {
+		t.Error("custom field should be renamed in the saved file")
+	}
+}
+func TestCreateFieldWithDuplicateLabel(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Use the label of an existing custom field
+	for range len(kdbx.DEFAULT_CUSTOM_FIELD_KEY) {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, "ApiKey")
+	waitFor(t, screen, "Label: ApiKey ", e2eTimeout)
+
+	// Try ^O (save): it is refused without asking for confirmation
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, `Label "ApiKey" is already in use`, e2eTimeout)
+	waitForAbsent(t, screen, "Save changes?", e2eTimeout)
+}
+
+func TestCreateFieldOnUnsavedEntry(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	// Create new entry (^N), then try ^T before saving it
+	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Cannot create field. Save the entry first.", e2eTimeout)
+	waitForAbsent(t, screen, "Label:", e2eTimeout)
+}
+func TestCreateFieldThenLeave(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Navigating away (^P) is guarded → Dismiss keeps the new field
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Navigate away?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Navigating away (^P) → Confirm loses it
+	screen.InjectKey(tcell.KeyCtrlP, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Navigate away?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	waitFor(t, screen, "Search", e2eTimeout)
+
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+	waitForAbsent(t, screen, kdbx.DEFAULT_CUSTOM_FIELD_KEY+":", e2eTimeout)
 }
