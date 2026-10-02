@@ -87,6 +87,8 @@ The following functions are available in ` + info.NAME + `:
 ^D    Delete the selected item (group or entry).
 ^K    Change an entry’s group or create a new one.
 ^C    Copy the current field’s content to the clipboard.
+^T    Add a custom field to the current entry.                      
+^Y    Edit the current custom field’s settings (label, protection).
 ^R    Reveal hidden fields (e.g., passwords).
 ^G    Open this help.
 
