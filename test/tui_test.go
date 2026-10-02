@@ -1384,3 +1384,27 @@ func TestFieldDismissSaveKeepsFocus(t *testing.T) {
 	screen.InjectKey(tcell.KeyEnter, 0, 0)
 	waitFor(t, screen, "Protected: [X]", e2eTimeout)
 }
+
+func TestViewEntryDismissSaveKeepsEditsAndFocus(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	// Edit UserName, then Save (^O) → Dismiss
+	screen.InjectKey(tcell.KeyDown, 0, 0)
+	typeText(screen, "2")
+	waitFor(t, screen, "2"+ghUser, e2eTimeout)
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Save changes?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Entry was not saved", e2eTimeout)
+
+	// The edit is kept and UserName is still focused
+	typeText(screen, "3")
+	waitFor(t, screen, "23"+ghUser, e2eTimeout)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+}

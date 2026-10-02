@@ -79,7 +79,6 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
 						log.Info(msg)
-						App.RefreshCurrentView()
 					})
 				return true
 			}
@@ -103,7 +102,6 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
 					log.Info(msg)
-					App.RefreshCurrentView()
 				},
 			)
 		}
@@ -154,7 +152,6 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not deleted."
 					App.Notify(msg)
 					log.Info(msg)
-					App.RefreshCurrentView()
 				},
 			)
 		}
