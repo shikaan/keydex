@@ -198,25 +198,37 @@ func TestDatabase_NewEntry(t *testing.T) {
 		t.Errorf("Database.NewEntry() username = %v, want %v", username.Value.Content, "user")
 	}
 
-	// Check that password field exists
 	password := entry.Get(PASSWORD_KEY)
 	if password == nil {
 		t.Fatal("Database.NewEntry() password field not found")
 	}
 
-	// Check that password is protected
 	if !password.Value.Protected.Bool {
 		t.Error("Database.NewEntry() password is not protected")
 	}
 
-	// Check that password is not empty
 	if password.Value.Content == "" {
 		t.Error("Database.NewEntry() password is empty")
 	}
 
-	// Check that password is not the fallback value
 	if password.Value.Content == "change-me" {
 		t.Error("Database.NewEntry() password generation failed, got fallback value")
+	}
+
+	url := entry.Get(URL_KEY)
+	if url == nil {
+		t.Fatal("Database.NewEntry() url field not found")
+	}
+	if url.Value.Content != "https://example.com" {
+		t.Errorf("Database.NewEntry() url = %v, want %v", url.Value.Content, "https://example.com")
+	}
+
+	notes := entry.Get(NOTES_KEY)
+	if notes == nil {
+		t.Fatal("Database.NewEntry() notes field not found")
+	}
+	if notes.Value.Content != "" {
+		t.Errorf("Database.NewEntry() notes = %v, want empty", notes.Value.Content)
 	}
 }
 

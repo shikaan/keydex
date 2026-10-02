@@ -233,6 +233,14 @@ func (d *Database) NewEntry() *Entry {
 			Protected: wrappers.NewBoolWrapper(true),
 		},
 	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   URL_KEY,
+		Value: gokeepasslib.V{Content: "https://example.com"},
+	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   NOTES_KEY,
+		Value: gokeepasslib.V{Content: ""},
+	})
 	return &Entry{&entry}
 }
 
