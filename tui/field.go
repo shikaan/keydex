@@ -31,7 +31,7 @@ func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 
 			label := v.label.Input.GetContent()
 			if kdbx.IsStandardField(label) {
-				msg := fmt.Sprintf("Cannot save. Label '%s' is reserved for standard fields.", label)
+				msg := fmt.Sprintf("Cannot save. Label \"%s\" is reserved for standard fields.", label)
 				App.Notify(msg)
 				log.Info(msg)
 				return true
