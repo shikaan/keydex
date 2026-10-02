@@ -313,7 +313,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 					c, x, y := i.model.cells, i.model.x, i.model.y
 					currentLineLength := len(c[y])
 
-					if x >= currentLineLength-1 {
+					if x >= currentLineLength {
 						if y == len(c)-1 {
 							return 0, 0
 						}
