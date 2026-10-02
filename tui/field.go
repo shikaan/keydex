@@ -5,6 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/shikaan/keydex/pkg/kdbx"
 	"github.com/shikaan/keydex/pkg/log"
 	"github.com/shikaan/keydex/tui/components"
 	"github.com/shikaan/keydex/tui/components/field"
@@ -28,13 +29,21 @@ func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 				return true
 			}
 
+			label := v.label.Input.GetContent()
+			if kdbx.IsStandardField(label) {
+				msg := fmt.Sprintf("Cannot save. Label '%s' is reserved for standard fields.", label)
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
 			App.Confirm(
 				"Save changes? This will overwrite the existing file.",
 				func() {
 					App.State.EntryField.Key = v.label.Input.GetContent()
 					App.State.EntryField.Value.Protected.Bool = v.protected.Checkbox.GetContent()
 
-					App.State.Entry.SetLastUpdated()					
+					App.State.Entry.SetLastUpdated()
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 						App.LockCurrentDatabase(e)

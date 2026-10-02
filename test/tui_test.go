@@ -23,6 +23,13 @@ const glPassword = "glpass123"
 // makeTestKdbxFile creates a temp .kdbx file with a known structure:
 func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 	t.Helper()
+	return makeTestKdbxFileWithEntries(t)
+}
+
+// makeTestKdbxFileWithEntries is like makeTestKdbxFile, but appends the extra
+// entries to the Coding group
+func makeTestKdbxFileWithEntries(t *testing.T, extra ...gokeepasslib.Entry) (filePath string, password string) {
+	t.Helper()
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "keydex-e2e-*.kdbx")
 	if err != nil {
@@ -56,6 +63,7 @@ func makeTestKdbxFile(t *testing.T) (filePath string, password string) {
 	)
 
 	codingGroup.Entries = append(codingGroup.Entries, github, gitlab)
+	codingGroup.Entries = append(codingGroup.Entries, extra...)
 	rootGroup.Groups = append(rootGroup.Groups, *codingGroup)
 	db.Content.Root.Groups = []gokeepasslib.Group{*rootGroup}
 
@@ -614,7 +622,7 @@ func TestReadOnly(t *testing.T) {
 
 	// Try ^S (field settings)
 	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
-	waitFor(t, screen, "Cannot open field settings", e2eTimeout)
+	waitFor(t, screen, "Cannot edit field settings", e2eTimeout)
 
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
@@ -652,7 +660,7 @@ func TestReadOnlyWithRef(t *testing.T) {
 
 	// Try ^S (field settings)
 	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
-	waitFor(t, screen, "Cannot open field settings", e2eTimeout)
+	waitFor(t, screen, "Cannot edit field settings", e2eTimeout)
 
 	// Try ^N (create)
 	screen.InjectKey(tcell.KeyCtrlN, 0, tcell.ModCtrl)
@@ -923,4 +931,126 @@ func TestViewAndDeleteWithRef(t *testing.T) {
 	// Should navigate to entry list
 	waitFor(t, screen, "Search", e2eTimeout)
 	waitForAbsent(t, screen, "Coding/GitHub", e2eTimeout)
+}
+
+// makeCustomFieldsEntry returns an entry whose custom fields come before the
+// standard ones, and whose URL and Notes are empty
+func makeCustomFieldsEntry() gokeepasslib.Entry {
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(entry.Values,
+		gokeepasslib.ValueData{Key: "ApiKey", Value: gokeepasslib.V{Content: "apikey123"}},
+		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: "Custom"}},
+		gokeepasslib.ValueData{Key: "Region", Value: gokeepasslib.V{Content: "eu-west-1"}},
+		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: "customuser"}},
+		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: "custompass", Protected: wrappers.NewBoolWrapper(true)}},
+		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: ""}},
+		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: ""}},
+	)
+	return entry
+}
+
+// lineOf returns the index of the first screen line containing text, or -1
+func lineOf(screen tcell.SimulationScreen, text string) int {
+	for i, line := range strings.Split(readScreen(screen), "\n") {
+		if strings.Contains(line, text) {
+			return i
+		}
+	}
+	return -1
+}
+
+func TestStandardFieldsShowFirst(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	standard := []string{"Title:", "UserName:", "Password:", "URL:", "Notes:"}
+	custom := []string{"ApiKey:", "Region:"}
+
+	lastStandard := -1
+	for _, label := range standard {
+		line := lineOf(screen, label)
+		if line < 0 {
+			t.Fatalf("standard field %q not on screen.\nScreen content:\n%s", label, readScreen(screen))
+		}
+		lastStandard = max(lastStandard, line)
+	}
+
+	for _, label := range custom {
+		line := lineOf(screen, label)
+		if line <= lastStandard {
+			t.Errorf("custom field %q (line %d) should come after all standard fields (last at line %d).\nScreen content:\n%s", label, line, lastStandard, readScreen(screen))
+		}
+	}
+}
+
+func TestStandardFieldsShowWhenEmpty(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "customuser", e2eTimeout)
+
+	waitFor(t, screen, "URL:", e2eTimeout)
+	waitFor(t, screen, "Notes:", e2eTimeout)
+}
+
+func TestStandardFieldsCannotBeEdited(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	// Title, UserName, Password
+	for range 3 {
+		screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+		waitFor(t, screen, "Standard fields cannot be changed", e2eTimeout)
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+}
+
+func TestCustomFieldCannotUseStandardLabel(t *testing.T) {
+	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "Custom")
+	waitFor(t, screen, "ApiKey:", e2eTimeout)
+
+	// Skip the standard fields (Title, UserName, Password, URL, Notes) to reach ApiKey
+	for range 5 {
+		screen.InjectKey(tcell.KeyDown, 0, 0)
+	}
+
+	// Open field settings (^S)
+	screen.InjectKey(tcell.KeyCtrlS, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label:", e2eTimeout)
+
+	// Replace the label with a standard one
+	for range len("ApiKey") {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, kdbx.PASSWORD_KEY)
+	waitFor(t, screen, "Label: Password ", e2eTimeout)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+
+	// Try ^O (save): it is refused without asking for confirmation
+	screen.InjectKey(tcell.KeyCtrlO, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label 'Password' is reserved for standard fields", e2eTimeout)
+	waitForAbsent(t, screen, "Save changes?", e2eTimeout)
+
+	// The field was not renamed
+	if db.GetEntry(db.GetRootGroup().Groups[0].Entries[2].UUID).GetContent("ApiKey") != "apikey123" {
+		t.Error("custom field should not have been renamed")
+	}
 }

@@ -31,6 +31,8 @@ const PATH_SEPARATOR = "/"
 const TITLE_KEY = "Title"
 const PASSWORD_KEY = "Password"
 const USERNAME_KEY = "UserName"
+const URL_KEY = "URL"
+const NOTES_KEY = "Notes"
 
 func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
@@ -440,4 +442,12 @@ func (e *Entry) SetValue(key string, value string) {
 func (e *Entry) SetLastUpdated() {
 	now := wrappers.Now()
 	e.Times.LastModificationTime = &now
+}
+
+func IsStandardField(key string) bool {
+	switch key {
+	case TITLE_KEY, USERNAME_KEY, PASSWORD_KEY, URL_KEY, NOTES_KEY:
+		return true
+	}
+	return false
 }

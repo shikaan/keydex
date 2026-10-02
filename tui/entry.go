@@ -195,14 +195,29 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	form := components.NewForm()
 	fields := fieldMap{}
 
-	for i := range entry.Values {
-		f := &entry.Values[i]
+	addField := func(f *kdbx.EntryField) {
 		if field := view.newEntryField(f); field != nil {
 			form.AddWidget(field, 0)
 			// Using f.Value as binding key (for example, is we just used props.reference)
 			// would cause the title field to be unmodifiable, because the reference
 			// which is based on the title would change
 			fields[f.Key] = field
+		}
+	}
+
+	customFields := []*kdbx.EntryField{}
+	for i := range entry.Values {
+		f := &entry.Values[i]
+		if kdbx.IsStandardField(f.Key) {
+			addField(f)
+		} else {
+			customFields = append(customFields, f)
+		}
+	}
+
+	if len(customFields) > 0 {
+		for _, f := range customFields {
+			addField(f)
 		}
 	}
 
@@ -268,7 +283,14 @@ func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
 
 		if ev.Name() == "Ctrl+S" {
 			if App.IsReadOnly() {
-				msg := "Cannot open field settings. Archive in read-only mode."
+				msg := "Cannot edit field settings. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			if kdbx.IsStandardField(label) {
+				msg := "Cannot edit field settings. Standard fields cannot be changed."
 				App.Notify(msg)
 				log.Info(msg)
 				return true
