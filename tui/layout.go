@@ -25,8 +25,11 @@ func (l *Layout) SetContent(w views.Widget) {
 }
 
 func (v *Layout) HandleEvent(ev tcell.Event) bool {
-	// If there is a pending confirmation, delegate to panel to handle Y/N/Cancel
+	// If there is a pending confirmation, keys go to the prompt only
 	if v.Status.IsConfirming() {
+		if _, ok := ev.(*tcell.EventKey); ok {
+			return v.Status.HandleEvent(ev)
+		}
 		return v.Panel.HandleEvent(ev)
 	}
 

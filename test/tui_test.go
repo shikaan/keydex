@@ -3,6 +3,7 @@ package test
 import (
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1464,4 +1465,66 @@ func TestViewEntryDismissSaveKeepsEditsAndFocus(t *testing.T) {
 	typeText(screen, "3")
 	waitFor(t, screen, "23"+ghUser, e2eTimeout)
 	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+}
+
+type quitScreen struct {
+	once sync.Once
+	done chan struct{}
+	tcell.SimulationScreen
+}
+
+func (s *quitScreen) Fini() {
+	s.once.Do(func() {
+		s.SimulationScreen.Fini()
+		close(s.done)
+	})
+}
+
+func TestViewEntryModifyThenHelpThenQuit(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+
+	screen := &quitScreen{done: make(chan struct{}), SimulationScreen: tcell.NewSimulationScreen("UTF-8")}
+	if err := screen.Init(); err != nil {
+		t.Fatalf("failed to init simulation screen: %v", err)
+	}
+	screen.SetSize(80, 24)
+
+	tui.App = &tui.Application{}
+	tui.Setup(screen, tui.State{Database: db}, false)
+	go tui.App.Run()
+	waitFor(t, screen, "Help", e2eTimeout)
+
+	// Tall enough for the whole help text to fit
+	screen.SetSize(80, 200)
+	screen.PostEvent(tcell.NewEventResize(80, 200))
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyDown, 0, 0)
+	typeText(screen, "Modified")
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlG, 0, tcell.ModCtrl)
+	waitFor(t, screen, "End of help", e2eTimeout)
+	waitFor(t, screen, "Help Text", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlX, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Are you sure", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitForAbsent(t, screen, "Are you sure", e2eTimeout)
+	waitFor(t, screen, "Help Text", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlX, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Are you sure", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	select {
+	case <-screen.done:
+	case <-time.After(e2eTimeout):
+		t.Fatal("app did not quit after confirming")
+	}
 }
