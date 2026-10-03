@@ -104,10 +104,6 @@ func NewScrollable(width, height int) *Scrollable {
 func (s *Scrollable) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
-		if s.model.height >= len(s.model.runes) {
-			return true
-		}
-
 		switch ev.Key() {
 		case tcell.KeyUp:
 			s.model.offsetY = max(s.model.offsetY-1, 0)
@@ -116,6 +112,7 @@ func (s *Scrollable) HandleEvent(ev tcell.Event) bool {
 			s.model.offsetY = min(s.model.offsetY+1, max(0, len(s.model.runes)-s.model.height))
 			return true
 		}
+		return false
 	}
 
 	return s.CellView.HandleEvent(ev)

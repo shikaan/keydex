@@ -31,6 +31,9 @@ const PATH_SEPARATOR = "/"
 const TITLE_KEY = "Title"
 const PASSWORD_KEY = "Password"
 const USERNAME_KEY = "UserName"
+const URL_KEY = "URL"
+const NOTES_KEY = "Notes"
+const DEFAULT_CUSTOM_FIELD_KEY = "Field"
 
 func OpenFromPath(filepath, password, keypath string) (*Database, error) {
 	file, err := os.Open(filepath)
@@ -178,24 +181,26 @@ func (d *Database) RemoveGroup(uuid gokeepasslib.UUID) error {
 	return errors.MakeError("Group not found.", "kdbx")
 }
 
-func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) {
+func (d *Database) MoveEntryToGroup(entry *Entry, group *Group) *Entry {
 	entryGroup := d.GetGroupForEntry(entry)
 
-	// Group is nil when this is a new entry, no need to move
-	if entryGroup == nil {
-		group.Entries = append(group.Entries, *entry.Entry)
-		return
-	}
-
 	// If source and destination are the same, do nothing
-	if entryGroup.UUID.Compare(group.UUID) {
-		return
+	if entryGroup != nil && entryGroup.UUID.Compare(group.UUID) {
+		return entry
 	}
 
+	uuid := entry.UUID
 	group.Entries = append(group.Entries, *entry.Entry)
-	entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
-		return e.UUID.Compare(entry.UUID)
-	})
+	moved := &Entry{&group.Entries[len(group.Entries)-1]}
+
+	// Group is nil when this is a new entry, no need to remove it
+	if entryGroup != nil {
+		entryGroup.Entries = slices.DeleteFunc(entryGroup.Entries, func(e gokeepasslib.Entry) bool {
+			return e.UUID.Compare(uuid)
+		})
+	}
+
+	return moved
 }
 
 // Builds the full path for an entry within the specified group.
@@ -228,7 +233,25 @@ func (d *Database) NewEntry() *Entry {
 			Protected: wrappers.NewBoolWrapper(true),
 		},
 	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   URL_KEY,
+		Value: gokeepasslib.V{Content: "https://example.com"},
+	})
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key:   NOTES_KEY,
+		Value: gokeepasslib.V{Content: ""},
+	})
 	return &Entry{&entry}
+}
+
+func (d *Database) NewCustomEntryField() *EntryField {
+	return &EntryField{
+		Key: DEFAULT_CUSTOM_FIELD_KEY,
+		Value: gokeepasslib.V{
+			Content:   "",
+			Protected: wrappers.NewBoolWrapper(false),
+		},
+	}
 }
 
 func (d *Database) NewGroup(name string) *Group {
@@ -435,7 +458,41 @@ func (e *Entry) SetValue(key string, value string) {
 	v.Value.Content = value
 }
 
+func (e *Entry) Copy() *Entry {
+	clone := e.Entry.Clone()
+	clone.UUID = e.UUID
+	return &Entry{&clone}
+}
+
+func (e *Entry) HasField(field *EntryField) bool {
+	for i := range e.Values {
+		if &e.Values[i] == field {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Entry) RemoveField(field *EntryField) error {
+	for i := range e.Values {
+		if &e.Values[i] == field {
+			e.Values = slices.Delete(e.Values, i, i+1)
+			return nil
+		}
+	}
+
+	return errors.MakeError("Field not found.", "kdbx")
+}
+
 func (e *Entry) SetLastUpdated() {
 	now := wrappers.Now()
 	e.Times.LastModificationTime = &now
+}
+
+func IsStandardField(key string) bool {
+	switch key {
+	case TITLE_KEY, USERNAME_KEY, PASSWORD_KEY, URL_KEY, NOTES_KEY:
+		return true
+	}
+	return false
 }

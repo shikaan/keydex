@@ -24,16 +24,9 @@ type Input struct {
 
 type InputOptions struct {
 	InitialValue string
-	Type         InputType
+	Hidden       bool
 	Disabled     bool
 }
-
-type InputType int
-
-const (
-	InputTypeText InputType = iota
-	InputTypePassword
-)
 
 const PASSWORD_FIELD_LENGTH = 8
 
@@ -70,8 +63,8 @@ type inputModel struct {
 	hasFocus bool
 	// True when the field is disabled. A disabled field is readable, but cannot be changed.
 	disabled bool
-	// Whether the field is a password field or a regular one
-	inputType InputType
+	// Hide the input with asterisks
+	hidden bool
 
 	// Handle keypress events: triggered every time a key is pressed
 	// Returns true if handled, false if needs cascading
@@ -89,7 +82,7 @@ func (m *inputModel) GetCell(x, y int) (rune, tcell.Style, []rune, int) {
 		return line.EMPTY_CELL, m.style, nil, 1
 	}
 
-	if m.inputType == InputTypePassword {
+	if m.hidden {
 		return '*', m.style, nil, 1
 	}
 
@@ -132,12 +125,12 @@ func (m *inputModel) GetCursor() (int, int, bool, bool) {
 	return m.x, m.y, true, m.hasFocus
 }
 
-func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
+func (m *inputModel) getRuneAtPosition(x, y int) (rune, int) {
 	if m.isOutOfBounds(x, y) {
 		return line.EMPTY_CELL, -1
 	}
 
-	if m.inputType == InputTypePassword {
+	if m.hidden {
 		return '*', x
 	}
 
@@ -145,7 +138,7 @@ func (m *inputModel) GetRuneAtPosition(x, y int) (rune, int) {
 }
 
 func (m *inputModel) isOutOfBounds(x, y int) bool {
-	if m.inputType == InputTypePassword {
+	if m.hidden {
 		return x < 0 || x >= PASSWORD_FIELD_LENGTH || y != 0
 	}
 
@@ -186,11 +179,11 @@ func (i *Input) GetContent() string {
 	return i.model.content
 }
 
-func (i *Input) SetInputType(t InputType) {
-	i.model.inputType = t
+func (i *Input) SetHidden(h bool) {
+	i.model.hidden = h
 	i.model.x = 0
 	i.model.y = 0
-	if i.model.inputType == InputTypePassword {
+	if i.model.hidden {
 		i.model.width = PASSWORD_FIELD_LENGTH
 		i.model.height = 1
 	} else {
@@ -199,8 +192,8 @@ func (i *Input) SetInputType(t InputType) {
 	i.Init()
 }
 
-func (i *Input) GetInputType() InputType {
-	return i.model.inputType
+func (i *Input) IsHidden() bool {
+	return i.model.hidden
 }
 
 func (i *Input) HandleEvent(ev tcell.Event) bool {
@@ -220,30 +213,30 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 			return handled
 		}
 
-		// Don't allow interactions with password fields when hidden,
-		if i.model.inputType == InputTypePassword {
+		// Don't allow interactions when hidden
+		if i.model.hidden {
 			return false
 		}
 
 		switch ev.Key() {
 		case tcell.KeyLeft:
-			_, p := i.model.GetRuneAtPosition(i.model.x-1, i.model.y)
+			_, p := i.model.getRuneAtPosition(i.model.x-1, i.model.y)
 			i.model.SetCursor(p, i.model.y)
 			return true
 		case tcell.KeyRight:
-			char, _ := i.model.GetRuneAtPosition(i.model.x, i.model.y)
+			char, _ := i.model.getRuneAtPosition(i.model.x, i.model.y)
 			i.model.MoveCursor(runewidth.RuneWidth(char), 0)
 			return true
 		case tcell.KeyDown:
 			if i.model.y < i.model.height-1 {
-				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y+1)
+				_, p := i.model.getRuneAtPosition(i.model.x, i.model.y+1)
 				i.model.SetCursor(p, i.model.y+1)
 				return true
 			}
 			return false
 		case tcell.KeyUp:
 			if i.model.y > 0 {
-				_, p := i.model.GetRuneAtPosition(i.model.x, i.model.y-1)
+				_, p := i.model.getRuneAtPosition(i.model.x, i.model.y-1)
 				i.model.SetCursor(p, i.model.y-1)
 				return true
 			}
@@ -305,7 +298,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 						return previousLineLength - x, -1
 					}
 
-					char, _ := i.model.GetRuneAtPosition(x-1, y)
+					char, _ := i.model.getRuneAtPosition(x-1, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x-offset, x)
 					return -offset, 0
@@ -320,7 +313,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 					c, x, y := i.model.cells, i.model.x, i.model.y
 					currentLineLength := len(c[y])
 
-					if x >= currentLineLength-1 {
+					if x >= currentLineLength {
 						if y == len(c)-1 {
 							return 0, 0
 						}
@@ -331,7 +324,7 @@ func (i *Input) HandleEvent(ev tcell.Event) bool {
 						return currentLineLength - x, 0
 					}
 
-					char, _ := i.model.GetRuneAtPosition(x, y)
+					char, _ := i.model.getRuneAtPosition(x, y)
 					offset := runewidth.RuneWidth(char)
 					c[y] = slices.Delete(c[y], x, x+offset)
 					return 0, 0
@@ -394,8 +387,9 @@ func newInputModel() *inputModel {
 func NewInput(options *InputOptions) *Input {
 	i := &Input{}
 	i.Init()
-	i.model.inputType = options.Type
+	i.model.hidden = options.Hidden
 	i.model.disabled = options.Disabled
+	i.SetContent(options.InitialValue)
 	return i
 }
 

@@ -16,7 +16,7 @@ import (
 )
 
 type fieldKey = string
-type fieldMap = map[fieldKey]*field.Field
+type fieldMap = map[fieldKey]*field.InputField
 
 type EntryView struct {
 	fieldByKey   fieldMap
@@ -25,14 +25,13 @@ type EntryView struct {
 	components.Container
 }
 
-func (v *EntryView) updateEntry(entry *kdbx.Entry) {
+func (v *EntryView) updateEntry() {
 	for key, field := range v.fieldByKey {
-		entry.SetValue(key, field.GetContent())
+		App.State.Entry.SetValue(key, field.Input.GetContent())
 	}
 
-	entry.SetLastUpdated()
-	App.State.Database.MoveEntryToGroup(entry, App.State.Group)
-	App.State.Entry = entry
+	App.State.Entry.SetLastUpdated()
+	App.SaveEntry()
 }
 
 func (v *EntryView) HandleEvent(ev tcell.Event) bool {
@@ -65,7 +64,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 				App.Confirm(
 					"Create \""+App.State.Entry.GetTitle()+"\"? This will overwrite the existing file.",
 					func() {
-						v.updateEntry(App.State.Entry)
+						v.updateEntry()
 						if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 							App.LockCurrentDatabase(e)
 							return
@@ -75,12 +74,11 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						App.Notify(msg)
 						log.Info(msg)
 						App.SetDirty(false)
-						App.RefreshCurrentView()
+						App.NavigateToWithoutDirtyGuard(NewEntryView)
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
 						log.Info(msg)
-						App.RefreshCurrentView()
 					})
 				return true
 			}
@@ -88,7 +86,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 			App.Confirm(
 				"Save changes? This will overwrite the existing file.",
 				func() {
-					v.updateEntry(existingEntry)
+					v.updateEntry()
 
 					if e := App.State.Database.SaveAndUnlockEntries(); e != nil {
 						App.LockCurrentDatabase(e)
@@ -99,12 +97,11 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 					App.SetDirty(false)
-					App.RefreshCurrentView()
+					App.NavigateToWithoutDirtyGuard(NewEntryView)
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)
 					log.Info(msg)
-					App.RefreshCurrentView()
 				},
 			)
 		}
@@ -155,9 +152,28 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					msg := "Operation cancelled. Entry was not deleted."
 					App.Notify(msg)
 					log.Info(msg)
-					App.RefreshCurrentView()
 				},
 			)
+		}
+
+		if ev.Name() == "Ctrl+T" {
+			if App.IsReadOnly() {
+				msg := "Cannot create field. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			if App.IsDirty() {
+				msg := "Cannot create field. Save the entry first."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			App.State.EntryField = App.State.Database.NewCustomEntryField()
+			App.NavigateTo(NewFieldView)
+			return true
 		}
 	}
 
@@ -172,6 +188,8 @@ func NewEntryView(screen tcell.Screen) views.Widget {
 	if App.State.Group == nil {
 		panic("missing group")
 	}
+
+	App.State.EntryField = nil
 
 	title := App.State.Entry.GetTitle()
 	if App.IsReadOnly() {
@@ -194,13 +212,29 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	form := components.NewForm()
 	fields := fieldMap{}
 
-	for _, f := range entry.Values {
-		if field := view.newEntryField(f.Key, f.Value.Content, f.Value.Protected.Bool); field != nil {
+	addField := func(f *kdbx.EntryField) {
+		if field := view.newEntryField(f); field != nil {
 			form.AddWidget(field, 0)
 			// Using f.Value as binding key (for example, is we just used props.reference)
 			// would cause the title field to be unmodifiable, because the reference
 			// which is based on the title would change
 			fields[f.Key] = field
+		}
+	}
+
+	customFields := []*kdbx.EntryField{}
+	for i := range entry.Values {
+		f := &entry.Values[i]
+		if kdbx.IsStandardField(f.Key) {
+			addField(f)
+		} else {
+			customFields = append(customFields, f)
+		}
+	}
+
+	if len(customFields) > 0 {
+		for _, f := range customFields {
+			addField(f)
 		}
 	}
 
@@ -227,51 +261,72 @@ func (view *EntryView) newForm(_ tcell.Screen, entry *kdbx.Entry, group *kdbx.Gr
 	return form, fields
 }
 
-func (view *EntryView) newEntryField(label, initialValue string, isProtected bool) *field.Field {
-	// Do not print empty fields, unless they are the title
-	if initialValue == "" && label != kdbx.TITLE_KEY {
-		return nil
+func (view *EntryView) newEntryField(ef *kdbx.EntryField) *field.InputField {
+	label := ef.Key
+	initialValue := ef.Value.Content
+	isProtected := ef.Value.Protected.Bool
+
+	fieldOpts := &field.InputOptions{
+		InitialValue: initialValue,
+		Hidden:       isProtected,
+		Disabled:     App.IsReadOnly(),
 	}
+	f := field.NewInputField(label, fieldOpts)
 
-	inputType := field.InputTypeText
-	if isProtected {
-		inputType = field.InputTypePassword
-	}
-
-	fieldOptions := &field.FieldOptions{Label: label, InitialValue: initialValue, InputType: inputType, Disabled: App.IsReadOnly()}
-	f := field.NewField(fieldOptions)
-
-	f.OnFocus(func() bool {
+	f.Input.OnFocus(func() bool {
 		App.LastFocused = f
 		return true
 	})
 
-	f.OnChange(func(ev tcell.Event) bool {
+	f.Input.OnChange(func(ev tcell.Event) bool {
 		App.SetDirty(true)
 		return false
 	})
 
-	f.OnKeyPress(func(ev *tcell.EventKey) bool {
+	f.Input.OnKeyPress(func(ev *tcell.EventKey) bool {
 		if ev.Name() == "Ctrl+C" {
-			clipboard.Write(string(f.GetContent()))
+			clipboard.Write(string(f.Input.GetContent()))
 			App.Notify(fmt.Sprintf("Copied \"%s\" to the clipboard.", label))
 			return true
 		}
 
 		if ev.Name() == "Ctrl+R" {
 			if isProtected {
-				if f.GetInputType() == field.InputTypePassword {
-					f.SetInputType(field.InputTypeText)
-				} else {
-					f.SetInputType(field.InputTypePassword)
-				}
+				f.Input.SetHidden(!f.Input.IsHidden())
 			}
 
 			return true
 		}
 
+		if ev.Name() == "Ctrl+Y" {
+			if App.IsReadOnly() {
+				msg := "Cannot edit field settings. Archive in read-only mode."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			if kdbx.IsStandardField(label) {
+				msg := "Cannot edit field settings. Standard fields cannot be changed."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			if App.IsDirty() {
+				msg := "Cannot edit field settings. Save the entry first."
+				App.Notify(msg)
+				log.Info(msg)
+				return true
+			}
+
+			App.State.EntryField = ef
+			App.NavigateTo(NewFieldView)
+			return true
+		}
+
 		if ev.Key() == tcell.KeyRune {
-			if isProtected && f.GetInputType() == field.InputTypePassword {
+			if isProtected && f.Input.IsHidden() {
 				App.Notify("Reveal (^R) the field to edit.")
 			}
 		}

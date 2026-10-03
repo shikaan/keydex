@@ -16,21 +16,36 @@ type Application struct {
 	LastFocused components.Focusable
 	State       State
 
-	lastWidget views.Widget
-	lastView   func(tcell.Screen) views.Widget
-	isDirty    bool
-	isReadOnly bool
+	lastWidget     views.Widget
+	previousWidget views.Widget
+	previousTitle  string
+	isDirty        bool
+	isReadOnly     bool
 
 	views.Application
 }
 
-func (a *Application) RefreshCurrentView() {
-	a.layout.SetContent(a.lastView(a.screen))
+func (a *Application) NavigateToWithoutDirtyGuard(newView func(tcell.Screen) views.Widget) {
+	a.previousWidget = a.lastWidget
+	a.previousTitle = a.layout.Title.GetTitle()
+	a.lastWidget = newView(a.screen)
+	a.layout.SetContent(a.lastWidget)
 }
 
-func (a *Application) NavigateToWithoutDirtyGuard(newView func(tcell.Screen) views.Widget) {
-	a.lastView = newView
-	a.layout.SetContent(newView(a.screen))
+func (a *Application) NavigateBack() bool {
+	if a.previousWidget == nil {
+		return false
+	}
+
+	a.lastWidget, a.previousWidget = a.previousWidget, nil
+	a.layout.SetContent(a.lastWidget)
+	a.SetTitle(a.previousTitle)
+	return true
+}
+
+func (a *Application) IsShowingHelp() bool {
+	_, ok := a.lastWidget.(*HelpView)
+	return ok
 }
 
 func (a *Application) NavigateTo(newView func(tcell.Screen) views.Widget) {
@@ -81,6 +96,7 @@ func (a *Application) Confirm(msg string, onAccept func(), onReject func()) {
 
 func (a *Application) SetTitle(title string) {
 	a.layout.Title.SetTitle(title)
+	a.layout.Title.SetDirty(a.isDirty)
 }
 
 func (a *Application) SetDirty(value bool) {
@@ -134,13 +150,24 @@ func (a *Application) CreateEmptyEntry() error {
 	return nil
 }
 
+func (a *Application) SaveEntry() {
+	entry := a.State.Entry.Copy()
+	if existingEntry := a.State.Database.GetEntry(entry.UUID); existingEntry != nil {
+		*existingEntry.Entry = *entry.Entry
+		entry = existingEntry
+	}
+
+	a.State.Entry = a.State.Database.MoveEntryToGroup(entry, a.State.Group).Copy()
+}
+
 var App = &Application{}
 
 type State struct {
-	Entry     *kdbx.Entry
-	Group     *kdbx.Group
-	Database  *kdbx.Database
-	Reference string
+	EntryField *kdbx.EntryField
+	Entry      *kdbx.Entry
+	Group      *kdbx.Group
+	Database   *kdbx.Database
+	Reference  string
 }
 
 func (a *Application) SetScreen(screen tcell.Screen) {

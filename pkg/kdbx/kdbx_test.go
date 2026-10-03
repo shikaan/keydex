@@ -198,25 +198,37 @@ func TestDatabase_NewEntry(t *testing.T) {
 		t.Errorf("Database.NewEntry() username = %v, want %v", username.Value.Content, "user")
 	}
 
-	// Check that password field exists
 	password := entry.Get(PASSWORD_KEY)
 	if password == nil {
 		t.Fatal("Database.NewEntry() password field not found")
 	}
 
-	// Check that password is protected
 	if !password.Value.Protected.Bool {
 		t.Error("Database.NewEntry() password is not protected")
 	}
 
-	// Check that password is not empty
 	if password.Value.Content == "" {
 		t.Error("Database.NewEntry() password is empty")
 	}
 
-	// Check that password is not the fallback value
 	if password.Value.Content == "change-me" {
 		t.Error("Database.NewEntry() password generation failed, got fallback value")
+	}
+
+	url := entry.Get(URL_KEY)
+	if url == nil {
+		t.Fatal("Database.NewEntry() url field not found")
+	}
+	if url.Value.Content != "https://example.com" {
+		t.Errorf("Database.NewEntry() url = %v, want %v", url.Value.Content, "https://example.com")
+	}
+
+	notes := entry.Get(NOTES_KEY)
+	if notes == nil {
+		t.Fatal("Database.NewEntry() notes field not found")
+	}
+	if notes.Value.Content != "" {
+		t.Errorf("Database.NewEntry() notes = %v, want empty", notes.Value.Content)
 	}
 }
 
@@ -575,6 +587,38 @@ func TestDatabase_AddEntryToGroup(t *testing.T) {
 
 		if len(db.Content.Root.Groups[0].Entries) != initialCount {
 			t.Errorf("Expected %d entries (no change), got %d", initialCount, len(db.Content.Root.Groups[0].Entries))
+		}
+	})
+
+	t.Run("returns a valid reference when moving the last entry of a group", func(t *testing.T) {
+		db := makeDatabase("test.kdbx", makeGroup("Group1"), makeGroup("Group2"))
+		newEntry := db.NewEntry()
+
+		added := db.MoveEntryToGroup(newEntry, &db.Content.Root.Groups[0])
+		existing := db.GetEntry(added.UUID)
+		moved := db.MoveEntryToGroup(existing, &db.Content.Root.Groups[1])
+
+		if moved.Times.CreationTime == nil || moved.Times.LastModificationTime == nil {
+			t.Fatal("Expected moved entry to keep its times, got nil")
+		}
+		if !moved.UUID.Compare(newEntry.UUID) {
+			t.Errorf("Expected moved entry UUID %v, got %v", newEntry.UUID, moved.UUID)
+		}
+		if moved.Entry != &db.Content.Root.Groups[1].Entries[0] {
+			t.Error("Expected moved entry to reference the destination group")
+		}
+	})
+
+	t.Run("returns a valid reference when moving an entry followed by others", func(t *testing.T) {
+		entry1 := makeEntry("entry1")
+		entry2 := makeEntry("entry2")
+		db := makeDatabase("test.kdbx", makeGroup("Group1", entry1, entry2), makeGroup("Group2"))
+
+		existing := db.GetEntry(entry1.UUID)
+		moved := db.MoveEntryToGroup(existing, &db.Content.Root.Groups[1])
+
+		if moved.GetTitle() != "entry1" {
+			t.Errorf("Expected moved entry title entry1, got %v", moved.GetTitle())
 		}
 	})
 }

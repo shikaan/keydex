@@ -89,7 +89,7 @@ func open(databasePath, keyPath, passphrase, reference string, readOnly bool) er
 	if entry := database.GetFirstEntryByPath(reference); entry != nil {
 		if group := database.GetGroupForEntry(entry); group != nil {
 			return tui.Run(tui.State{
-				Entry:     entry,
+				Entry:     entry.Copy(),
 				Group:     group,
 				Database:  database,
 				Reference: reference,
