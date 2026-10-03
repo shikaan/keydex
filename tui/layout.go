@@ -41,7 +41,9 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Name() == "Ctrl+G" {
-			App.NavigateTo(NewHelpView)
+			if !App.IsShowingHelp() {
+				App.NavigateToWithoutDirtyGuard(NewHelpView)
+			}
 			return true
 		}
 		if ev.Name() == "Ctrl+N" {
@@ -49,14 +51,28 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 				App.Notify("Cannot create. Archive in read-only mode.")
 				return true
 			}
-			err := App.CreateEmptyEntry()
+			createEntry := func() {
+				err := App.CreateEmptyEntry()
 
-			if err != nil {
-				App.Notify("Could not create. Check logs for details.")
+				if err != nil {
+					App.Notify("Could not create. Check logs for details.")
+					return
+				}
+
+				App.NavigateToWithoutDirtyGuard(NewEntryView)
+			}
+
+			if !App.IsDirty() {
+				createEntry()
 				return true
 			}
 
-			App.NavigateToWithoutDirtyGuard(NewEntryView)
+			App.Confirm(
+				"Navigate away? Unsaved changes will be lost.",
+				func() {
+					App.SetDirty(false)
+					createEntry()
+				}, nil)
 			return true
 		}
 		if ev.Name() == "Ctrl+C" {
@@ -69,6 +85,10 @@ func (v *Layout) HandleEvent(ev tcell.Event) bool {
 			return true
 		}
 		if ev.Key() == tcell.KeyEsc {
+			if App.IsShowingHelp() && App.NavigateBack() {
+				return true
+			}
+
 			if App.State.Entry == nil {
 				App.Notify("No entry selected yet.")
 				return true

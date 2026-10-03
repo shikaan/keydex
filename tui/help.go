@@ -46,6 +46,7 @@ func (v *HelpView) HandleEvent(ev tcell.Event) bool {
 
 func NewHelpView(screen tcell.Screen) views.Widget {
 	App.SetTitle("Help")
+	App.layout.Title.SetDirty(false)
 	view := &HelpView{}
 	view.screen = screen
 

@@ -74,7 +74,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 						App.Notify(msg)
 						log.Info(msg)
 						App.SetDirty(false)
-						App.RefreshCurrentView()
+						App.NavigateToWithoutDirtyGuard(NewEntryView)
 					}, func() {
 						msg := "Operation cancelled. Entry was not created."
 						App.Notify(msg)
@@ -97,7 +97,7 @@ func (v *EntryView) HandleEvent(ev tcell.Event) bool {
 					App.Notify(msg)
 					log.Info(msg)
 					App.SetDirty(false)
-					App.RefreshCurrentView()
+					App.NavigateToWithoutDirtyGuard(NewEntryView)
 				}, func() {
 					msg := "Operation cancelled. Entry was not saved."
 					App.Notify(msg)

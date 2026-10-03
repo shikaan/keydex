@@ -1276,6 +1276,63 @@ func TestCreateFieldThenLeave(t *testing.T) {
 	waitForAbsent(t, screen, kdbx.DEFAULT_CUSTOM_FIELD_KEY+":", e2eTimeout)
 }
 
+func TestCreateFieldThenHelp(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+	for range len(kdbx.DEFAULT_CUSTOM_FIELD_KEY) {
+		screen.InjectKey(tcell.KeyDelete, 0, 0)
+	}
+	typeText(screen, "Pin")
+	waitFor(t, screen, "Label: Pin ", e2eTimeout)
+
+	// Help (^G) is not guarded → ESC goes back to the field with its edits
+	screen.InjectKey(tcell.KeyCtrlG, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Help Text", e2eTimeout)
+	waitForAbsent(t, screen, "Navigate away?", e2eTimeout)
+	waitForAbsent(t, screen, "[MODIFIED]", e2eTimeout)
+
+	// Help (^G) on help is a no-op → a single ESC goes back to the field
+	screen.InjectKey(tcell.KeyCtrlG, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Help Text", e2eTimeout)
+
+	screen.InjectKey(tcell.KeyEsc, 0, 0)
+	waitFor(t, screen, "Label: Pin ", e2eTimeout)
+	waitFor(t, screen, "[MODIFIED]", e2eTimeout)
+}
+
+func TestCreateFieldThenGroups(t *testing.T) {
+	filePath, password := makeTestKdbxFile(t)
+	db := openTestDatabase(t, filePath, password)
+	screen := startApp(t, tui.State{Database: db}, false)
+
+	navigateToEntryList(t, screen)
+	selectEntry(t, screen, "GitHub")
+	waitFor(t, screen, ghUser, e2eTimeout)
+
+	screen.InjectKey(tcell.KeyCtrlT, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Groups (^K) is guarded → Dismiss keeps the new field
+	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Navigate away?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'N', 0)
+	waitFor(t, screen, "Label: "+kdbx.DEFAULT_CUSTOM_FIELD_KEY, e2eTimeout)
+
+	// Groups (^K) → Confirm loses it
+	screen.InjectKey(tcell.KeyCtrlK, 0, tcell.ModCtrl)
+	waitFor(t, screen, "Navigate away?", e2eTimeout)
+	screen.InjectKey(tcell.KeyRune, 'Y', 0)
+	waitFor(t, screen, "Select group for", e2eTimeout)
+}
+
 func TestDeleteCustomField(t *testing.T) {
 	filePath, password := makeTestKdbxFileWithEntries(t, makeCustomFieldsEntry())
 	db := openTestDatabase(t, filePath, password)

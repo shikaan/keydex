@@ -21,6 +21,11 @@ type FieldView struct {
 func (v *FieldView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
+		if ev.Name() == "Ctrl+K" {
+			App.NavigateTo(NewGroupListView)
+			return true
+		}
+
 		if ev.Name() == "Ctrl+O" {
 			if App.IsReadOnly() {
 				msg := "Cannot save. Archive in read-only mode."

@@ -20,6 +20,10 @@ func (t *Title) SetTitle(title string) {
 	t.SetDirty(t.isDirty)
 }
 
+func (t *Title) GetTitle() string {
+	return t.content
+}
+
 func (t *Title) SetDirty(dirty bool) {
 	t.isDirty = dirty
 	text := t.content
